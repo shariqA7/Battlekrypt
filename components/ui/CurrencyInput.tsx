@@ -1,3 +1,5 @@
+"use client";
+
 // CurrencyInput.tsx
 // Money is always {amount, currency} — never a bare number. See schema.prisma.
 

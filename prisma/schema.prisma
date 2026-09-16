@@ -1,19 +1,18 @@
 // ============================================================
-// Esports Tournament Platform — Database Schema
+// Esports Tournament Platform — Database Schema (PHASE 1 ONLY)
 // Postgres + Prisma ORM
 //
-// Design principles used throughout:
-// - Money fields ALWAYS store {amount, currency} together, never a bare number
-// - USD-equivalent fields are computed once at creation for threshold checks,
-//   not recalculated live, so historical tier decisions don't drift with FX rates
-// - JSONB (Json fields) used deliberately for organizer-defined / variable-shape
-//   data only (custom registration fields, template configs) — everything
-//   else stays strictly relational
-// - Rules/config are SNAPSHOTTED onto the tournament at creation time, so
-//   editing a RuleSet or Template later never retroactively changes a
-//   published tournament
-// - "Competitive Tier" (D..National) and "Subscription Plan" (free/paid) are
-//   intentionally separate systems — do not merge them
+// This is the trimmed, launch-critical subset. The full 9-phase
+// schema (Club, Merch, Ratings, Donations, etc.) is preserved in
+// schema.full.prisma — copy sections back in as each phase is built,
+// rather than migrating everything up front.
+//
+// Design principles:
+// - Money fields ALWAYS store {amount, currency} together
+// - JSONB (Json fields) used only for genuinely variable-shape data
+//   (organizer custom registration fields)
+// - Rules are simple free-text at Phase 1 (structured rules + severity
+//   come in Phase 3 — see schema.full.prisma for that version)
 // ============================================================
 
 generator client {
@@ -22,11 +21,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ------------------------------------------------------------
-// PHASE 1 — CORE IDENTITY
+// IDENTITY
 // ------------------------------------------------------------
 
 enum KycStatus {
@@ -37,40 +35,32 @@ enum KycStatus {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  email         String?  @unique
-  phone         String?  @unique
-  passwordHash  String
-  displayName   String
-  avatarUrl     String?
-  kycStatus     KycStatus @default(none)
-  isAdmin       Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  email        String?  @unique
+  phone        String?  @unique
+  passwordHash String
+  displayName  String
+  avatarUrl    String?
+  kycStatus    KycStatus @default(none) // doubles as the organizer-approval gate in Phase 1
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   playerProfile    PlayerProfile?
   organizerProfile OrganizerProfile?
-  clubProfile      ClubProfile?
 
-  subscriptions    UserSubscription[]
-  donations        Donation[]
-  institutionVerifications InstitutionVerification[]
-  adminActionLogs  AdminActionLog[] @relation("AdminActor")
+  adminActionLogs AdminActionLog[] @relation("AdminActor")
 }
 
 model Game {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  category    String?  // mobile / pc / console
-  isApproved  Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  name       String   @unique
+  category   String?
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
 
-  tournaments      Tournament[]
-  playerRatings    PlayerGameRating[]
-  clubRatings      ClubGameRating[]
-  clubRosterEntries ClubRoster[]
-  gameRequests     GameRequest[]
-  tierConfigs      CompetitiveTierConfig[]
+  tournaments  Tournament[]
+  gameRequests GameRequest[]
 }
 
 enum GameRequestStatus {
@@ -80,99 +70,49 @@ enum GameRequestStatus {
 }
 
 model GameRequest {
-  id           String @id @default(uuid())
-  organizerId  String
-  organizer    OrganizerProfile @relation(fields: [organizerId], references: [id])
-  gameName     String
-  status       GameRequestStatus @default(pending)
-  reviewedById String?
-  createdAt    DateTime @default(now())
+  id             String            @id @default(uuid())
+  organizerId    String
+  organizer      OrganizerProfile  @relation(fields: [organizerId], references: [id])
+  gameName       String
+  status         GameRequestStatus @default(pending)
+  reviewedById   String?
+  createdAt      DateTime          @default(now())
   approvedGameId String?
-  approvedGame   Game? @relation(fields: [approvedGameId], references: [id])
+  approvedGame   Game?             @relation(fields: [approvedGameId], references: [id])
 }
 
 // ------------------------------------------------------------
-// PHASE 1 — ROLE PROFILES
+// ROLE PROFILES
 // ------------------------------------------------------------
 
 model PlayerProfile {
-  id             String  @id @default(uuid())
-  userId         String  @unique
-  user           User    @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  institutionVerification InstitutionVerification?
-  subscriptionPlanCode    String  @default("player_free") // FK-like ref to SubscriptionPlan.code
-  supporterBadge          Boolean @default(false)
-
-  ratings         PlayerGameRating[]
   registrations   Registration[]
   teamMemberships TeamMember[]
-  clubRosterEntries ClubRoster[]
-  feedbackGiven   OrganizerFeedback[]
-  merchFeedback   MerchFeedback[]
-  orders          Order[]
 
   createdAt DateTime @default(now())
 }
 
 model OrganizerProfile {
-  id           String  @id @default(uuid())
-  userId       String  @unique
-  user         User    @relation(fields: [userId], references: [id])
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
 
-  orgName      String
-  bio          String?
-  socialLinks  Json?   // { youtube, twitch, instagram, discord, ... }
+  orgName     String
+  bio         String?
+  socialLinks Json?
 
-  subscriptionPlanCode String @default("organizer_free")
-
-  tournaments      Tournament[]
-  ruleSets         RuleSet[]
-  templates        TournamentTemplate[]
-  gameRequests     GameRequest[]
-  feedbackReceived OrganizerFeedback[]
-
-  createdAt DateTime @default(now())
-}
-
-model ClubProfile {
-  id            String  @id @default(uuid())
-  userId        String  @unique   // club owner account
-  user          User    @relation(fields: [userId], references: [id])
-
-  clubName      String
-  logoUrl       String?
-  registrationFeePaid Boolean @default(false)
-  subscriptionPlanCode String @default("club_free")
-
-  roster        ClubRoster[]
-  gameRatings   ClubGameRating[]
-  teamEntries   TeamEntry[]
-  products      Product[]      // Phase 9
-  orders        Order[]        // Phase 9, as buyer of other clubs' merch
+  tournaments  Tournament[]
+  gameRequests GameRequest[]
 
   createdAt DateTime @default(now())
 }
 
 // ------------------------------------------------------------
-// PHASE 2 — CLUB ROSTER
-// ------------------------------------------------------------
-
-model ClubRoster {
-  id         String  @id @default(uuid())
-  clubId     String
-  club       ClubProfile @relation(fields: [clubId], references: [id])
-  playerId   String
-  player     PlayerProfile @relation(fields: [playerId], references: [id])
-  gameId     String
-  game       Game @relation(fields: [gameId], references: [id])
-  joinedAt   DateTime @default(now())
-
-  @@unique([clubId, playerId, gameId])
-}
-
-// ------------------------------------------------------------
-// PHASE 1 — TOURNAMENT CORE
+// TOURNAMENT CORE
 // ------------------------------------------------------------
 
 enum TournamentType {
@@ -200,16 +140,6 @@ enum EntryType {
   paid
 }
 
-enum VenueType {
-  online
-  lan
-}
-
-enum AudienceScope {
-  open
-  institution_only
-}
-
 enum TournamentStatus {
   draft
   published
@@ -220,6 +150,8 @@ enum TournamentStatus {
   cancelled
 }
 
+// Kept as an enum for forward-compatibility with Phase 6, but no
+// enforcement/config table exists yet in this trimmed schema.
 enum CompetitiveTier {
   none
   D
@@ -230,56 +162,37 @@ enum CompetitiveTier {
   National
 }
 
-enum TierCertificationStatus {
-  not_applicable
-  auto_approved
-  pending_admin_review
-  certified
-  rejected
-}
-
 model Tournament {
-  id            String   @id @default(uuid())
-  organizerId   String
-  organizer     OrganizerProfile @relation(fields: [organizerId], references: [id])
-  gameId        String
-  game          Game @relation(fields: [gameId], references: [id])
+  id          String           @id @default(uuid())
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+  gameId      String
+  game        Game             @relation(fields: [gameId], references: [id])
 
-  name          String
-  description   String?
-  bannerUrl     String?
+  name        String
+  description String?
+  bannerUrl   String?
 
-  type          TournamentType
-  mode          TournamentMode
-  maxTeamSize   Int?
-  maxTeams      Int
+  type           TournamentType
+  mode           TournamentMode
+  maxTeamSize    Int?
+  maxTeams       Int
   playersPerRoom Int?
-  format        TournamentFormat
+  format         TournamentFormat
 
-  entryType         EntryType
-  entryFeeAmount    Decimal? @db.Decimal(14,2)
-  entryFeeCurrency  String?
+  entryType        EntryType
+  entryFeeAmount   Decimal? @db.Decimal(14, 2)
+  entryFeeCurrency String?
 
-  prizePoolAmount        Decimal? @db.Decimal(14,2)
-  prizePoolCurrency      String?
-  prizePoolUsdEquivalent Decimal? @db.Decimal(14,2) // computed once at creation, drives tier checks
+  prizePoolAmount   Decimal? @db.Decimal(14, 2)
+  prizePoolCurrency String?
 
-  competitiveTier   CompetitiveTier @default(none)
-  tierStatus        TierCertificationStatus @default(not_applicable)
+  competitiveTier CompetitiveTier @default(none)
 
-  venueType     VenueType @default(online)
-  venueAddress  String?
+  customFields Json?
 
-  audienceScope       AudienceScope @default(open)
-  allowedInstitutions String[]      @default([])
-
-  customFields  Json?   // organizer-defined registration field definitions
-
-  status        TournamentStatus @default(draft)
-  startAt       DateTime?
-
-  templateSourceId String?
-  templateSource    TournamentTemplate? @relation(fields: [templateSourceId], references: [id])
+  status  TournamentStatus @default(draft)
+  startAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -288,92 +201,37 @@ model Tournament {
   rules         TournamentRule[]
   registrations Registration[]
   teamEntries   TeamEntry[]
-  slots         Slot[]
-  feedback      OrganizerFeedback[]
-  fundAllocations FundAllocation[]
 }
 
 model Stage {
-  id            String  @id @default(uuid())
-  tournamentId  String
-  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
 
-  name          String    // Qualifiers, Semis, Finals...
-  order         Int
+  name  String
+  order Int
 
-  startAt       DateTime?
-  roomId        String?
-  roomPassword  String?
-  roomRevealAt  DateTime?
+  startAt      DateTime?
+  roomId       String?
+  roomPassword String?
+  roomRevealAt DateTime?
 
-  status        String @default("upcoming") // upcoming / live / completed
-
-  rules         TournamentRule[]
-  slots         Slot[]
+  status String @default("upcoming")
 }
 
-// ------------------------------------------------------------
-// PHASE 1(free-text) / PHASE 3 (structured) — RULES
-// ------------------------------------------------------------
-
-enum RuleSeverity {
-  warning
-  point_deduction
-  disqualification
-}
-
-model RuleSet {
-  id           String @id @default(uuid())
-  organizerId  String
-  organizer    OrganizerProfile @relation(fields: [organizerId], references: [id])
-  name         String
-  createdAt    DateTime @default(now())
-
-  items        RuleSetItem[]
-}
-
-model RuleSetItem {
-  id          String @id @default(uuid())
-  ruleSetId   String
-  ruleSet     RuleSet @relation(fields: [ruleSetId], references: [id])
-  type        String
-  description String
-  severity    RuleSeverity
-}
-
-// Snapshot copy attached directly to a published tournament —
-// intentionally NOT a live foreign key into RuleSetItem, so editing
-// a RuleSet later never changes a tournament that already used it.
+// Phase 1: simple free-text rules. Structured type/severity + rule sets
+// + templates are Phase 3 — see schema.full.prisma.
 model TournamentRule {
-  id            String @id @default(uuid())
-  tournamentId  String
-  tournament    Tournament @relation(fields: [tournamentId], references: [id])
-  type          String
-  description   String
-  severity      RuleSeverity
-  stageId       String?
-  stage         Stage? @relation(fields: [stageId], references: [id])
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  description  String
 
   disqualifications Registration[] @relation("DisqualifiedRule")
 }
 
 // ------------------------------------------------------------
-// PHASE 3 — TEMPLATES
-// ------------------------------------------------------------
-
-model TournamentTemplate {
-  id           String @id @default(uuid())
-  organizerId  String
-  organizer    OrganizerProfile @relation(fields: [organizerId], references: [id])
-  name         String
-  configJson   Json     // full tournament config minus instance-specific fields
-  createdAt    DateTime @default(now())
-
-  tournamentsCreated Tournament[]
-}
-
-// ------------------------------------------------------------
-// PHASE 1 — REGISTRATION, TEAMS, SLOTS
+// REGISTRATION & TEAMS
 // ------------------------------------------------------------
 
 enum RegistrationStatus {
@@ -395,324 +253,59 @@ enum AddedBy {
 }
 
 model TeamEntry {
-  id            String @id @default(uuid())
-  tournamentId  String
-  tournament    Tournament @relation(fields: [tournamentId], references: [id])
-  name          String
-  clubId        String?
-  club          ClubProfile? @relation(fields: [clubId], references: [id])
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  name         String
+  // clubId intentionally omitted — Club module is Phase 2,
+  // see schema.full.prisma for the club-linked version.
 
-  members       TeamMember[]
-  registration  Registration?
+  members      TeamMember[]
+  registration Registration?
 }
 
 model TeamMember {
-  id          String @id @default(uuid())
+  id          String        @id @default(uuid())
   teamEntryId String
-  teamEntry   TeamEntry @relation(fields: [teamEntryId], references: [id])
+  teamEntry   TeamEntry     @relation(fields: [teamEntryId], references: [id])
   playerId    String
   player      PlayerProfile @relation(fields: [playerId], references: [id])
 }
 
 model Registration {
-  id             String @id @default(uuid())
-  tournamentId   String
-  tournament     Tournament @relation(fields: [tournamentId], references: [id])
-
-  playerId       String?
-  player         PlayerProfile? @relation(fields: [playerId], references: [id])
-  teamEntryId    String? @unique
-  teamEntry      TeamEntry? @relation(fields: [teamEntryId], references: [id])
-
-  status         RegistrationStatus @default(pending)
-  paymentStatus  PaymentStatus @default(unpaid)
-  paymentProofUrl String?
-  addedBy        AddedBy @default(self)
-
-  disqualifiedRuleId String?
-  disqualifiedRule    TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
-
-  customFieldResponses Json?   // answers to organizer's custom registration fields
-
-  registeredAt   DateTime @default(now())
-  approvedAt     DateTime?
-
-  slot           Slot?
-}
-
-enum SlotState {
-  open
-  reserved
-  filled
-}
-
-enum FilledBy {
-  organizer_manual
-  player_self_serve
-}
-
-model Slot {
-  id             String @id @default(uuid())
-  tournamentId   String
-  tournament     Tournament @relation(fields: [tournamentId], references: [id])
-  stageId        String?
-  stage          Stage? @relation(fields: [stageId], references: [id])
-
-  slotNumber     Int
-  state          SlotState @default(open)
-  filledBy       FilledBy?
-
-  registrationId String? @unique
-  registration   Registration? @relation(fields: [registrationId], references: [id])
-}
-
-// ------------------------------------------------------------
-// PHASE 5 — SUBSCRIPTION PLANS
-// ------------------------------------------------------------
-
-enum AccountType {
-  organizer
-  club
-  player
-}
-
-// Reference/config table — one row per plan, editable by Admin without a
-// code deploy. `code` is what PlayerProfile/OrganizerProfile/ClubProfile
-// reference in subscriptionPlanCode.
-model SubscriptionPlan {
-  id            String @id @default(uuid())
-  code          String @unique   // e.g. "organizer_free", "organizer_pro"
-  accountType   AccountType
-  name          String
-  priceAmount   Decimal? @db.Decimal(10,2)
-  priceCurrency String?
-
-  maxTournamentsPerMonth Int?
-  maxGames               Int?
-  maxRosterSize          Int?
-  adFree                 Boolean @default(false)
-  verifiedBadgeEligible  Boolean @default(false)
-  prioritySupport        Boolean @default(false)
-  priorityRegistration   Boolean @default(false)
-  merchStoreAccess        Boolean @default(false)
-
-  subscriptions UserSubscription[]
-}
-
-enum SubscriptionStatus {
-  active
-  expired
-  cancelled
-}
-
-model UserSubscription {
-  id         String @id @default(uuid())
-  userId     String
-  user       User @relation(fields: [userId], references: [id])
-  planId     String
-  plan       SubscriptionPlan @relation(fields: [planId], references: [id])
-  status     SubscriptionStatus @default(active)
-  startedAt  DateTime @default(now())
-  expiresAt  DateTime?
-}
-
-// ------------------------------------------------------------
-// PHASE 6 — RATING & COMPETITIVE TIER
-// ------------------------------------------------------------
-
-model PlayerGameRating {
-  id       String @id @default(uuid())
-  playerId String
-  player   PlayerProfile @relation(fields: [playerId], references: [id])
-  gameId   String
-  game     Game @relation(fields: [gameId], references: [id])
-  rating   Int @default(1000)
-  updatedAt DateTime @updatedAt
-
-  @@unique([playerId, gameId])
-}
-
-model ClubGameRating {
-  id         String @id @default(uuid())
-  clubId     String
-  club       ClubProfile @relation(fields: [clubId], references: [id])
-  gameId     String
-  game       Game @relation(fields: [gameId], references: [id])
-  rating     Int @default(1000)
-  sTierWins  Int @default(0)   // drives National-tier eligibility
-  updatedAt  DateTime @updatedAt
-
-  @@unique([clubId, gameId])
-}
-
-// Admin-configurable thresholds — never hardcode these in application code
-model CompetitiveTierConfig {
-  id                  String @id @default(uuid())
-  tier                CompetitiveTier
-  gameId              String?         // null = applies platform-wide across all games
-  game                Game? @relation(fields: [gameId], references: [id])
-  minPrizePoolUsd     Decimal @db.Decimal(14,2)
-  minRating           Int?
-  minSTierWins        Int?
-  requiresAdminReview Boolean @default(false)
-  updatedAt           DateTime @updatedAt
-}
-
-// ------------------------------------------------------------
-// PHASE 4 — DISCOVERY & TRUST
-// ------------------------------------------------------------
-
-enum Vote {
-  like
-  dislike
-}
-
-model OrganizerFeedback {
-  id           String @id @default(uuid())
-  organizerId  String
-  organizer    OrganizerProfile @relation(fields: [organizerId], references: [id])
+  id           String     @id @default(uuid())
   tournamentId String
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
-  playerId     String
-  player       PlayerProfile @relation(fields: [playerId], references: [id])
-  vote         Vote
-  createdAt    DateTime @default(now())
 
-  @@unique([organizerId, tournamentId, playerId])
-}
+  playerId    String?
+  player      PlayerProfile? @relation(fields: [playerId], references: [id])
+  teamEntryId String?        @unique
+  teamEntry   TeamEntry?     @relation(fields: [teamEntryId], references: [id])
 
-// ------------------------------------------------------------
-// PHASE 8 — INSTITUTION VERIFICATION
-// ------------------------------------------------------------
-
-enum VerificationStatus {
-  pending
-  approved
-  rejected
-}
-
-model InstitutionVerification {
-  id              String @id @default(uuid())
-  playerId        String @unique
-  player          PlayerProfile @relation(fields: [playerId], references: [id])
-  userId          String @unique
-  user            User @relation(fields: [userId], references: [id])
-  institutionName String
-  idProofUrl      String
-  status          VerificationStatus @default(pending)
-  reviewedById    String?
-  createdAt       DateTime @default(now())
-}
-
-// ------------------------------------------------------------
-// PHASE 7 — DONATIONS & COMMUNITY FUND
-// ------------------------------------------------------------
-
-model Donation {
-  id        String @id @default(uuid())
-  userId    String
-  user      User @relation(fields: [userId], references: [id])
-  amount    Decimal @db.Decimal(12,2)
-  currency  String
-  createdAt DateTime @default(now())
-}
-
-model FundAllocation {
-  id                 String @id @default(uuid())
-  amount             Decimal @db.Decimal(12,2)
-  currency           String
-  purpose            String
-  linkedTournamentId String?
-  linkedTournament   Tournament? @relation(fields: [linkedTournamentId], references: [id])
-  allocatedByAdminId String
-  createdAt          DateTime @default(now())
-}
-
-// ------------------------------------------------------------
-// PHASE 9 — CLUB MERCH STORE
-// ------------------------------------------------------------
-
-model Product {
-  id          String @id @default(uuid())
-  clubId      String
-  club        ClubProfile @relation(fields: [clubId], references: [id])
-  name        String
-  description String?
-  category    String?
-  priceAmount   Decimal @db.Decimal(10,2)
-  priceCurrency String
-  images      String[] @default([])
-  createdAt   DateTime @default(now())
-
-  variants    ProductVariant[]
-  feedback    MerchFeedback[]
-}
-
-model ProductVariant {
-  id         String @id @default(uuid())
-  productId  String
-  product    Product @relation(fields: [productId], references: [id])
-  attributes Json     // { size: "L", color: "black" }
-  stock      Int @default(0)
-
-  orderItems OrderItem[]
-}
-
-enum OrderStatus {
-  pending
-  processing
-  shipped
-  delivered
-  cancelled
-}
-
-model Order {
-  id              String @id @default(uuid())
-  buyerPlayerId   String?
-  buyerPlayer     PlayerProfile? @relation(fields: [buyerPlayerId], references: [id])
-  buyerClubId     String?
-  buyerClub       ClubProfile? @relation(fields: [buyerClubId], references: [id])
-
-  status          OrderStatus @default(pending)
+  status          RegistrationStatus @default(pending)
+  paymentStatus   PaymentStatus      @default(unpaid)
   paymentProofUrl String?
-  shippingAddress Json?
-  createdAt       DateTime @default(now())
+  addedBy         AddedBy            @default(self)
 
-  items           OrderItem[]
-}
+  disqualifiedRuleId String?
+  disqualifiedRule   TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
 
-model OrderItem {
-  id               String @id @default(uuid())
-  orderId          String
-  order            Order @relation(fields: [orderId], references: [id])
-  productVariantId String
-  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
-  quantity         Int
-  priceAtPurchase  Decimal @db.Decimal(10,2)
-}
+  customFieldResponses Json?
 
-model MerchFeedback {
-  id        String @id @default(uuid())
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  playerId  String
-  player    PlayerProfile @relation(fields: [playerId], references: [id])
-  vote      Vote
-  createdAt DateTime @default(now())
-
-  @@unique([productId, playerId])
+  registeredAt DateTime  @default(now())
+  approvedAt   DateTime?
 }
 
 // ------------------------------------------------------------
-// ADMIN / AUDIT
+// ADMIN / AUDIT — minimal Phase 1 panel
 // ------------------------------------------------------------
 
 model AdminActionLog {
   id         String @id @default(uuid())
   adminId    String
-  admin      User @relation("AdminActor", fields: [adminId], references: [id])
-  action     String   // e.g. "approved_organizer", "certified_s_tier_tournament"
-  targetType String   // e.g. "Tournament", "GameRequest"
+  admin      User   @relation("AdminActor", fields: [adminId], references: [id])
+  action     String
+  targetType String
   targetId   String
   notes      String?
   createdAt  DateTime @default(now())

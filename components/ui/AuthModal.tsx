@@ -1,3 +1,5 @@
+"use client";
+
 // AuthModal.tsx
 // Requires: import "@fontsource/hanken-grotesk" and "@fontsource/jetbrains-mono"
 // (or the Google Fonts <link>/@import from battlekrypt-tokens.css)
