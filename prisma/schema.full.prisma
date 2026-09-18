@@ -36,10 +36,9 @@ enum KycStatus {
 }
 
 model User {
-  id            String   @id @default(uuid())
+  id            String   @id // matches Supabase auth.users.id
   email         String?  @unique
   phone         String?  @unique
-  passwordHash  String
   displayName   String
   avatarUrl     String?
   kycStatus     KycStatus @default(none)
@@ -430,6 +429,7 @@ model Registration {
 
   disqualifiedRuleId String?
   disqualifiedRule    TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
+  disqualifiedReason String?
 
   customFieldResponses Json?   // answers to organizer's custom registration fields
 

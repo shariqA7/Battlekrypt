@@ -1,6 +1,8 @@
 import Nav from "@/components/layout/Nav";
 import { listTournaments } from "@/lib/services/tournaments";
 import Link from "next/link";
+import { Suspense } from "react";
+import FilterBar from "./FilterBar";
 
 export default async function TournamentsPage({
   searchParams,
@@ -9,8 +11,10 @@ export default async function TournamentsPage({
 }) {
   const params = await searchParams;
   const { data: tournaments, total } = await listTournaments({
-    game: params.game,
-    search: params.search,
+    game: params.game || undefined,
+    search: params.search || undefined,
+    type: (params.type || undefined) as never,
+    entryType: (params.entryType || undefined) as never,
     page: params.page ? Number(params.page) : undefined,
   });
 
@@ -21,9 +25,13 @@ export default async function TournamentsPage({
         <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
           Tournaments
         </h1>
-        <p className="font-sans text-bk-body text-sm mb-8">
+        <p className="font-sans text-bk-body text-sm mb-4">
           {total} tournament{total !== 1 ? "s" : ""} found
         </p>
+
+        <Suspense fallback={null}>
+          <FilterBar />
+        </Suspense>
 
         {tournaments.length === 0 ? (
           <p className="text-bk-muted font-sans text-sm">

@@ -345,3 +345,355 @@ export async function getMyRegistrations(playerId: string) {
     orderBy: { registeredAt: "desc" },
   });
 }
+
+export async function getMyTournaments(organizerId: string) {
+  return prisma.tournament.findMany({
+    where: { organizerId },
+    include: {
+      game: true,
+      _count: { select: { registrations: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+// ------------------------------------------------------------
+// ADMIN
+// ------------------------------------------------------------
+
+export async function listPendingOrganizers() {
+  return prisma.organizerProfile.findMany({
+    where: { user: { kycStatus: { in: ["none", "pending"] } } },
+    include: { user: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+export async function approveOrganizer(organizerProfileId: string, adminId: string) {
+  const organizer = await prisma.organizerProfile.findUnique({
+    where: { id: organizerProfileId },
+  });
+  if (!organizer) return { error: "not_found" as const };
+
+  const updated = await prisma.user.update({
+    where: { id: organizer.userId },
+    data: { kycStatus: "approved" },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "approved_organizer",
+      targetType: "OrganizerProfile",
+      targetId: organizerProfileId,
+    },
+  });
+
+  return { data: updated };
+}
+
+export async function rejectOrganizer(
+  organizerProfileId: string,
+  adminId: string,
+  reason?: string
+) {
+  const organizer = await prisma.organizerProfile.findUnique({
+    where: { id: organizerProfileId },
+  });
+  if (!organizer) return { error: "not_found" as const };
+
+  const updated = await prisma.user.update({
+    where: { id: organizer.userId },
+    data: { kycStatus: "rejected" },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "rejected_organizer",
+      targetType: "OrganizerProfile",
+      targetId: organizerProfileId,
+      notes: reason,
+    },
+  });
+
+  return { data: updated };
+}
+
+export async function listPendingGameRequests() {
+  return prisma.gameRequest.findMany({
+    where: { status: "pending" },
+    include: { organizer: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+export async function approveGameRequest(gameRequestId: string, adminId: string) {
+  const request = await prisma.gameRequest.findUnique({ where: { id: gameRequestId } });
+  if (!request) return { error: "not_found" as const };
+  if (request.status !== "pending") return { error: "already_reviewed" as const };
+
+  const game = await prisma.game.create({
+    data: { name: request.gameName },
+  });
+
+  const updated = await prisma.gameRequest.update({
+    where: { id: gameRequestId },
+    data: { status: "approved", approvedGameId: game.id },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "approved_game_request",
+      targetType: "GameRequest",
+      targetId: gameRequestId,
+    },
+  });
+
+  return { data: updated };
+}
+
+export async function rejectGameRequest(gameRequestId: string, adminId: string, reason?: string) {
+  const request = await prisma.gameRequest.findUnique({ where: { id: gameRequestId } });
+  if (!request) return { error: "not_found" as const };
+  if (request.status !== "pending") return { error: "already_reviewed" as const };
+
+  const updated = await prisma.gameRequest.update({
+    where: { id: gameRequestId },
+    data: { status: "rejected" },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "rejected_game_request",
+      targetType: "GameRequest",
+      targetId: gameRequestId,
+      notes: reason,
+    },
+  });
+
+  return { data: updated };
+}
+
+// ------------------------------------------------------------
+// TOURNAMENT EDIT / CANCEL
+// ------------------------------------------------------------
+
+export interface UpdateTournamentInput {
+  name?: string;
+  description?: string;
+  bannerUrl?: string;
+  maxTeams?: number;
+  playersPerRoom?: number;
+  entryFeeAmount?: number;
+  entryFeeCurrency?: string;
+  prizePoolAmount?: number;
+  prizePoolCurrency?: string;
+  startAt?: Date;
+}
+
+export async function updateTournament(
+  tournamentId: string,
+  organizerId: string,
+  input: UpdateTournamentInput
+) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+  if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+
+  const updated = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: input,
+  });
+  return { data: updated };
+}
+
+export async function cancelTournament(tournamentId: string, organizerId: string) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+  if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+  if (tournament.status === "cancelled" || tournament.status === "completed") {
+    return { error: "invalid_status" as const };
+  }
+
+  const updated = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { status: "cancelled" },
+  });
+
+  // Phase 1 has no automated refund engine (that's Phase 7) — cancelling
+  // just changes status. Paid registrations still show paymentStatus:
+  // "paid" so the organizer can see who needs a manual refund by looking
+  // at this tournament's registration list.
+
+  return { data: updated };
+}
+
+// ------------------------------------------------------------
+// PLAYER PROFILE
+// ------------------------------------------------------------
+
+export async function getPlayerProfileByUserId(userId: string) {
+  return prisma.playerProfile.findUnique({
+    where: { userId },
+    include: { user: { select: { displayName: true, avatarUrl: true } } },
+  });
+}
+
+export async function getPublicPlayerProfile(playerId: string) {
+  return prisma.playerProfile.findUnique({
+    where: { id: playerId },
+    include: {
+      user: { select: { displayName: true, avatarUrl: true } },
+      _count: { select: { registrations: true } },
+    },
+  });
+}
+
+export async function updatePlayerProfile(userId: string, displayName?: string, avatarUrl?: string) {
+  return prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(displayName && { displayName }),
+      ...(avatarUrl && { avatarUrl }),
+    },
+  });
+}
+
+// ------------------------------------------------------------
+// ORGANIZER PROFILE
+// ------------------------------------------------------------
+
+export async function getOrganizerByUserId(userId: string) {
+  return prisma.organizerProfile.findUnique({
+    where: { userId },
+    include: { user: { select: { kycStatus: true, displayName: true } } },
+  });
+}
+
+export async function getPublicOrganizerProfile(organizerId: string) {
+  const organizer = await prisma.organizerProfile.findUnique({
+    where: { id: organizerId },
+    include: {
+      user: { select: { kycStatus: true } },
+      _count: { select: { tournaments: true } },
+    },
+  });
+  if (!organizer) return null;
+
+  const completedTournaments = await prisma.tournament.findMany({
+    where: { organizerId, status: "completed" },
+    select: { prizePoolAmount: true, prizePoolCurrency: true },
+  });
+
+  return { ...organizer, completedTournaments };
+}
+
+export async function updateOrganizerProfile(
+  organizerId: string,
+  userId: string,
+  input: { orgName?: string; bio?: string; socialLinks?: unknown }
+) {
+  const organizer = await prisma.organizerProfile.findUnique({ where: { id: organizerId } });
+  if (!organizer) return { error: "not_found" as const };
+  if (organizer.userId !== userId) return { error: "forbidden" as const };
+
+  const updated = await prisma.organizerProfile.update({
+    where: { id: organizerId },
+    data: {
+      ...(input.orgName && { orgName: input.orgName }),
+      ...(input.bio !== undefined && { bio: input.bio }),
+      ...(input.socialLinks !== undefined && { socialLinks: input.socialLinks as Prisma.InputJsonValue }),
+    },
+  });
+  return { data: updated };
+}
+
+export async function getMyGameRequests(organizerId: string) {
+  return prisma.gameRequest.findMany({
+    where: { organizerId },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+// ------------------------------------------------------------
+// REGISTRATION DETAIL / DISQUALIFY
+// ------------------------------------------------------------
+
+export async function getRegistrationById(
+  registrationId: string,
+  requesterUserId: string
+) {
+  const registration = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    include: {
+      tournament: { include: { organizer: true } },
+      player: { include: { user: { select: { displayName: true } } } },
+      teamEntry: { include: { members: true } },
+    },
+  });
+  if (!registration) return { error: "not_found" as const };
+
+  // Access control: only the organizer who owns the tournament, or the
+  // player who owns the registration, can view it.
+  const isOwningOrganizer = registration.tournament.organizer.userId === requesterUserId;
+
+  const player = await prisma.playerProfile.findUnique({ where: { userId: requesterUserId } });
+  const isOwningPlayer = player?.id === registration.playerId;
+
+  if (!isOwningOrganizer && !isOwningPlayer) {
+    return { error: "forbidden" as const };
+  }
+
+  return { data: registration };
+}
+
+export async function disqualifyRegistration(
+  registrationId: string,
+  organizerId: string,
+  reason: string,
+  ruleId?: string
+) {
+  const registration = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    include: { tournament: true },
+  });
+  if (!registration) return { error: "not_found" as const };
+  if (registration.tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+
+  const updated = await prisma.registration.update({
+    where: { id: registrationId },
+    data: {
+      status: "disqualified",
+      disqualifiedReason: reason,
+      disqualifiedRuleId: ruleId,
+    },
+  });
+  return { data: updated };
+}
+
+// ------------------------------------------------------------
+// MODERATION — lightweight flag/report stub
+// ------------------------------------------------------------
+
+export async function flagTournament(tournamentId: string, reporterId: string, reason: string) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+
+  const flag = await prisma.tournamentFlag.create({
+    data: { tournamentId, reporterId, reason },
+  });
+  return { data: flag };
+}
+
+export async function listFlaggedTournaments() {
+  return prisma.tournament.findMany({
+    where: { flags: { some: { resolved: false } } },
+    include: {
+      organizer: true,
+      flags: { where: { resolved: false }, orderBy: { createdAt: "desc" } },
+    },
+  });
+}

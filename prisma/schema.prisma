@@ -35,16 +35,15 @@ enum KycStatus {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String?  @unique
-  phone        String?  @unique
-  passwordHash String
-  displayName  String
-  avatarUrl    String?
-  kycStatus    KycStatus @default(none) // doubles as the organizer-approval gate in Phase 1
-  isAdmin      Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id // matches Supabase auth.users.id — not auto-generated here
+  email       String?   @unique
+  phone       String?   @unique
+  displayName String
+  avatarUrl   String?
+  kycStatus   KycStatus @default(none) // doubles as the organizer-approval gate in Phase 1
+  isAdmin     Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   playerProfile    PlayerProfile?
   organizerProfile OrganizerProfile?
@@ -200,6 +199,7 @@ model Tournament {
   stages        Stage[]
   rules         TournamentRule[]
   registrations Registration[]
+  flags         TournamentFlag[]
   teamEntries   TeamEntry[]
 }
 
@@ -289,6 +289,7 @@ model Registration {
 
   disqualifiedRuleId String?
   disqualifiedRule   TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
+  disqualifiedReason String?
 
   customFieldResponses Json?
 
@@ -309,4 +310,17 @@ model AdminActionLog {
   targetId   String
   notes      String?
   createdAt  DateTime @default(now())
+}
+
+// Lightweight moderation stub — any authenticated user can flag a
+// tournament with a reason; admin reviews the queue. Full dispute system
+// with resolution workflow is Phase 7, this is just a signal + queue.
+model TournamentFlag {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  reporterId   String
+  reason       String
+  resolved     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
 }

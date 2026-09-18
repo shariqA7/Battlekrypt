@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { registerForTournament } from "@/lib/services/tournaments";
+import { ensureUserRecord } from "@/lib/ensure-user";
 
 export async function POST(
   request: Request,
@@ -24,6 +25,10 @@ export async function POST(
   // Every user has a PlayerProfile by default (see spec) — create one
   // on first use if it doesn't exist yet (e.g. signed up via OAuth and
   // this is their first action on the platform).
+  // Defensive fallback — the auth callback normally creates this, but a
+  // session predating that fix (or an edge case) could still lack it.
+  await ensureUserRecord(user);
+
   let playerProfile = await prisma.playerProfile.findUnique({
     where: { userId: user.id },
   });
