@@ -167,18 +167,16 @@ export default function NewTournamentPage() {
             <button
               type="button"
               onClick={() => setEntryType("free")}
-              className={`flex-1 h-[38px] text-[12px] font-sans uppercase tracking-[0.5px] ${
-                entryType === "free" ? "bg-bk-gold-light text-bk-bg" : "bg-bk-surface text-bk-body border border-bk-border"
-              }`}
+              className={`flex-1 h-[38px] text-[12px] font-sans uppercase tracking-[0.5px] ${entryType === "free" ? "bg-bk-gold-light text-bk-bg" : "bg-bk-surface text-bk-body border border-bk-border"
+                }`}
             >
               Free
             </button>
             <button
               type="button"
               onClick={() => setEntryType("paid")}
-              className={`flex-1 h-[38px] text-[12px] font-sans uppercase tracking-[0.5px] ${
-                entryType === "paid" ? "bg-bk-gold-light text-bk-bg" : "bg-bk-surface text-bk-body border border-bk-border"
-              }`}
+              className={`flex-1 h-[38px] text-[12px] font-sans uppercase tracking-[0.5px] ${entryType === "paid" ? "bg-bk-gold-light text-bk-bg" : "bg-bk-surface text-bk-body border border-bk-border"
+                }`}
             >
               Paid
             </button>

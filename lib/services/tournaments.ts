@@ -116,8 +116,8 @@ export async function createTournament(input: CreateTournamentInput) {
       status: "draft",
       rules: input.rules
         ? {
-            create: input.rules.map((description) => ({ description })),
-          }
+          create: input.rules.map((description) => ({ description })),
+        }
         : undefined,
     },
     include: { rules: true },

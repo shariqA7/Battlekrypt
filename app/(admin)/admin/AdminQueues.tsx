@@ -18,7 +18,7 @@ interface FlaggedTournament {
   id: string;
   name: string;
   organizer: { orgName: string };
-  flags: { id: string; reason: string; createdAt: string }[];
+  flags: { id: string; reason: string; createdAt: String }[];
 }
 
 export default function AdminQueues({
