@@ -32,21 +32,8 @@ export async function POST(
     );
   }
 
-  // Enforce the approval gate from the spec: an organizer can build drafts
-  // while awaiting approval, but cannot publish until an admin approves them.
-  const userRecord = await prisma.user.findUnique({ where: { id: user.id } });
-  if (userRecord?.kycStatus !== "approved") {
-    return NextResponse.json(
-      {
-        error: {
-          code: "organizer_not_approved",
-          message: "Your organizer account is pending admin approval.",
-        },
-      },
-      { status: 403 }
-    );
-  }
-
+  // Approval gate is enforced inside publishTournament itself now — see
+  // the "organizer_not_approved" branch below.
   const result = await publishTournament(id, organizerProfile.id);
 
   if (result.error === "not_found") {
@@ -65,6 +52,17 @@ export async function POST(
     return NextResponse.json(
       { error: { code: "invalid_status", message: "Only draft tournaments can be published." } },
       { status: 409 }
+    );
+  }
+  if (result.error === "organizer_not_approved") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "organizer_not_approved",
+          message: "Your organizer account is pending admin approval.",
+        },
+      },
+      { status: 403 }
     );
   }
 

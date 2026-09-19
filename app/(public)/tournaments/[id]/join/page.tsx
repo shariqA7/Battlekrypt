@@ -1,4 +1,4 @@
-import Nav from "@/components/layout/Nav";
+
 import { getTournamentById } from "@/lib/services/tournaments";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
@@ -22,7 +22,7 @@ export default async function JoinTournamentPage({
 
   return (
     <>
-      <Nav />
+
       <main className="flex-1 px-6 py-10 max-w-lg mx-auto w-full">
         <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
           Join {tournament.name}

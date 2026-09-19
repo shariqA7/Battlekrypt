@@ -4,12 +4,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import AuthModal from "@/components/ui/AuthModal";
-import Nav from "@/components/layout/Nav";
 
 export default function LoginPage() {
   return (
     <>
-      <Nav />
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <Suspense fallback={null}>
           <LoginForm />

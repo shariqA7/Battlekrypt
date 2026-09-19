@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import Nav from "@/components/layout/Nav";
 import "./globals.css";
 
 const hankenGrotesk = Hanken_Grotesk({
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bk-bg text-bk-heading">
+        <Nav />
         {children}
       </body>
     </html>

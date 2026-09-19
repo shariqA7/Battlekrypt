@@ -116,8 +116,8 @@ export async function createTournament(input: CreateTournamentInput) {
       status: "draft",
       rules: input.rules
         ? {
-          create: input.rules.map((description) => ({ description })),
-        }
+            create: input.rules.map((description) => ({ description })),
+          }
         : undefined,
     },
     include: { rules: true },
@@ -135,6 +135,15 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   if (!tournament) return { error: "not_found" as const };
   if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
   if (tournament.status !== "draft") return { error: "invalid_status" as const };
+
+  // Enforced here, not just at the route level — publishTournament is the
+  // actual boundary that matters if anything else ever calls it directly.
+  const organizerUser = await prisma.user.findUnique({
+    where: { id: tournament.organizer.userId },
+  });
+  if (organizerUser?.kycStatus !== "approved") {
+    return { error: "organizer_not_approved" as const };
+  }
 
   const updated = await prisma.tournament.update({
     where: { id: tournamentId },
@@ -695,5 +704,114 @@ export async function listFlaggedTournaments() {
       organizer: true,
       flags: { where: { resolved: false }, orderBy: { createdAt: "desc" } },
     },
+  });
+}
+
+// ------------------------------------------------------------
+// STATUS TRANSITIONS
+// ------------------------------------------------------------
+
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  published: ["registration_open", "registration_closed", "in_progress"],
+  registration_open: ["registration_closed", "in_progress"],
+  registration_closed: ["in_progress"],
+  in_progress: ["completed"],
+};
+
+export async function updateTournamentStatus(
+  tournamentId: string,
+  organizerId: string,
+  newStatus: string
+) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+  if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+
+  const allowed = ALLOWED_STATUS_TRANSITIONS[tournament.status] ?? [];
+  if (!allowed.includes(newStatus)) {
+    return { error: "invalid_transition" as const, allowed };
+  }
+
+  const updated = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { status: newStatus as TournamentStatus },
+  });
+
+  return { data: updated };
+}
+
+export async function resolveFlag(flagId: string, adminId: string) {
+  const flag = await prisma.tournamentFlag.findUnique({ where: { id: flagId } });
+  if (!flag) return { error: "not_found" as const };
+
+  const updated = await prisma.tournamentFlag.update({
+    where: { id: flagId },
+    data: { resolved: true },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "resolved_flag",
+      targetType: "TournamentFlag",
+      targetId: flagId,
+    },
+  });
+
+  return { data: updated };
+}
+
+// ------------------------------------------------------------
+// MANUAL ADD — organizer adds a player directly, bypassing self-registration
+// ------------------------------------------------------------
+
+export async function manualAddRegistration(
+  tournamentId: string,
+  organizerId: string,
+  playerEmail: string,
+  paymentStatus: "paid" | "waived" = "waived"
+) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+  if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+
+  const userRecord = await prisma.user.findUnique({ where: { email: playerEmail } });
+  if (!userRecord) return { error: "player_not_found" as const };
+
+  let playerProfile = await prisma.playerProfile.findUnique({
+    where: { userId: userRecord.id },
+  });
+  if (!playerProfile) {
+    playerProfile = await prisma.playerProfile.create({ data: { userId: userRecord.id } });
+  }
+
+  const existing = await prisma.registration.findFirst({
+    where: { tournamentId, playerId: playerProfile.id },
+  });
+  if (existing) return { error: "already_registered" as const };
+
+  // Organizer-added registrations skip the pending queue — the organizer
+  // is directly vouching for this player, so it's approved immediately.
+  const registration = await prisma.registration.create({
+    data: {
+      tournamentId,
+      playerId: playerProfile.id,
+      status: "approved",
+      approvedAt: new Date(),
+      addedBy: "organizer",
+      paymentStatus,
+    },
+  });
+
+  return { data: registration };
+}
+
+export async function listOrganizers() {
+  return prisma.organizerProfile.findMany({
+    include: {
+      user: { select: { kycStatus: true } },
+      _count: { select: { tournaments: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 }

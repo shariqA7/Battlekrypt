@@ -18,7 +18,7 @@ interface FlaggedTournament {
   id: string;
   name: string;
   organizer: { orgName: string };
-  flags: { id: string; reason: string; createdAt: String }[];
+  flags: { id: string; reason: string; createdAt: string }[];
 }
 
 export default function AdminQueues({
@@ -32,7 +32,22 @@ export default function AdminQueues({
 }) {
   const [organizers, setOrganizers] = useState(initialOrganizers);
   const [gameRequests, setGameRequests] = useState(initialGameRequests);
-  const [flags] = useState(initialFlags);
+  const [flags, setFlags] = useState(initialFlags);
+
+  async function handleResolveFlag(tournamentId: string, flagId: string) {
+    const res = await fetch(`/api/admin/flags/${flagId}/resolve`, { method: "POST" });
+    if (res.ok) {
+      setFlags((prev) =>
+        prev
+          .map((t) =>
+            t.id === tournamentId
+              ? { ...t, flags: t.flags.filter((f) => f.id !== flagId) }
+              : t
+          )
+          .filter((t) => t.flags.length > 0)
+      );
+    }
+  }
 
   async function handleOrganizer(id: string, action: "approve" | "reject") {
     const res = await fetch(`/api/admin/organizers/${id}/${action}`, { method: "POST" });
@@ -137,19 +152,35 @@ export default function AdminQueues({
         ) : (
           <div className="flex flex-col gap-2">
             {flags.map((t) => (
-              <a
+              <div
                 key={t.id}
-                href={`/tournaments/${t.id}`}
-                className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between hover:border-bk-gold-light transition-colors"
+                className="bg-bk-surface border border-bk-border p-3"
               >
-                <div>
-                  <p className="font-sans text-bk-heading text-sm">{t.name}</p>
-                  <p className="font-sans text-bk-muted text-xs mt-0.5">
-                    by {t.organizer.orgName} · {t.flags.length} report
-                    {t.flags.length !== 1 ? "s" : ""}: &ldquo;{t.flags[0]?.reason}&rdquo;
-                  </p>
+                <a
+                  href={`/tournaments/${t.id}`}
+                  className="font-sans text-bk-heading text-sm hover:text-bk-gold-light"
+                >
+                  {t.name}
+                </a>
+                <p className="font-sans text-bk-muted text-xs mt-0.5 mb-2">
+                  by {t.organizer.orgName}
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {t.flags.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between gap-2">
+                      <span className="font-sans text-bk-body text-xs">
+                        &ldquo;{f.reason}&rdquo;
+                      </span>
+                      <button
+                        onClick={() => handleResolveFlag(t.id, f.id)}
+                        className="border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap"
+                      >
+                        Resolve
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         )}

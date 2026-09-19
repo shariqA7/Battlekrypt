@@ -1,4 +1,4 @@
-import Nav from "@/components/layout/Nav";
+
 import { getTournamentById } from "@/lib/services/tournaments";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import RoomReveal from "./RoomReveal";
@@ -17,7 +17,7 @@ export default async function TournamentDetailPage({
 
   return (
     <>
-      <Nav />
+
       <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
         <div className="h-[120px] bg-bk-surface mb-6 flex items-end p-3 relative">
           {tournament.status === "in_progress" && (

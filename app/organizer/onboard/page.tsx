@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Nav from "@/components/layout/Nav";
 
 export default function OrganizerOnboardPage() {
   const router = useRouter();
@@ -34,7 +33,6 @@ export default function OrganizerOnboardPage() {
 
   return (
     <>
-      <Nav />
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <form
           onSubmit={handleSubmit}

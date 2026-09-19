@@ -1,4 +1,3 @@
-import Nav from "@/components/layout/Nav";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyTournaments } from "@/lib/services/tournaments";
@@ -36,7 +35,6 @@ export default async function OrganizerDashboard() {
 
   return (
     <>
-      <Nav />
       <main className="flex-1 px-6 py-10 max-w-3xl mx-auto w-full">
         <div className="flex justify-between items-center mb-2">
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">

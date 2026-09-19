@@ -1,4 +1,3 @@
-import Nav from "@/components/layout/Nav";
 import { listTournaments } from "@/lib/services/tournaments";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -20,7 +19,6 @@ export default async function TournamentsPage({
 
   return (
     <>
-      <Nav />
       <main className="flex-1 px-6 py-10 max-w-5xl mx-auto w-full">
         <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
           Tournaments

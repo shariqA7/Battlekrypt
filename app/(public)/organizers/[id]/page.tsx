@@ -1,7 +1,5 @@
-import Nav from "@/components/layout/Nav";
 import { getPublicOrganizerProfile } from "@/lib/services/tournaments";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export default async function OrganizerProfilePage({
@@ -17,7 +15,6 @@ export default async function OrganizerProfilePage({
 
   return (
     <>
-      <Nav />
       <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
         <div className="flex items-center gap-3 mb-1">
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">

@@ -19,11 +19,44 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function RegistrationQueue({
+  tournamentId,
   initialRegistrations,
 }: {
+  tournamentId: string;
   initialRegistrations: Registration[];
 }) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
+  const [manualEmail, setManualEmail] = useState("");
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+
+  async function handleManualAdd(e: React.FormEvent) {
+    e.preventDefault();
+    setManualSubmitting(true);
+    setManualError(null);
+
+    const res = await fetch(`/api/tournaments/${tournamentId}/registrations/manual-add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerEmail: manualEmail, paymentStatus: "waived" }),
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      setManualError(error.message);
+      setManualSubmitting(false);
+      return;
+    }
+
+    setManualEmail("");
+    setManualSubmitting(false);
+    // A full reload, not router.refresh() — this component's `registrations`
+    // state is a local useState seeded from initialRegistrations, which only
+    // reads that prop on first mount. router.refresh() alone re-renders the
+    // parent Server Component with fresh data but wouldn't actually update
+    // this already-mounted component's local state.
+    window.location.reload();
+  }
 
   async function handleAction(id: string, action: "approve" | "reject" | "disqualify") {
     let body: string | undefined;
@@ -46,13 +79,42 @@ export default function RegistrationQueue({
     }
   }
 
+  const manualAddForm = (
+    <form onSubmit={handleManualAdd} className="flex gap-2 mb-4">
+      <input
+        type="email"
+        required
+        value={manualEmail}
+        onChange={(e) => setManualEmail(e.target.value)}
+        placeholder="Player's email — manually add them"
+        className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+      />
+      <button
+        type="submit"
+        disabled={manualSubmitting}
+        className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
+      >
+        {manualSubmitting ? "Adding..." : "Add player"}
+      </button>
+    </form>
+  );
+
   if (registrations.length === 0) {
-    return <p className="text-bk-muted font-sans text-sm">No registrations yet.</p>;
+    return (
+      <div>
+        {manualAddForm}
+        {manualError && <p className="text-bk-live text-[11px] font-sans mb-3">{manualError}</p>}
+        <p className="text-bk-muted font-sans text-sm">No registrations yet.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {registrations.map((r) => {
+    <div>
+      {manualAddForm}
+      {manualError && <p className="text-bk-live text-[11px] font-sans mb-3">{manualError}</p>}
+      <div className="flex flex-col gap-2">
+        {registrations.map((r) => {
         const name = r.teamEntry?.name ?? r.player?.user.displayName ?? "Unknown";
         return (
           <div
@@ -104,6 +166,7 @@ export default function RegistrationQueue({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }
