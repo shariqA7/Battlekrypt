@@ -17,6 +17,11 @@ interface ProfileFormProps {
   initialGender: string;
   initialHobbies: string;
   initialFavoriteGames: string[];
+  // Onboarding-mode overrides. Omitted entirely on the settings page, so
+  // that page's behavior (in-place "Saved!" message, no redirect) is
+  // unchanged — only the dedicated /onboarding page passes these.
+  submitLabel?: string;
+  onSaved?: () => void;
 }
 
 export default function ProfileForm({
@@ -32,6 +37,8 @@ export default function ProfileForm({
   initialGender,
   initialHobbies,
   initialFavoriteGames,
+  submitLabel = "Save changes",
+  onSaved,
 }: ProfileFormProps) {
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
@@ -87,7 +94,11 @@ export default function ProfileForm({
 
     setSaved(true);
     setSubmitting(false);
-    router.refresh();
+    if (onSaved) {
+      onSaved();
+    } else {
+      router.refresh();
+    }
   }
 
   const inputClass =
@@ -202,7 +213,7 @@ export default function ProfileForm({
         disabled={submitting}
         className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
       >
-        {submitting ? "Saving..." : "Save changes"}
+        {submitting ? "Saving..." : submitLabel}
       </button>
     </form>
   );

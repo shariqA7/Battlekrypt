@@ -43,6 +43,13 @@ export async function ensureUserRecord(user: SupabaseUser) {
 
   const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined;
 
+  // Checked before the upsert (not inferred from its result) — upsert
+  // doesn't report which branch it took, and this is the only reliable way
+  // to know "did this call just create the account" vs. "did it already
+  // exist." The callback route uses this to decide whether to send the
+  // person into onboarding.
+  const existingUser = await prisma.user.findUnique({ where: { id: user.id } });
+
   const userRecord = await prisma.user.upsert({
     where: { id: user.id },
     update: {
@@ -70,5 +77,5 @@ export async function ensureUserRecord(user: SupabaseUser) {
     },
   });
 
-  return userRecord;
+  return { user: userRecord, isNewUser: !existingUser };
 }
