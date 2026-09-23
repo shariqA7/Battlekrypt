@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
 import AuthPageContent from "@/components/auth/AuthPageContent";
+
+// See app/(auth)/login/page.tsx for why this is needed.
+export const dynamic = "force-dynamic";
 import AuthCarousel from "@/components/auth/AuthCarousel";
 import AuthStageRail from "@/components/auth/AuthStageRail";
 import Link from "next/link";
