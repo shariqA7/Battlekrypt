@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
 import AuthPageContent from "@/components/auth/AuthPageContent";
 import AuthCarousel from "@/components/auth/AuthCarousel";
+import AuthStageRail from "@/components/auth/AuthStageRail";
 import Link from "next/link";
 
 export default async function LoginPage() {
@@ -21,7 +22,8 @@ export default async function LoginPage() {
           )}
         </Link>
 
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <AuthStageRail step={1} />
           <Suspense fallback={null}>
             <AuthPageContent mode="login" />
           </Suspense>

@@ -38,7 +38,7 @@ export default function AuthForm({
 
       <div
         className="bg-bk-surface border border-bk-border border-t-0 p-7"
-        style={{ boxShadow: "0 0 60px rgba(244,200,66,0.06)" }}
+        style={{ boxShadow: "0 0 60px rgba(244,200,66,0.09)" }}
       >
         <p className="font-sans font-bold text-[22px] text-bk-heading mb-1">{title}</p>
         <p className="font-sans text-[13px] text-bk-body mb-6">{subtitle}</p>
@@ -46,7 +46,7 @@ export default function AuthForm({
         <button
           type="button"
           onClick={onGoogleLogin}
-          className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-2.5 transition-opacity hover:opacity-90"
+          className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-2.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0"
         >
           <GoogleIcon />
           Continue with Google
@@ -55,7 +55,7 @@ export default function AuthForm({
         <button
           type="button"
           onClick={onDiscordLogin}
-          className="w-full bg-[#5865F2] text-white font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-4 transition-opacity hover:opacity-90"
+          className="w-full bg-[#5865F2] text-white font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-4 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0"
         >
           <DiscordIcon />
           Continue with Discord
@@ -72,7 +72,7 @@ export default function AuthForm({
           value={emailOrPhone}
           onChange={(e) => setEmailOrPhone(e.target.value)}
           placeholder="Email address"
-          className="w-full bg-bk-bg border border-bk-border text-bk-heading placeholder:text-bk-muted text-[12px] font-sans px-3.5 h-[42px] mb-3 focus:border-bk-gold-light outline-none transition-colors"
+          className="w-full bg-bk-bg border border-bk-border text-bk-heading placeholder:text-bk-muted text-[12px] font-sans px-3.5 h-[42px] mb-3 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
         />
 
         <button
@@ -81,7 +81,7 @@ export default function AuthForm({
             if (!emailOrPhone.trim()) return;
             onEmailContinue(emailOrPhone.trim());
           }}
-          className="w-full bg-transparent border border-bk-gold-light text-bk-gold-light font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 transition-colors hover:bg-bk-gold-light hover:text-bk-bg"
+          className="w-full bg-transparent border border-bk-gold-light text-bk-gold-light font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 transition-all hover:bg-bk-gold-light hover:text-bk-bg hover:-translate-y-px hover:shadow-[0_0_7.5px_rgba(244,200,66,0.3)] active:translate-y-0"
         >
           Continue
         </button>

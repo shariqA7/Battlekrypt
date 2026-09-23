@@ -13,7 +13,12 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error && data.user) {
-      await ensureUserRecord(data.user);
+      const { isNewUser } = await ensureUserRecord(data.user);
+      if (isNewUser) {
+        return NextResponse.redirect(
+          `${origin}/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`
+        );
+      }
       return NextResponse.redirect(`${origin}${redirectTo}`);
     }
   }
