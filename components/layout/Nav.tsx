@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { logout } from "@/lib/actions/auth";
+import UserMenu from "@/components/layout/UserMenu";
 
 const NAV_LINKS = [
   { label: "Games", href: "/games" },
@@ -22,6 +22,8 @@ export default async function Nav() {
   let isOrganizer = false;
   let isAdmin = false;
   let displayName: string | null = null;
+  let avatarUrl: string | null = null;
+  let email = "";
 
   if (user) {
     const [organizerProfile, userRecord] = await Promise.all([
@@ -31,6 +33,8 @@ export default async function Nav() {
     isOrganizer = !!organizerProfile;
     isAdmin = !!userRecord?.isAdmin;
     displayName = userRecord?.displayName ?? null;
+    avatarUrl = userRecord?.avatarUrl ?? null;
+    email = user.email ?? userRecord?.email ?? "";
   }
 
   return (
@@ -79,29 +83,13 @@ export default async function Nav() {
             </Link>
           </>
         ) : (
-          <>
-            {isAdmin && (
-              <Link href="/admin" className="text-bk-live font-sans text-[11px] uppercase tracking-[0.5px]">
-                Admin
-              </Link>
-            )}
-            {isOrganizer && (
-              <Link href="/organizer/dashboard" className="text-bk-gold-light font-sans text-[11px] uppercase tracking-[0.5px]">
-                Organizer
-              </Link>
-            )}
-            <Link href="/dashboard" className="text-bk-heading font-sans text-[12px] font-medium">
-              {displayName ?? "Dashboard"}
-            </Link>
-            <form action={logout}>
-              <button
-                type="submit"
-                className="border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 py-2"
-              >
-                Logout
-              </button>
-            </form>
-          </>
+          <UserMenu
+            displayName={displayName ?? "Player"}
+            email={email}
+            avatarUrl={avatarUrl}
+            isAdmin={isAdmin}
+            isOrganizer={isOrganizer}
+          />
         )}
       </div>
     </nav>
