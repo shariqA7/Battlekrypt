@@ -31,7 +31,7 @@ export default function AuthCarousel({ slides }: { slides: Slide[] }) {
     // of an empty box, so the page looks intentional before an admin adds
     // any carousel content.
     return (
-      <div className="hidden md:flex flex-1 relative items-center justify-center overflow-hidden bg-bk-bg">
+      <div className="hidden md:flex flex-1 relative items-center justify-center overflow-hidden rounded-2xl bg-bk-bg">
         <div
           className="absolute inset-0"
           style={{
@@ -55,7 +55,7 @@ export default function AuthCarousel({ slides }: { slides: Slide[] }) {
   const slide = slides[index];
 
   return (
-    <div className="hidden md:block flex-1 relative overflow-hidden bg-bk-surface">
+    <div className="hidden md:block flex-1 relative overflow-hidden rounded-2xl bg-bk-surface">
       {slide.mediaType === "video" ? (
         <video
           key={slide.id}

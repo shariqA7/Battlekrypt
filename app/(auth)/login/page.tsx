@@ -17,8 +17,8 @@ export default async function LoginPage() {
   const [settings, slides] = await Promise.all([getSiteSettings(), listCarouselSlides()]);
 
   return (
-    <main className="flex-1 flex min-h-0">
-      <div className="flex-1 flex flex-col px-6 py-10 md:px-14">
+    <main className="flex-1 flex min-h-0 gap-6 p-6">
+      <div className="flex-1 flex flex-col md:px-8">
         <Link href="/" className="inline-block w-fit">
           {settings.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

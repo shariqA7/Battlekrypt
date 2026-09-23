@@ -12,7 +12,7 @@ const STEPS = ["Sign in", "Complete profile", "Play"];
 
 export default function AuthStageRail({ step }: AuthStageRailProps) {
   return (
-    <div className="flex items-start w-full max-w-[340px] mb-8" aria-label="Sign-up progress">
+    <div className="flex items-start w-full max-w-[380px] mb-8" aria-label="Sign-up progress">
       {STEPS.map((label, i) => {
         const stepNum = i + 1;
         const done = stepNum < step;

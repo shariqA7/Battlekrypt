@@ -17,22 +17,18 @@ export default async function OnboardingPage() {
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
       <AuthStageRail step={2} />
-      <div className="w-[400px]">
-        {/* Same gold accent bar as the sign-in card, so this reads as the
-            next step of the same flow rather than a different surface. */}
-        <div className="h-[3px] bg-bk-gold-gradient" />
+      <div className="w-[420px]">
+        <p className="font-sans font-extrabold text-[32px] leading-[1.15] text-bk-heading mb-2">
+          Complete your profile
+        </p>
+        <p className="font-sans text-[14px] text-bk-body mb-7">
+          A few real details help organizers verify you and get you into rooms faster. You
+          can edit these anytime from Profile settings.
+        </p>
         <div
-          className="bg-bk-surface border border-bk-border border-t-0 p-7"
-          style={{ boxShadow: "0 0 60px rgba(244,200,66,0.09)" }}
+          className="rounded-2xl border border-bk-border p-7"
+          style={{ boxShadow: "0 0 60px rgba(244,200,66,0.07)" }}
         >
-          <p className="font-sans font-bold text-[22px] text-bk-heading mb-1">
-            Complete your profile
-          </p>
-          <p className="font-sans text-[13px] text-bk-body mb-6">
-            A few real details help organizers verify you and get you into rooms faster. You
-            can edit these anytime from Profile settings.
-          </p>
-
           <Suspense fallback={null}>
             <OnboardingClient
               email={profile?.user.email ?? ""}
