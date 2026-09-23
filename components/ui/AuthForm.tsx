@@ -8,7 +8,16 @@
 // there's no real page behind the backdrop there, and the click-away
 // behavior was silently navigating people to "/" when they didn't intend
 // to leave, breaking the back button in the process.
-
+//
+// Visual structure follows the reference the team pointed to (Claude.ai's
+// sign-in page): big headline + subtext above a rounded, bordered card
+// containing OAuth pills, a plain "OR" divider, a rounded email field, and
+// a solid CTA, with fine print below. Deliberately NOT importing a serif
+// display font to match the reference's typography — the spec's design
+// system (§14) calls for exactly two typefaces app-wide (sans for UI,
+// mono for match data), and a one-off serif here would break that for the
+// sake of surface resemblance. The headline instead uses the app's
+// existing sans font, just large and bold, to carry the same weight.
 
 import { useState } from "react";
 
@@ -30,23 +39,20 @@ export default function AuthForm({
   const [emailOrPhone, setEmailOrPhone] = useState("");
 
   return (
-    <div className="w-[340px] relative">
-      {/* Gold gradient accent bar — same token used on S-tier badges
-          elsewhere in the app, so this card reads as part of the same
-          brand rather than a generic auth widget dropped in. */}
-      <div className="h-[3px] bg-bk-gold-gradient" />
+    <div className="w-[380px]">
+      <p className="font-sans font-extrabold text-[32px] leading-[1.15] text-bk-heading mb-2">
+        {title}
+      </p>
+      <p className="font-sans text-[14px] text-bk-body mb-7">{subtitle}</p>
 
       <div
-        className="bg-bk-surface border border-bk-border border-t-0 p-7"
-        style={{ boxShadow: "0 0 60px rgba(244,200,66,0.09)" }}
+        className="rounded-2xl border border-bk-border p-7"
+        style={{ boxShadow: "0 0 60px rgba(244,200,66,0.07)" }}
       >
-        <p className="font-sans font-bold text-[22px] text-bk-heading mb-1">{title}</p>
-        <p className="font-sans text-[13px] text-bk-body mb-6">{subtitle}</p>
-
         <button
           type="button"
           onClick={onGoogleLogin}
-          className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-2.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0"
+          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-2.5 transition-all hover:bg-white/[0.04] hover:-translate-y-px active:translate-y-0"
         >
           <GoogleIcon />
           Continue with Google
@@ -55,24 +61,22 @@ export default function AuthForm({
         <button
           type="button"
           onClick={onDiscordLogin}
-          className="w-full bg-[#5865F2] text-white font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-4 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0"
+          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-5 transition-all hover:bg-white/[0.04] hover:-translate-y-px active:translate-y-0"
         >
           <DiscordIcon />
           Continue with Discord
         </button>
 
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="flex-1 h-px bg-bk-border" />
-          <span className="text-bk-muted text-[10px] tracking-[1.5px] font-sans">OR</span>
-          <div className="flex-1 h-px bg-bk-border" />
-        </div>
+        <p className="text-center text-bk-muted text-[11px] tracking-[1.5px] font-sans mb-5">
+          OR
+        </p>
 
         <input
           type="email"
           value={emailOrPhone}
           onChange={(e) => setEmailOrPhone(e.target.value)}
-          placeholder="Email address"
-          className="w-full bg-bk-bg border border-bk-border text-bk-heading placeholder:text-bk-muted text-[12px] font-sans px-3.5 h-[42px] mb-3 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
+          placeholder="Enter your email"
+          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] mb-3 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
         />
 
         <button
@@ -81,10 +85,14 @@ export default function AuthForm({
             if (!emailOrPhone.trim()) return;
             onEmailContinue(emailOrPhone.trim());
           }}
-          className="w-full bg-transparent border border-bk-gold-light text-bk-gold-light font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 transition-all hover:bg-bk-gold-light hover:text-bk-bg hover:-translate-y-px hover:shadow-[0_0_7.5px_rgba(244,200,66,0.3)] active:translate-y-0"
+          className="w-full bg-white text-bk-bg rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0"
         >
-          Continue
+          Continue with email
         </button>
+
+        <p className="text-center text-bk-muted text-[11px] font-sans mt-5">
+          By continuing, you agree to BattleKrypt&apos;s Terms and Privacy Policy.
+        </p>
       </div>
     </div>
   );
