@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
+// See app/(auth)/login/page.tsx for why this is needed — this page also
+// queries the DB with no cookies/auth call, so it's otherwise eligible for
+// static prerendering at build time.
+export const dynamic = "force-dynamic";
+
 export default async function GamesPage() {
   const games = await prisma.game.findMany({
     where: { isApproved: true },

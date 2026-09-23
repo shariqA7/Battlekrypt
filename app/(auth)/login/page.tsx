@@ -1,6 +1,14 @@
 import { Suspense } from "react";
 import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
 import AuthPageContent from "@/components/auth/AuthPageContent";
+
+// This page's data (site branding, carousel slides) is admin-editable and
+// meant to reflect live at all times. Without this, Next.js tries to
+// statically prerender it at *build* time, which runs a real DB query
+// during the Vercel build — where DATABASE_URL isn't guaranteed to be
+// reachable/valid — and also would bake in stale content until the next
+// deploy.
+export const dynamic = "force-dynamic";
 import AuthCarousel from "@/components/auth/AuthCarousel";
 import Link from "next/link";
 
