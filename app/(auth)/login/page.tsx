@@ -1,72 +1,33 @@
-"use client";
+import { Suspense } from "react";
+import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
+import AuthPageContent from "@/components/auth/AuthPageContent";
+import AuthCarousel from "@/components/auth/AuthCarousel";
+import Link from "next/link";
 
-import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import AuthModal from "@/components/ui/AuthModal";
-
-export default function LoginPage() {
-  return (
-    <>
-      <main className="flex-1 flex items-center justify-center px-6 py-16">
-        <Suspense fallback={null}>
-          <LoginForm />
-        </Suspense>
-      </main>
-    </>
-  );
-}
-
-function LoginForm() {
-  const supabase = createClient();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") ?? "/";
-  const [error, setError] = useState<string | null>(null);
-
-  async function signInWithOAuth(provider: "google" | "discord") {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(
-          redirectTo
-        )}`,
-      },
-    });
-    if (error) setError(error.message);
-    // On success, Supabase redirects the browser to the provider — no
-    // further client-side action needed here.
-  }
-
-  async function signInWithEmail(value: string) {
-    // Phase 1: magic-link email auth. Phone/password can be added once
-    // an SMS provider is chosen — same pattern via supabase.auth.signInWithOtp.
-    const { error } = await supabase.auth.signInWithOtp({
-      email: value,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(
-          redirectTo
-        )}`,
-      },
-    });
-    if (error) setError(error.message);
-    else setError("Check your email for a login link.");
-  }
+export default async function LoginPage() {
+  const [settings, slides] = await Promise.all([getSiteSettings(), listCarouselSlides()]);
 
   return (
-    <div>
-      <AuthModal
-        open={true}
-        onClose={() => router.push("/")}
-        onGoogleLogin={() => signInWithOAuth("google")}
-        onDiscordLogin={() => signInWithOAuth("discord")}
-        onEmailContinue={signInWithEmail}
-      />
-      {error && (
-        <p className="text-bk-live text-[12px] font-sans text-center mt-3 max-w-[320px]">
-          {error}
-        </p>
-      )}
-    </div>
+    <main className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col px-6 py-10 md:px-14">
+        <Link href="/" className="inline-block w-fit">
+          {settings.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logoUrl} alt="BattleKrypt" className="h-7 object-contain" />
+          ) : (
+            <span className="text-bk-gold-light font-sans font-extrabold text-base tracking-wide">
+              BATTLEKRYPT
+            </span>
+          )}
+        </Link>
+
+        <div className="flex-1 flex items-center justify-center">
+          <Suspense fallback={null}>
+            <AuthPageContent mode="login" />
+          </Suspense>
+        </div>
+      </div>
+      <AuthCarousel slides={slides} />
+    </main>
   );
 }

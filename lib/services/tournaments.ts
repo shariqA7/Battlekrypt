@@ -7,6 +7,7 @@
 // Business rules live here ONCE, not duplicated between a page and a route.
 
 import { prisma } from "@/lib/prisma";
+import { makeTournamentSlug } from "@/lib/slug";
 import type { Prisma, TournamentStatus, TournamentType, TournamentMode, EntryType } from "@prisma/client";
 
 export interface TournamentListFilters {
@@ -57,9 +58,9 @@ export async function listTournaments(filters: TournamentListFilters) {
   return { data, page, limit, total };
 }
 
-export async function getTournamentById(id: string) {
-  return prisma.tournament.findUnique({
-    where: { id },
+export async function getTournamentById(idOrSlug: string) {
+  return prisma.tournament.findFirst({
+    where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     include: {
       game: true,
       organizer: true,
@@ -95,6 +96,7 @@ export interface CreateTournamentInput {
 export async function createTournament(input: CreateTournamentInput) {
   return prisma.tournament.create({
     data: {
+      slug: makeTournamentSlug(input.name),
       organizer: { connect: { id: input.organizerId } },
       game: { connect: { id: input.gameId } },
       name: input.name,
@@ -116,8 +118,8 @@ export async function createTournament(input: CreateTournamentInput) {
       status: "draft",
       rules: input.rules
         ? {
-            create: input.rules.map((description) => ({ description })),
-          }
+          create: input.rules.map((description) => ({ description })),
+        }
         : undefined,
     },
     include: { rules: true },
@@ -547,7 +549,7 @@ export async function cancelTournament(tournamentId: string, organizerId: string
 export async function getPlayerProfileByUserId(userId: string) {
   return prisma.playerProfile.findUnique({
     where: { userId },
-    include: { user: { select: { displayName: true, avatarUrl: true } } },
+    include: { user: { select: { displayName: true, avatarUrl: true, email: true } } },
   });
 }
 
@@ -561,14 +563,53 @@ export async function getPublicPlayerProfile(playerId: string) {
   });
 }
 
-export async function updatePlayerProfile(userId: string, displayName?: string, avatarUrl?: string) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      ...(displayName && { displayName }),
-      ...(avatarUrl && { avatarUrl }),
-    },
-  });
+export interface UpdatePlayerProfileInput {
+  firstName: string; // required
+  lastName: string; // required
+  avatarUrl?: string;
+  mobileNumber?: string;
+  region?: string;
+  country?: string;
+  city?: string;
+  age?: number;
+  gender?: string;
+  hobbies?: string;
+  favoriteGames?: string[];
+}
+
+export async function updatePlayerProfile(userId: string, input: UpdatePlayerProfileInput) {
+  if (!input.firstName?.trim() || !input.lastName?.trim()) {
+    return { error: "validation_error" as const, message: "First and last name are required." };
+  }
+
+  const displayName = `${input.firstName.trim()} ${input.lastName.trim()}`;
+
+  const [user, playerProfile] = await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: {
+        displayName, // kept in sync — Nav, admin views, etc. already read this
+        ...(input.avatarUrl && { avatarUrl: input.avatarUrl }),
+      },
+    }),
+    prisma.playerProfile.update({
+      where: { userId },
+      data: {
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        mobileNumber: input.mobileNumber || null,
+        region: input.region || null,
+        country: input.country || null,
+        city: input.city || null,
+        age: input.age ?? null,
+        gender: input.gender || null,
+        hobbies: input.hobbies || null,
+        favoriteGames: input.favoriteGames ?? [],
+      },
+    }),
+  ]);
+
+  return { data: { user, playerProfile } };
 }
 
 // ------------------------------------------------------------
@@ -814,4 +855,98 @@ export async function listOrganizers() {
     },
     orderBy: { createdAt: "desc" },
   });
+}
+
+// ------------------------------------------------------------
+// RESULTS / STANDINGS
+// ------------------------------------------------------------
+
+export async function setRegistrationResult(
+  registrationId: string,
+  organizerId: string,
+  placement?: number,
+  points?: number
+) {
+  const registration = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    include: { tournament: true },
+  });
+  if (!registration) return { error: "not_found" as const };
+  if (registration.tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+
+  const updated = await prisma.registration.update({
+    where: { id: registrationId },
+    data: {
+      placement: placement ?? null,
+      points: points ?? null,
+    },
+  });
+
+  return { data: updated };
+}
+
+// Public standings — anyone can view, sorted by placement (nulls last),
+// then by points (highest first) as a tiebreaker/fallback for tournaments
+// that rank by points rather than a single final placement.
+export async function getStandings(tournamentId: string) {
+  const registrations = await prisma.registration.findMany({
+    where: {
+      tournamentId,
+      status: "approved",
+      OR: [{ placement: { not: null } }, { points: { not: null } }],
+    },
+    include: {
+      player: { include: { user: { select: { displayName: true } } } },
+      teamEntry: true,
+    },
+  });
+
+  return registrations.sort((a, b) => {
+    if (a.placement != null && b.placement != null) return a.placement - b.placement;
+    if (a.placement != null) return -1;
+    if (b.placement != null) return 1;
+    return (b.points ?? 0) - (a.points ?? 0);
+  });
+}
+export async function getSiteSettings() {
+  return prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton" },
+  });
+}
+
+export async function updateSiteSettings(logoUrl: string) {
+  return prisma.siteSettings.upsert({
+    where: { id: "singleton" },
+    update: { logoUrl },
+    create: { id: "singleton", logoUrl },
+  });
+}
+
+export async function listCarouselSlides() {
+  return prisma.authCarouselSlide.findMany({ orderBy: { order: "asc" } });
+}
+
+export async function createCarouselSlide(input: {
+  mediaUrl: string;
+  mediaType: "image" | "video";
+  title?: string;
+  text?: string;
+  order?: number;
+}) {
+  const count = await prisma.authCarouselSlide.count();
+  return prisma.authCarouselSlide.create({
+    data: {
+      mediaUrl: input.mediaUrl,
+      mediaType: input.mediaType,
+      title: input.title,
+      text: input.text,
+      order: input.order ?? count,
+    },
+  });
+}
+
+export async function deleteCarouselSlide(id: string) {
+  return prisma.authCarouselSlide.delete({ where: { id } });
 }

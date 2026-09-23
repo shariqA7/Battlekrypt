@@ -89,6 +89,21 @@ model PlayerProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id])
 
+  // Required at the form/API level, nullable here so existing users
+  // (created before these fields existed) aren't broken by a migration.
+  firstName String?
+  lastName  String?
+
+  // All genuinely optional.
+  mobileNumber  String?
+  region        String?
+  country       String?
+  city          String?
+  age           Int?
+  gender        String?
+  hobbies       String?
+  favoriteGames String[] @default([])
+
   registrations   Registration[]
   teamMemberships TeamMember[]
 
@@ -163,6 +178,7 @@ enum CompetitiveTier {
 
 model Tournament {
   id          String           @id @default(uuid())
+  slug        String           @unique
   organizerId String
   organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
   gameId      String
@@ -293,8 +309,31 @@ model Registration {
 
   customFieldResponses Json?
 
+  // Results/standings — set by the organizer once a tournament has matches
+  // to report. Nullable: most registrations never get a placement (only
+  // those who actually finished/placed do), and points is separate from
+  // placement since some formats (points-table, league) rank by points
+  // rather than a single final placement.
+  placement Int?
+  points    Int?
+
   registeredAt DateTime  @default(now())
   approvedAt   DateTime?
+}
+model SiteSettings {
+  id        String   @id @default("singleton")
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+}
+
+model AuthCarouselSlide {
+  id        String   @id @default(uuid())
+  mediaUrl  String
+  mediaType String // "image" | "video"
+  title     String?
+  text      String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
 }
 
 // ------------------------------------------------------------

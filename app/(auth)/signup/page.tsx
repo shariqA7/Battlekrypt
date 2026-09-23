@@ -1,14 +1,33 @@
-// /signup and /login are the same flow — Supabase creates the account
-// automatically on first OAuth/magic-link use, there's no separate
-// "register" step. This page just redirects to keep the URL people expect
-// (from the Nav's "Sign Up" button) working rather than 404ing.
-import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
+import AuthPageContent from "@/components/auth/AuthPageContent";
+import AuthCarousel from "@/components/auth/AuthCarousel";
+import Link from "next/link";
 
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ redirectTo?: string }>;
-}) {
-  const { redirectTo } = await searchParams;
-  redirect(`/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""}`);
+export default async function SignupPage() {
+  const [settings, slides] = await Promise.all([getSiteSettings(), listCarouselSlides()]);
+
+  return (
+    <main className="flex-1 flex min-h-0">
+      <div className="flex-1 flex flex-col px-6 py-10 md:px-14">
+        <Link href="/" className="inline-block w-fit">
+          {settings.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logoUrl} alt="BattleKrypt" className="h-7 object-contain" />
+          ) : (
+            <span className="text-bk-gold-light font-sans font-extrabold text-base tracking-wide">
+              BATTLEKRYPT
+            </span>
+          )}
+        </Link>
+
+        <div className="flex-1 flex items-center justify-center">
+          <Suspense fallback={null}>
+            <AuthPageContent mode="signup" />
+          </Suspense>
+        </div>
+      </div>
+      <AuthCarousel slides={slides} />
+    </main>
+  );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { redirect } from "next/navigation";
+import { logout } from "@/lib/actions/auth";
 
 const NAV_LINKS = [
   { label: "Games", href: "/games" },
@@ -93,7 +93,14 @@ export default async function Nav() {
             <Link href="/dashboard" className="text-bk-heading font-sans text-[12px] font-medium">
               {displayName ?? "Dashboard"}
             </Link>
-
+            <form action={logout}>
+              <button
+                type="submit"
+                className="border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 py-2"
+              >
+                Logout
+              </button>
+            </form>
           </>
         )}
       </div>

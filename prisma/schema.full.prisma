@@ -98,6 +98,17 @@ model PlayerProfile {
   userId         String  @unique
   user           User    @relation(fields: [userId], references: [id])
 
+  firstName     String?
+  lastName      String?
+  mobileNumber  String?
+  region        String?
+  country       String?
+  city          String?
+  age           Int?
+  gender        String?
+  hobbies       String?
+  favoriteGames String[] @default([])
+
   institutionVerification InstitutionVerification?
   subscriptionPlanCode    String  @default("player_free") // FK-like ref to SubscriptionPlan.code
   supporterBadge          Boolean @default(false)
@@ -238,6 +249,7 @@ enum TierCertificationStatus {
 
 model Tournament {
   id            String   @id @default(uuid())
+  slug          String   @unique
   organizerId   String
   organizer     OrganizerProfile @relation(fields: [organizerId], references: [id])
   gameId        String
@@ -432,6 +444,9 @@ model Registration {
   disqualifiedReason String?
 
   customFieldResponses Json?   // answers to organizer's custom registration fields
+
+  placement Int?
+  points    Int?
 
   registeredAt   DateTime @default(now())
   approvedAt     DateTime?
