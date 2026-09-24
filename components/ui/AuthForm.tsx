@@ -4,39 +4,83 @@
 // dedicated /login and /signup pages. AuthModal.tsx (the popup version
 // with a dark backdrop and click-outside-to-close) stays available for a
 // future case where login needs to interrupt an existing page without
-// navigating away — but the dedicated auth pages shouldn't use it, since
-// there's no real page behind the backdrop there, and the click-away
-// behavior was silently navigating people to "/" when they didn't intend
-// to leave, breaking the back button in the process.
+// navigating away.
 //
 // Visual structure follows the reference the team pointed to (Claude.ai's
 // sign-in page): big headline + subtext above a rounded, bordered card
-// containing OAuth pills, a plain "OR" divider, a rounded email field, and
-// a solid CTA, with fine print below. Deliberately NOT importing a serif
-// display font to match the reference's typography — the spec's design
-// system (§14) calls for exactly two typefaces app-wide (sans for UI,
-// mono for match data), and a one-off serif here would break that for the
-// sake of surface resemblance. The headline instead uses the app's
-// existing sans font, just large and bold, to carry the same weight.
+// containing OAuth pills, a plain "OR" divider, and a form, with fine
+// print below. Deliberately NOT importing a serif display font to match
+// the reference's typography — the spec's design system (§14) calls for
+// exactly two typefaces app-wide (sans for UI, mono for match data).
+//
+// Switched from magic-link to real email+password: players expect to type
+// a password, not check their inbox on every session expiry. Sign-up now
+// collects a first/last name up front (the rest of the player profile —
+// mobile, region, age, hobbies, favorite games — is still collected in
+// the existing /onboarding step right after this, not duplicated here).
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
+
+const fieldClass =
+  "w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]";
 
 interface AuthFormProps {
+  mode: "login" | "signup";
   title?: string;
   subtitle?: string;
   onGoogleLogin: () => void;
   onDiscordLogin: () => void;
-  onEmailContinue: (value: string) => void;
+  onLogin: (email: string, password: string) => void;
+  onSignup: (fields: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }) => void;
+  submitting?: boolean;
 }
 
 export default function AuthForm({
+  mode,
   title = "Sign in",
   subtitle = "Create an account to register and play",
   onGoogleLogin,
   onDiscordLogin,
-  onEmailContinue,
+  onLogin,
+  onSignup,
+  submitting = false,
 }: AuthFormProps) {
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+
+    if (mode === "signup") {
+      if (password.length < 8) {
+        setFormError("Password must be at least 8 characters.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setFormError("Passwords don't match.");
+        return;
+      }
+      onSignup({
+        email: email.trim(),
+        password,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
+    } else {
+      onLogin(email.trim(), password);
+    }
+  }
 
   return (
     <div className="w-[380px]">
@@ -71,24 +115,81 @@ export default function AuthForm({
           OR
         </p>
 
-        <input
-          type="email"
-          value={emailOrPhone}
-          onChange={(e) => setEmailOrPhone(e.target.value)}
-          placeholder="Enter your email"
-          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] mb-3 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
-        />
+        <form onSubmit={handleSubmit}>
+          {mode === "signup" && (
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="First name"
+                className={fieldClass}
+              />
+              <input
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Last name"
+                className={fieldClass}
+              />
+            </div>
+          )}
 
-        <button
-          type="button"
-          onClick={() => {
-            if (!emailOrPhone.trim()) return;
-            onEmailContinue(emailOrPhone.trim());
-          }}
-          className="w-full bg-white text-bk-bg rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0"
-        >
-          Continue with email
-        </button>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            className={`${fieldClass} mb-3`}
+          />
+
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            className={`${fieldClass} mb-3`}
+          />
+
+          {mode === "signup" && (
+            <input
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm password"
+              autoComplete="new-password"
+              className={`${fieldClass} mb-3`}
+            />
+          )}
+
+          {mode === "login" && (
+            <div className="text-right mb-4">
+              <Link
+                href="/forgot-password"
+                className="font-sans text-[12px] text-bk-gold-light hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
+
+          {formError && <p className="font-sans text-[12px] text-bk-live mb-3">{formError}</p>}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-white text-bk-bg rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
+          >
+            {submitting ? "Please wait..." : mode === "signup" ? "Create account" : "Sign in"}
+          </button>
+        </form>
 
         <p className="text-center text-bk-muted text-[11px] font-sans mt-5">
           By continuing, you agree to BattleKrypt&apos;s Terms and Privacy Policy.
