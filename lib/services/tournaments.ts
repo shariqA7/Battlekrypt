@@ -86,6 +86,7 @@ export interface CreateTournamentInput {
   entryType: EntryType;
   entryFeeAmount?: number;
   entryFeeCurrency?: string;
+  paymentInstructions?: string;
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   customFields?: unknown;
@@ -111,6 +112,7 @@ export async function createTournament(input: CreateTournamentInput) {
       entryType: input.entryType,
       entryFeeAmount: input.entryFeeAmount,
       entryFeeCurrency: input.entryFeeCurrency,
+      paymentInstructions: input.paymentInstructions,
       prizePoolAmount: input.prizePoolAmount,
       prizePoolCurrency: input.prizePoolCurrency,
       customFields: input.customFields as Prisma.InputJsonValue,
@@ -500,6 +502,7 @@ export interface UpdateTournamentInput {
   playersPerRoom?: number;
   entryFeeAmount?: number;
   entryFeeCurrency?: string;
+  paymentInstructions?: string;
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   startAt?: Date;

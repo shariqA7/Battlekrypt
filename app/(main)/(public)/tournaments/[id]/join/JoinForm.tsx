@@ -15,6 +15,7 @@ interface TournamentForJoin {
   entryType: string;
   mode: string;
   customFields: unknown;
+  paymentInstructions: string | null;
 }
 
 export default function JoinForm({
@@ -101,6 +102,17 @@ export default function JoinForm({
 
       {tournament.entryType === "paid" && (
         <>
+          {tournament.paymentInstructions && (
+            <div className="bg-bk-bg border border-bk-gold-light/40 px-3 py-2.5 mt-4">
+              <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-gold-light mb-1">
+                How to pay
+              </p>
+              <p className="font-sans text-[13px] text-bk-heading whitespace-pre-wrap">
+                {tournament.paymentInstructions}
+              </p>
+            </div>
+          )}
+
           <label className={labelClass}>Proof of payment</label>
           <FileUpload
             bucket="tournament-assets"

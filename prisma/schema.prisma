@@ -198,6 +198,11 @@ model Tournament {
   entryType        EntryType
   entryFeeAmount   Decimal? @db.Decimal(14, 2)
   entryFeeCurrency String?
+  // Free text: "JazzCash 0300-1234567 (Ali)", "Bank transfer to ...", etc.
+  // Shown to the player on the join page, above the payment-proof upload,
+  // so they know where to actually send money before being asked to prove
+  // they sent it. Only meaningful when entryType is "paid".
+  paymentInstructions String?
 
   prizePoolAmount   Decimal? @db.Decimal(14, 2)
   prizePoolCurrency String?

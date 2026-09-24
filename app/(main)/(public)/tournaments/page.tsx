@@ -13,6 +13,7 @@ export default async function TournamentsPage({
     game: params.game || undefined,
     search: params.search || undefined,
     type: (params.type || undefined) as never,
+    mode: (params.mode || undefined) as never,
     entryType: (params.entryType || undefined) as never,
     page: params.page ? Number(params.page) : undefined,
   });

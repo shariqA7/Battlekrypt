@@ -38,6 +38,7 @@ export async function PATCH(
     playersPerRoom: body.playersPerRoom,
     entryFeeAmount: body.entryFee?.amount,
     entryFeeCurrency: body.entryFee?.currency,
+    paymentInstructions: body.paymentInstructions,
     prizePoolAmount: body.prizePool?.amount,
     prizePoolCurrency: body.prizePool?.currency,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
