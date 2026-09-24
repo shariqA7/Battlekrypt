@@ -14,6 +14,7 @@ interface TournamentForEdit {
   entryType: string;
   entryFeeAmount: unknown; // Prisma Decimal — coerced with Number() below
   entryFeeCurrency: string | null;
+  paymentInstructions: string | null;
   prizePoolAmount: unknown;
   prizePoolCurrency: string | null;
   startAt: Date | null;
@@ -30,6 +31,9 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
     tournament.entryFeeAmount ? Number(tournament.entryFeeAmount) : 0
   );
   const [entryFeeCurrency, setEntryFeeCurrency] = useState(tournament.entryFeeCurrency ?? "PKR");
+  const [paymentInstructions, setPaymentInstructions] = useState(
+    tournament.paymentInstructions ?? ""
+  );
   const [prizePoolAmount, setPrizePoolAmount] = useState(
     tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0
   );
@@ -57,6 +61,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         ...(tournament.entryType === "paid" && {
           entryFee: { amount: entryFeeAmount, currency: entryFeeCurrency },
+          paymentInstructions: paymentInstructions.trim() || undefined,
         }),
         ...(prizePoolAmount > 0 && {
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
@@ -132,6 +137,15 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
               setEntryFeeAmount(a);
               setEntryFeeCurrency(c);
             }}
+          />
+
+          <label className={labelClass}>Payment instructions</label>
+          <textarea
+            value={paymentInstructions}
+            onChange={(e) => setPaymentInstructions(e.target.value)}
+            placeholder="e.g. JazzCash 0300-1234567 (Ali Khan), or bank transfer details"
+            rows={2}
+            className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2 resize-none"
           />
         </>
       )}

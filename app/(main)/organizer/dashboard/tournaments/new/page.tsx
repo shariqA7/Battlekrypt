@@ -30,6 +30,7 @@ export default function NewTournamentPage() {
   const [entryType, setEntryType] = useState<"free" | "paid">("free");
   const [entryFeeAmount, setEntryFeeAmount] = useState(0);
   const [entryFeeCurrency, setEntryFeeCurrency] = useState("PKR");
+  const [paymentInstructions, setPaymentInstructions] = useState("");
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
   const [rulesText, setRulesText] = useState("");
@@ -65,6 +66,7 @@ export default function NewTournamentPage() {
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         entryType,
         entryFee: entryType === "paid" ? { amount: entryFeeAmount, currency: entryFeeCurrency } : undefined,
+        paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
         customFields: customFields.length > 0 ? customFields : undefined,
         rules: rulesText.split("\n").map((r) => r.trim()).filter(Boolean),
@@ -306,6 +308,19 @@ export default function NewTournamentPage() {
                   setEntryFeeCurrency(currency);
                 }}
               />
+
+              <label className={labelClass}>Payment instructions</label>
+              <textarea
+                value={paymentInstructions}
+                onChange={(e) => setPaymentInstructions(e.target.value)}
+                placeholder="e.g. JazzCash 0300-1234567 (Ali Khan), or bank transfer details"
+                rows={2}
+                className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2 resize-none"
+              />
+              <p className="font-sans text-[11px] text-bk-muted mt-1">
+                Shown to players before they upload proof of payment — tell them where to actually
+                send the money.
+              </p>
             </>
           )}
 

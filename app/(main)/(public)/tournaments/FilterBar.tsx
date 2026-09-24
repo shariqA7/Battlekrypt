@@ -20,6 +20,7 @@ export default function FilterBar() {
   const [game, setGame] = useState(searchParams.get("game") ?? "");
   const [entryType, setEntryType] = useState(searchParams.get("entryType") ?? "");
   const [type, setType] = useState(searchParams.get("type") ?? "");
+  const [mode, setMode] = useState(searchParams.get("mode") ?? "");
 
   useEffect(() => {
     fetch("/api/games")
@@ -28,7 +29,7 @@ export default function FilterBar() {
   }, []);
 
   function applyFilters(overrides: Record<string, string> = {}) {
-    const next = { search, game, entryType, type, ...overrides };
+    const next = { search, game, entryType, type, mode, ...overrides };
     const query = new URLSearchParams();
     Object.entries(next).forEach(([key, value]) => {
       if (value) query.set(key, value);
@@ -97,6 +98,18 @@ export default function FilterBar() {
             className={pillClass(type === val)}
           >
             {val === "" ? "Any type" : val}
+          </button>
+        ))}
+        {["", "solo", "duo", "squad"].map((val) => (
+          <button
+            key={val || "all-modes"}
+            onClick={() => {
+              setMode(val);
+              applyFilters({ mode: val });
+            }}
+            className={pillClass(mode === val)}
+          >
+            {val === "" ? "Any mode" : val}
           </button>
         ))}
       </div>

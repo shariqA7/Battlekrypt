@@ -77,6 +77,7 @@ export async function POST(request: Request) {
     entryType: body.entryType,
     entryFeeAmount: body.entryFee?.amount,
     entryFeeCurrency: body.entryFee?.currency,
+    paymentInstructions: body.paymentInstructions,
     prizePoolAmount: body.prizePool?.amount,
     prizePoolCurrency: body.prizePool?.currency,
     customFields: body.customFields,

@@ -24,6 +24,7 @@ export const createTournamentSchema = z.object({
   ]),
   entryType: z.enum(["free", "paid"]),
   entryFee: currencySchema.optional(),
+  paymentInstructions: z.string().trim().max(500).optional(),
   prizePool: currencySchema.optional(),
   customFields: z
     .array(
@@ -47,6 +48,7 @@ export const updateTournamentSchema = z.object({
   maxTeams: z.number().int().min(1).optional(),
   playersPerRoom: z.number().int().min(1).optional(),
   entryFee: currencySchema.optional(),
+  paymentInstructions: z.string().trim().max(500).optional(),
   prizePool: currencySchema.optional(),
   startAt: z.string().datetime().optional(),
 });
