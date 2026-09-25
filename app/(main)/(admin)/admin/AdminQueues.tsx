@@ -8,6 +8,13 @@ interface PendingOrganizer {
   user: { displayName: string; email: string | null };
 }
 
+interface PendingClub {
+  id: string;
+  clubName: string;
+  feeProofUrl: string | null;
+  user: { displayName: string; email: string | null };
+}
+
 interface PendingGameRequest {
   id: string;
   gameName: string;
@@ -25,14 +32,17 @@ interface FlaggedTournament {
 
 export default function AdminQueues({
   initialOrganizers,
+  initialClubs,
   initialGameRequests,
   initialFlags,
 }: {
   initialOrganizers: PendingOrganizer[];
+  initialClubs: PendingClub[];
   initialGameRequests: PendingGameRequest[];
   initialFlags: FlaggedTournament[];
 }) {
   const [organizers, setOrganizers] = useState(initialOrganizers);
+  const [clubs, setClubs] = useState(initialClubs);
   const [gameRequests, setGameRequests] = useState(initialGameRequests);
   const [flags, setFlags] = useState(initialFlags);
 
@@ -55,6 +65,24 @@ export default function AdminQueues({
     const res = await fetch(`/api/admin/organizers/${id}/${action}`, { method: "POST" });
     if (res.ok) {
       setOrganizers((prev) => prev.filter((o) => o.id !== id));
+    }
+  }
+
+  async function handleClub(id: string, action: "approve" | "reject") {
+    let body: string | undefined;
+    if (action === "reject") {
+      // The reason is shown to the club owner so they know what to fix.
+      const reason = window.prompt("Reason for rejection (shown to the club):");
+      if (reason === null) return;
+      body = JSON.stringify({ reason });
+    }
+    const res = await fetch(`/api/admin/clubs/${id}/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    if (res.ok) {
+      setClubs((prev) => prev.filter((c) => c.id !== id));
     }
   }
 
@@ -95,6 +123,55 @@ export default function AdminQueues({
                   </button>
                   <button
                     onClick={() => handleOrganizer(o.id, "reject")}
+                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <p className="font-sans font-medium text-bk-heading text-sm mb-3">
+          Club approvals ({clubs.length})
+        </p>
+        {clubs.length === 0 ? (
+          <p className="text-bk-muted font-sans text-sm">Nothing pending.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {clubs.map((c) => (
+              <div
+                key={c.id}
+                className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-sans text-bk-heading text-sm">{c.clubName}</p>
+                  <p className="font-sans text-bk-muted text-xs mt-0.5">
+                    {c.user.displayName} · {c.user.email}
+                  </p>
+                  {c.feeProofUrl && (
+                    <a
+                      href={c.feeProofUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-sans text-xs text-bk-gold-light hover:underline mt-1 inline-block"
+                    >
+                      View payment proof
+                    </a>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleClub(c.id, "approve")}
+                    className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleClub(c.id, "reject")}
                     className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                   >
                     Reject
