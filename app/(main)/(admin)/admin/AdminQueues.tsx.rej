@@ -1,0 +1,19 @@
+diff a/app/(main)/(admin)/admin/AdminQueues.tsx b/app/(main)/(admin)/admin/AdminQueues.tsx	(rejected hunks)
+@@ -25,14 +32,17 @@ interface FlaggedTournament {
+ 
+ export default function AdminQueues({
+   initialOrganizers,
++  initialClubs,
+   initialGameRequests,
+   initialFlags,
+ }: {
+   initialOrganizers: PendingOrganizer[];
++  initialClubs: PendingClub[];
+   initialGameRequests: PendingGameRequest[];
+   initialFlags: FlaggedTournament[];
+ }) {
+   const [organizers, setOrganizers] = useState(initialOrganizers);
++  const [clubs, setClubs] = useState(initialClubs);
+   const [gameRequests, setGameRequests] = useState(initialGameRequests);
+   const [flags, setFlags] = useState(initialFlags);
+ 

@@ -1,0 +1,36 @@
+diff a/app/(main)/(player)/dashboard/page.tsx b/app/(main)/(player)/dashboard/page.tsx	(rejected hunks)
+@@ -1,6 +1,8 @@
+ import { createClient } from "@/lib/supabase/server";
+ import { prisma } from "@/lib/prisma";
+ import { getMyRegistrations } from "@/lib/services/tournaments";
++import { listPlayerInvites, getPlayerMembership } from "@/lib/services/club-roster";
++import ClubInvites from "./ClubInvites";
+ import Link from "next/link";
+ import { redirect } from "next/navigation";
+ 
+@@ -24,9 +26,13 @@ export default async function PlayerDashboard() {
+     include: { user: { select: { displayName: true, avatarUrl: true } } },
+   });
+ 
+-  const registrations = playerProfile
+-    ? await getMyRegistrations(playerProfile.id)
+-    : [];
++  const [registrations, clubInvites, clubMembership] = playerProfile
++    ? await Promise.all([
++        getMyRegistrations(playerProfile.id),
++        listPlayerInvites(playerProfile.id),
++        getPlayerMembership(playerProfile.id),
++      ])
++    : [[], [], null];
+ 
+   const initials =
+     `${playerProfile?.firstName?.[0] ?? ""}${playerProfile?.lastName?.[0] ?? ""}`.toUpperCase() ||
+@@ -64,6 +70,8 @@ export default async function PlayerDashboard() {
+           Everything you&apos;ve registered for, in one place.
+         </p>
+ 
++        <ClubInvites membership={clubMembership} invites={clubInvites} />
++
+         {registrations.length === 0 ? (
+           <p className="text-bk-muted font-sans text-sm">
+             You haven&apos;t joined any tournaments yet.{" "}

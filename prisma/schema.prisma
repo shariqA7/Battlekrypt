@@ -1,5 +1,5 @@
 // ============================================================
-// Esports Tournament Platform — Database Schema (PHASE 1 ONLY)
+// Esports Tournament Platform — Database Schema (PHASE 1 + PHASE 2 CLUB CORE)
 // Postgres + Prisma ORM
 //
 // This is the trimmed, launch-critical subset. The full 9-phase
@@ -47,6 +47,7 @@ model User {
 
   playerProfile    PlayerProfile?
   organizerProfile OrganizerProfile?
+  clubProfile      ClubProfile?
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
 }
@@ -60,6 +61,9 @@ model Game {
 
   tournaments  Tournament[]
   gameRequests GameRequest[]
+  clubRosters  ClubRoster[]
+  clubInvites  ClubInvite[]
+  clubTeams    ClubTeam[]
 }
 
 enum GameRequestStatus {
@@ -106,6 +110,8 @@ model PlayerProfile {
 
   registrations   Registration[]
   teamMemberships TeamMember[]
+  clubRoster      ClubRoster?
+  clubInvites     ClubInvite[]
 
   createdAt DateTime @default(now())
 }
@@ -123,6 +129,137 @@ model OrganizerProfile {
   gameRequests GameRequest[]
 
   createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------
+// CLUB MODULE (Phase 2)
+// ------------------------------------------------------------
+
+// Mirrors the organizer approval pattern: club signs up, pays the
+// registration fee (screenshot proof), admin approves.
+enum ClubStatus {
+  pending
+  approved
+  rejected
+}
+
+model ClubProfile {
+  id     String @id @default(uuid())
+  userId String @unique // club owner account
+  user   User   @relation(fields: [userId], references: [id])
+
+  clubName String
+  logoUrl  String?
+
+  status      ClubStatus @default(pending)
+  feeProofUrl String? // screenshot of registration-fee payment
+
+  // Placeholder for the Phase 5 subscription system: "club_free" or any
+  // paid plan code. Roster limits (teams/players per game, substitutes,
+  // coach) read this via lib/club-limits.ts. Until Phase 5 ships, set it
+  // by hand to test paid-club behavior.
+  subscriptionPlanCode String @default("club_free")
+
+  teams       ClubTeam[]
+  roster      ClubRoster[]
+  invites     ClubInvite[]
+  teamEntries TeamEntry[]
+
+  createdAt DateTime @default(now())
+}
+
+// A named team a club fields in a team game (e.g. "Alpha" and "Bravo" in
+// PUBG Mobile). Solo games (Tekken, Chess...) have no ClubTeam — those
+// roster members simply have teamId = null.
+// How many teams a club may have per game is a subscription limit
+// (Phase 5), enforced in the service layer, not here.
+model ClubTeam {
+  id     String      @id @default(uuid())
+  clubId String
+  club   ClubProfile @relation(fields: [clubId], references: [id])
+  gameId String
+  game   Game        @relation(fields: [gameId], references: [id])
+  name   String
+
+  // Plain text — set by the club owner, paid clubs only (Phase 5 gate).
+  // No uniqueness: the same coach name can appear on any club/team.
+  coachName String?
+
+  members ClubRoster[]
+  invites ClubInvite[]
+  entries TeamEntry[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([clubId, gameId, name])
+  @@index([clubId, gameId])
+}
+
+// Coaches are NOT roster members — they're just a plain name on the team
+// (ClubTeam.coachName), no account or invite involved.
+enum ClubRosterRole {
+  player
+  substitute
+}
+
+// Permanent roster. A person is on AT MOST ONE club's roster, in ONE
+// game, in ONE role (and on one team, for team games) — enforced by the
+// unique constraint on playerId. Rows are only created by accepting a
+// ClubInvite (never inserted directly), and accepting replaces any
+// existing row for that person in one transaction.
+// Invariant kept in the service layer: if teamId is set, gameId must
+// equal the team's gameId and clubId the team's clubId.
+// Editable anytime — the per-tournament roster lock lives on the
+// tournament's TeamEntry/TeamMember rows, not here.
+model ClubRoster {
+  id       String         @id @default(uuid())
+  clubId   String
+  club     ClubProfile    @relation(fields: [clubId], references: [id])
+  playerId String         @unique
+  player   PlayerProfile  @relation(fields: [playerId], references: [id])
+  gameId   String
+  game     Game           @relation(fields: [gameId], references: [id])
+  teamId   String? // null for solo games
+  team     ClubTeam?      @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  role     ClubRosterRole @default(player)
+  // Only meaningful when teamId is set. The captain, along with the club
+  // owner, may submit/edit this team's tournament entries. At most one
+  // captain per team — enforced in the service layer (setTeamCaptain).
+  isCaptain Boolean       @default(false)
+  joinedAt DateTime       @default(now())
+
+  @@index([clubId, gameId])
+  @@index([teamId])
+}
+
+enum ClubInviteStatus {
+  pending
+  accepted
+  declined
+  cancelled // club withdrew it before the player responded
+}
+
+// A club invites a person to its roster for a specific game (and team +
+// role, for team games). Kept as history (never deleted).
+// "One pending invite per (club, player)" is enforced in the service layer.
+model ClubInvite {
+  id       String           @id @default(uuid())
+  clubId   String
+  club     ClubProfile      @relation(fields: [clubId], references: [id])
+  playerId String
+  player   PlayerProfile    @relation(fields: [playerId], references: [id])
+  gameId   String
+  game     Game             @relation(fields: [gameId], references: [id])
+  teamId   String?
+  team     ClubTeam?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  role     ClubRosterRole   @default(player)
+  status   ClubInviteStatus @default(pending)
+
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@index([playerId, status])
+  @@index([clubId, status])
 }
 
 // ------------------------------------------------------------
@@ -278,8 +415,13 @@ model TeamEntry {
   tournamentId String
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
   name         String
-  // clubId intentionally omitted — Club module is Phase 2,
-  // see schema.full.prisma for the club-linked version.
+  clubId       String?
+  club         ClubProfile? @relation(fields: [clubId], references: [id])
+  // Which permanent ClubTeam this entry represents, if any. Lets the club
+  // find/edit "our entry for team X in tournament Y", and distinguishes a
+  // club entry from an ad-hoc team a non-club player formed at registration.
+  clubTeamId   String?
+  clubTeam     ClubTeam?    @relation(fields: [clubTeamId], references: [id])
 
   members      TeamMember[]
   registration Registration?
@@ -328,6 +470,8 @@ model Registration {
 model SiteSettings {
   id        String   @id @default("singleton")
   logoUrl   String?
+  // Shown on the club registration form: amount + where to send the fee.
+  clubPaymentInstructions String?
   updatedAt DateTime @updatedAt
 }
 

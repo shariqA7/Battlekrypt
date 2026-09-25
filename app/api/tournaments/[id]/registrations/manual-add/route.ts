@@ -3,6 +3,8 @@
 import { NextResponse } from "next/server";
 import { requireOrganizer } from "@/lib/auth-helpers";
 import { manualAddRegistration } from "@/lib/services/tournaments";
+import { manualAddClubTeamEntry, manualAddClubSoloEntry } from "@/lib/services/club-entries";
+import { clubEntryError } from "@/lib/club-helpers";
 
 export async function POST(
   request: Request,
@@ -13,6 +15,32 @@ export async function POST(
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));
+
+  // Club overrides bypass the roster-lock rule (spec §4) — the organizer can
+  // add a club team or solo roster player at any point.
+  if (typeof body.clubTeamId === "string" && body.clubTeamId) {
+    const result = await manualAddClubTeamEntry(
+      id,
+      auth.organizerProfile.id,
+      body.clubTeamId,
+      Array.isArray(body.memberPlayerIds) ? body.memberPlayerIds.map(String) : [],
+      body.paymentStatus
+    );
+    if ("error" in result) return clubEntryError(result);
+    return NextResponse.json(result.data, { status: 201 });
+  }
+
+  if (typeof body.clubPlayerId === "string" && body.clubPlayerId) {
+    const result = await manualAddClubSoloEntry(
+      id,
+      auth.organizerProfile.id,
+      body.clubPlayerId,
+      body.paymentStatus
+    );
+    if ("error" in result) return clubEntryError(result);
+    return NextResponse.json(result.data, { status: 201 });
+  }
+
   if (!body.playerEmail) {
     return NextResponse.json(
       { error: { code: "validation_error", message: "playerEmail is required." } },

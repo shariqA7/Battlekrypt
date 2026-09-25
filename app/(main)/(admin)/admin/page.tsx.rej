@@ -1,0 +1,55 @@
+diff a/app/(main)/(admin)/admin/page.tsx b/app/(main)/(admin)/admin/page.tsx	(rejected hunks)
+@@ -8,7 +8,9 @@ import {
+   listCarouselSlides,
+ } from "@/lib/services/tournaments";
+ import { redirect } from "next/navigation";
++import { listPendingClubs, getClubPaymentInstructions } from "@/lib/services/clubs";
+ import AdminQueues from "./AdminQueues";
++import ClubFeeSettings from "./ClubFeeSettings";
+ import BrandingManager from "./BrandingManager";
+ 
+ export default async function AdminPage() {
+@@ -22,14 +24,23 @@ export default async function AdminPage() {
+   const userRecord = await prisma.user.findUnique({ where: { id: user.id } });
+   if (!userRecord?.isAdmin) redirect("/");
+ 
+-  const [pendingOrganizers, pendingGameRequests, flaggedTournaments, siteSettings, slides] =
+-    await Promise.all([
+-      listPendingOrganizers(),
+-      listPendingGameRequests(),
+-      listFlaggedTournaments(),
+-      getSiteSettings(),
+-      listCarouselSlides(),
+-    ]);
++  const [
++    pendingOrganizers,
++    pendingClubs,
++    pendingGameRequests,
++    flaggedTournaments,
++    siteSettings,
++    slides,
++    clubPaymentInstructions,
++  ] = await Promise.all([
++    listPendingOrganizers(),
++    listPendingClubs(),
++    listPendingGameRequests(),
++    listFlaggedTournaments(),
++    getSiteSettings(),
++    listCarouselSlides(),
++    getClubPaymentInstructions(),
++  ]);
+ 
+   return (
+     <>
+@@ -42,8 +53,11 @@ export default async function AdminPage() {
+           initialSlides={slides}
+         />
+         <div className="h-px bg-bk-border my-10" />
++        <ClubFeeSettings initialInstructions={clubPaymentInstructions ?? ""} />
++        <div className="h-px bg-bk-border my-10" />
+         <AdminQueues
+           initialOrganizers={pendingOrganizers}
++          initialClubs={pendingClubs}
+           initialGameRequests={pendingGameRequests}
+           initialFlags={flaggedTournaments}
+         />

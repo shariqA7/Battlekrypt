@@ -16,6 +16,7 @@ interface UserMenuProps {
   avatarUrl: string | null;
   isAdmin: boolean;
   isOrganizer: boolean;
+  isClub: boolean;
 }
 
 export default function UserMenu({
@@ -24,6 +25,7 @@ export default function UserMenu({
   avatarUrl,
   isAdmin,
   isOrganizer,
+  isClub,
 }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -123,6 +125,17 @@ export default function UserMenu({
               <UserIcon />
               Profile
             </MenuLink>
+            {isClub ? (
+              <MenuLink href="/club/dashboard" onNavigate={() => setOpen(false)}>
+                <ShieldIcon />
+                Club dashboard
+              </MenuLink>
+            ) : (
+              <MenuLink href="/club/register" onNavigate={() => setOpen(false)}>
+                <ShieldIcon />
+                Register a club
+              </MenuLink>
+            )}
             <form action={logout}>
               <button
                 type="submit"
