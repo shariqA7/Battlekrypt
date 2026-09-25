@@ -154,6 +154,12 @@ model ClubProfile {
   status      ClubStatus @default(pending)
   feeProofUrl String? // screenshot of registration-fee payment
 
+  // Placeholder for the Phase 5 subscription system: "club_free" or any
+  // paid plan code. Roster limits (teams/players per game, substitutes,
+  // coach) read this via lib/club-limits.ts. Until Phase 5 ships, set it
+  // by hand to test paid-club behavior.
+  subscriptionPlanCode String @default("club_free")
+
   teams       ClubTeam[]
   roster      ClubRoster[]
   invites     ClubInvite[]

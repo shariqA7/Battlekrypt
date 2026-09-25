@@ -4,6 +4,7 @@
 // acts as a club (sending invites, managing the roster).
 import { createClient } from "@/lib/supabase/server";
 import { getClubByUserId } from "@/lib/services/clubs";
+import { CLUB_ERRORS, type ClubErrorCode } from "@/lib/services/club-roster";
 import { NextResponse } from "next/server";
 
 export async function requireClubOwner() {
@@ -53,4 +54,15 @@ export async function requireApprovedClub() {
   }
 
   return auth;
+}
+
+// Turns a club-roster service failure ({ error, message? }) into a JSON
+// response with the right status code and a user-facing message.
+
+export function clubError(result: { error: ClubErrorCode; message?: string }) {
+  const def = CLUB_ERRORS[result.error];
+  return NextResponse.json(
+    { error: { code: result.error, message: result.message ?? def.message } },
+    { status: def.status }
+  );
 }

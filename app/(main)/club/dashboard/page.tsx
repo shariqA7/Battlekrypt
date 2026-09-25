@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getClubByUserId, getLatestRejectionReason } from "@/lib/services/clubs";
+import { prisma } from "@/lib/prisma";
+import { getClubLimits } from "@/lib/club-limits";
+import { getClubRoster, listClubInvites } from "@/lib/services/club-roster";
 import ResubmitForm from "./ResubmitForm";
+import RosterManager from "./RosterManager";
 
 export default async function ClubDashboardPage() {
   const supabase = await createClient();
@@ -16,6 +20,21 @@ export default async function ClubDashboardPage() {
 
   const rejectionReason =
     club.status === "rejected" ? await getLatestRejectionReason(club.id) : null;
+
+  // Roster data is only loaded (and only usable) once the club is approved.
+  const approved = club.status === "approved";
+  const [games, roster, invites] = approved
+    ? await Promise.all([
+        prisma.game.findMany({
+          where: { isApproved: true },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
+        getClubRoster(club.id),
+        listClubInvites(club.id),
+      ])
+    : [[], null, []];
+  const limits = getClubLimits(club);
 
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
@@ -62,15 +81,17 @@ export default async function ClubDashboardPage() {
         </div>
       )}
 
-      {club.status === "approved" && (
-        <div className="bg-bk-surface border border-bk-border p-4">
-          <p className="font-sans font-medium text-sm text-bk-heading mb-1">
-            Your club is approved
-          </p>
-          <p className="font-sans text-[13px] text-bk-body">
-            Roster management and player invites are coming next.
-          </p>
-        </div>
+      {approved && roster && (
+        <RosterManager
+          games={games}
+          limits={{
+            isPaid: limits.isPaid,
+            canSetCoach: limits.canSetCoach,
+            canUseSubstitutes: limits.maxSubstitutesPerTeam > 0,
+          }}
+          initialRoster={roster}
+          initialInvites={invites}
+        />
       )}
     </main>
   );
