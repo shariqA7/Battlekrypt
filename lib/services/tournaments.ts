@@ -186,9 +186,21 @@ export async function registerForTournament(input: RegisterInput) {
     return { error: "full" as const };
   }
 
-  // Prevent a player registering twice for the same tournament
+  // Prevent anyone in this registration — the registering player OR any
+  // named teammate — from already being registered for this tournament,
+  // either solo or as a member of another team (the original check only
+  // looked at Registration.playerId for the single registering player,
+  // which is null for team registrations and ignored teammates entirely,
+  // so the same person could end up on two teams in one tournament).
+  const allPlayerIds = [input.playerId, ...(input.teamMemberPlayerIds ?? [])];
   const existing = await prisma.registration.findFirst({
-    where: { tournamentId: input.tournamentId, playerId: input.playerId },
+    where: {
+      tournamentId: input.tournamentId,
+      OR: [
+        { playerId: { in: allPlayerIds } },
+        { teamEntry: { members: { some: { playerId: { in: allPlayerIds } } } } },
+      ],
+    },
   });
   if (existing) return { error: "already_registered" as const };
 

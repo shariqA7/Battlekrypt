@@ -66,3 +66,14 @@ export function clubError(result: { error: ClubErrorCode; message?: string }) {
     { status: def.status }
   );
 }
+
+// Same as clubError, for club-entries.ts failures.
+import { CLUB_ENTRY_ERRORS, type ClubEntryErrorCode } from "@/lib/services/club-entries";
+
+export function clubEntryError(result: { error: ClubEntryErrorCode; message?: string }) {
+  const def = CLUB_ENTRY_ERRORS[result.error];
+  return NextResponse.json(
+    { error: { code: result.error, message: result.message ?? def.message } },
+    { status: def.status }
+  );
+}

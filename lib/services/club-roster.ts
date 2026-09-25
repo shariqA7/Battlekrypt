@@ -126,6 +126,7 @@ export async function getClubRoster(clubId: string) {
       members: t.members.map((m) => ({
         rosterId: m.id,
         role: m.role,
+        isCaptain: m.isCaptain,
         joinedAt: m.joinedAt,
         player: { id: m.playerId, name: playerLabel(m.player), avatarUrl: m.player.user.avatarUrl },
       })),
@@ -535,4 +536,40 @@ export async function leaveClub(playerId: string) {
   if (!row) return fail("not_in_club");
   await prisma.clubRoster.delete({ where: { id: row.id } });
   return { data: { id: row.id } };
+}
+
+// ------------------------------------------------------------
+// Captains
+// ------------------------------------------------------------
+
+// A captain can submit/edit that team's tournament entries alongside the
+// club owner (see lib/services/club-entries.ts). At most one captain per
+// team, enforced here via a transaction rather than a DB constraint.
+export async function setTeamCaptain(
+  club: { id: string },
+  teamId: string,
+  playerId: string | null
+) {
+  const team = await prisma.clubTeam.findUnique({ where: { id: teamId } });
+  if (!team || team.clubId !== club.id) return fail("team_not_found");
+
+  if (playerId === null) {
+    await prisma.clubRoster.updateMany({
+      where: { teamId },
+      data: { isCaptain: false },
+    });
+    return { data: { teamId, captainId: null } };
+  }
+
+  const member = await prisma.clubRoster.findUnique({ where: { playerId } });
+  if (!member || member.teamId !== teamId) {
+    return fail("validation_error", "That player isn't on this team.");
+  }
+
+  await prisma.$transaction([
+    prisma.clubRoster.updateMany({ where: { teamId }, data: { isCaptain: false } }),
+    prisma.clubRoster.update({ where: { playerId }, data: { isCaptain: true } }),
+  ]);
+
+  return { data: { teamId, captainId: playerId } };
 }

@@ -2,6 +2,7 @@ import { getTournamentById } from "@/lib/services/tournaments";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import JoinForm from "./JoinForm";
+import ClubEntryPanel from "./ClubEntryPanel";
 
 export default async function JoinTournamentPage({
   params,
@@ -30,6 +31,7 @@ export default async function JoinTournamentPage({
             ? `Entry fee: ${tournament.entryFeeCurrency} ${tournament.entryFeeAmount}`
             : "Free entry"}
         </p>
+        <ClubEntryPanel tournamentId={tournament.id} />
         <JoinForm tournamentId={tournament.id} tournament={tournament} />
       </main>
     </>

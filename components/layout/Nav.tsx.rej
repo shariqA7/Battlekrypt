@@ -1,0 +1,31 @@
+diff a/components/layout/Nav.tsx b/components/layout/Nav.tsx	(rejected hunks)
+@@ -20,17 +20,20 @@ export default async function Nav() {
+   } = await supabase.auth.getUser();
+ 
+   let isOrganizer = false;
++  let isClub = false;
+   let isAdmin = false;
+   let displayName: string | null = null;
+   let avatarUrl: string | null = null;
+   let email = "";
+ 
+   if (user) {
+-    const [organizerProfile, userRecord] = await Promise.all([
++    const [organizerProfile, clubProfile, userRecord] = await Promise.all([
+       prisma.organizerProfile.findUnique({ where: { userId: user.id } }),
++      prisma.clubProfile.findUnique({ where: { userId: user.id } }),
+       prisma.user.findUnique({ where: { id: user.id } }),
+     ]);
+     isOrganizer = !!organizerProfile;
++    isClub = !!clubProfile;
+     isAdmin = !!userRecord?.isAdmin;
+     displayName = userRecord?.displayName ?? null;
+     avatarUrl = userRecord?.avatarUrl ?? null;
+@@ -89,6 +92,7 @@ export default async function Nav() {
+             avatarUrl={avatarUrl}
+             isAdmin={isAdmin}
+             isOrganizer={isOrganizer}
++            isClub={isClub}
+           />
+         )}
+       </div>

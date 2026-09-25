@@ -187,6 +187,7 @@ model ClubTeam {
 
   members ClubRoster[]
   invites ClubInvite[]
+  entries TeamEntry[]
 
   createdAt DateTime @default(now())
 
@@ -221,6 +222,10 @@ model ClubRoster {
   teamId   String? // null for solo games
   team     ClubTeam?      @relation(fields: [teamId], references: [id], onDelete: Restrict)
   role     ClubRosterRole @default(player)
+  // Only meaningful when teamId is set. The captain, along with the club
+  // owner, may submit/edit this team's tournament entries. At most one
+  // captain per team — enforced in the service layer (setTeamCaptain).
+  isCaptain Boolean       @default(false)
   joinedAt DateTime       @default(now())
 
   @@index([clubId, gameId])
@@ -412,6 +417,11 @@ model TeamEntry {
   name         String
   clubId       String?
   club         ClubProfile? @relation(fields: [clubId], references: [id])
+  // Which permanent ClubTeam this entry represents, if any. Lets the club
+  // find/edit "our entry for team X in tournament Y", and distinguishes a
+  // club entry from an ad-hoc team a non-club player formed at registration.
+  clubTeamId   String?
+  clubTeam     ClubTeam?    @relation(fields: [clubTeamId], references: [id])
 
   members      TeamMember[]
   registration Registration?
