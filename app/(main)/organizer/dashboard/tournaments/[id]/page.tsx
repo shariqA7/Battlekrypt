@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { listRegistrations, getTournamentById } from "@/lib/services/tournaments";
+import { listRegistrations, getTournamentById, getTournamentCapacity } from "@/lib/services/tournaments";
 import { redirect, notFound } from "next/navigation";
 import RegistrationQueue from "./RegistrationQueue";
 import StageManager from "./StageManager";
@@ -36,6 +36,7 @@ export default async function ManageTournamentPage({
     redirect("/organizer/dashboard");
   }
   const registrations = result.data;
+  const capacity = await getTournamentCapacity(id);
 
   return (
     <>
@@ -63,10 +64,18 @@ export default async function ManageTournamentPage({
 
         <StageManager tournamentId={id} initialStages={tournament.stages} />
 
-        <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">
-          Registrations ({registrations.length})
-        </p>
-        <RegistrationQueue tournamentId={id} initialRegistrations={registrations} />
+        <div className="flex items-baseline justify-between mt-10 mb-3">
+          <p className="font-sans font-medium text-bk-heading text-sm">
+            Registrations ({registrations.length})
+          </p>
+          {capacity && (
+            <p className="font-sans text-bk-muted text-xs">
+              {capacity.filled} / {capacity.maxTeams} slots filled
+              {capacity.open > 0 && ` · ${capacity.open} open`}
+            </p>
+          )}
+        </div>
+        <RegistrationQueue tournamentId={id} initialRegistrations={registrations} mode={tournament.mode} />
       </main>
     </>
   );
