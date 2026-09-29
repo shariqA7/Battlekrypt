@@ -19,16 +19,12 @@ interface Team {
   name: string;
   coachName: string | null;
   game: Game;
-<<<<<<< ours
-  members: { rosterId: string; role: "player" | "substitute"; player: PlayerRef }[];
-=======
   members: {
     rosterId: string;
     role: "player" | "substitute";
     isCaptain: boolean;
     player: PlayerRef;
   }[];
->>>>>>> theirs
 }
 interface SoloPlayer {
   rosterId: string;
@@ -246,8 +242,6 @@ export default function RosterManager({
                     </p>
                   </div>
                   <div className="flex gap-2">
-<<<<<<< ours
-=======
                     {t.members.length > 0 && (
                       <button
                         type="button"
@@ -277,7 +271,6 @@ export default function RosterManager({
                         {t.members.some((m) => m.isCaptain) ? "Change captain" : "Set captain"}
                       </button>
                     )}
->>>>>>> theirs
                     {(limits.canSetCoach || t.coachName) && (
                       <button
                         type="button"
@@ -318,14 +311,11 @@ export default function RosterManager({
                       <div key={m.rosterId} className="flex items-center justify-between">
                         <span className="font-sans text-bk-body text-[13px]">
                           {m.player.name}
-<<<<<<< ours
-=======
                           {m.isCaptain && (
                             <span className="ml-2 text-[10px] uppercase tracking-[0.5px] text-bk-heading">
                               Captain
                             </span>
                           )}
->>>>>>> theirs
                           {m.role === "substitute" && (
                             <span className="ml-2 text-[10px] uppercase tracking-[0.5px] text-bk-gold-light">
                               Sub
