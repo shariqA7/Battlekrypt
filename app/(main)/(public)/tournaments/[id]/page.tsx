@@ -94,7 +94,18 @@ export default async function TournamentDetailPage({
             <div className="flex flex-col gap-1.5 mb-6">
               {tournament.rules.map((rule) => (
                 <div key={rule.id} className="bg-bk-surface p-2.5 text-bk-body text-xs font-sans">
-                  {rule.description}
+                  {rule.title && (
+                    <p className="text-bk-heading text-[13px] mb-0.5">{rule.title}</p>
+                  )}
+                  <p>{rule.description}</p>
+                  <p className="text-bk-gold-light text-[11px] mt-1">
+                    {rule.action === "point_deduction"
+                      ? `Point deduction${rule.penaltyPoints ? ` (−${rule.penaltyPoints} pt${rule.penaltyPoints === 1 ? "" : "s"})` : ""}`
+                      : rule.action === "disqualification"
+                        ? "Disqualification"
+                        : "Warning"}
+                    {rule.appliesToStage && ` · ${rule.appliesToStage.name} only`}
+                  </p>
                 </div>
               ))}
             </div>

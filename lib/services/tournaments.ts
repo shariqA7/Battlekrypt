@@ -8,6 +8,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { makeTournamentSlug } from "@/lib/slug";
+import { prepareRulesForCreate } from "@/lib/services/rules";
+import type { RuleFields } from "@/lib/rules";
 import type { Prisma, TournamentStatus, TournamentType, TournamentMode, EntryType } from "@prisma/client";
 
 export interface TournamentListFilters {
@@ -65,7 +67,10 @@ export async function getTournamentById(idOrSlug: string) {
       game: true,
       organizer: true,
       stages: { orderBy: { order: "asc" } },
-      rules: true,
+      rules: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        include: { appliesToStage: { select: { id: true, name: true } } },
+      },
       _count: { select: { registrations: { where: { status: { in: ["pending", "approved"] } } } } },
     },
   });
@@ -90,7 +95,9 @@ export interface CreateTournamentInput {
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   customFields?: unknown;
-  rules?: string[]; // Phase 1: free-text rules
+  // Already validated by parseRuleList (see lib/rules.ts). Plain-text rules
+  // arrive here as custom warning rules.
+  rules?: (RuleFields & { suggestedRuleId: string | null })[];
   startAt?: Date;
 }
 
@@ -118,13 +125,11 @@ export async function createTournament(input: CreateTournamentInput) {
       customFields: input.customFields as Prisma.InputJsonValue,
       startAt: input.startAt,
       status: "draft",
-      rules: input.rules
-        ? {
-          create: input.rules.map((description) => ({ description })),
-        }
+      rules: input.rules?.length
+        ? { create: await prepareRulesForCreate(input.rules) }
         : undefined,
     },
-    include: { rules: true },
+    include: { rules: { orderBy: [{ position: "asc" }, { id: "asc" }] } },
   });
 }
 

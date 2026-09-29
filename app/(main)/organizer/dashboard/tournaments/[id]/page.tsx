@@ -4,6 +4,7 @@ import { listRegistrations, getTournamentById, getTournamentCapacity } from "@/l
 import { redirect, notFound } from "next/navigation";
 import RegistrationQueue from "./RegistrationQueue";
 import StageManager from "./StageManager";
+import RulesManager from "./RulesManager";
 import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
 
@@ -63,6 +64,14 @@ export default async function ManageTournamentPage({
         </div>
 
         <StageManager tournamentId={id} initialStages={tournament.stages} />
+
+        <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Rules</p>
+        <RulesManager
+          tournamentId={id}
+          gameId={tournament.gameId}
+          initialRules={tournament.rules}
+          locked={!["draft", "published", "registration_open"].includes(tournament.status)}
+        />
 
         <div className="flex items-baseline justify-between mt-10 mb-3">
           <p className="font-sans font-medium text-bk-heading text-sm">

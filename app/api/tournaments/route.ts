@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { listTournaments, createTournament } from "@/lib/services/tournaments";
 
 import { resolveCreateMoney } from "@/lib/money";
+import { parseRuleList } from "@/lib/rules";
 
 function moneyError(message: string) {
   return NextResponse.json(
@@ -80,6 +81,10 @@ export async function POST(request: Request) {
   });
   if (!money.ok) return moneyError(money.message);
 
+  // Rules: structured objects, or plain strings from older clients.
+  const rules = parseRuleList(body.rules);
+  if (!rules.ok) return moneyError(rules.message);
+
   const tournament = await createTournament({
     organizerId: organizerProfile.id,
     gameId: body.gameId,
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
     prizePoolAmount: money.prizePool?.amount,
     prizePoolCurrency: money.prizePool?.currency,
     customFields: body.customFields,
-    rules: body.rules,
+    rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
 
