@@ -1,4 +1,5 @@
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
+import { formatMoney } from "@/lib/money";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import RoomReveal from "./RoomReveal";
 import FlagButton from "./FlagButton";
@@ -61,7 +62,7 @@ export default async function TournamentDetailPage({
             <p className="text-bk-muted text-[11px] font-sans mb-1">Prize pool</p>
             <p className="font-mono text-bk-gold-light text-lg">
               {tournament.prizePoolAmount
-                ? `${tournament.prizePoolCurrency} ${tournament.prizePoolAmount.toString()}`
+                ? formatMoney(tournament.prizePoolAmount, tournament.prizePoolCurrency ?? "PKR")
                 : "—"}
             </p>
           </div>
@@ -76,7 +77,9 @@ export default async function TournamentDetailPage({
             <p className="font-mono text-bk-heading text-lg">
               {tournament.entryType === "free"
                 ? "Free"
-                : `${tournament.entryFeeCurrency} ${tournament.entryFeeAmount?.toString()}`}
+                : tournament.entryFeeAmount
+                  ? formatMoney(tournament.entryFeeAmount, tournament.entryFeeCurrency ?? "PKR")
+                  : "—"}
             </p>
           </div>
         </div>

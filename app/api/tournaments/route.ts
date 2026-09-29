@@ -5,6 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { listTournaments, createTournament } from "@/lib/services/tournaments";
 
+import { resolveCreateMoney } from "@/lib/money";
+
+function moneyError(message: string) {
+  return NextResponse.json(
+    { error: { code: "validation_error", message } },
+    { status: 400 }
+  );
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
@@ -62,6 +71,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // Money: the API is public and the DB accepts any string, so enforce the
+  // supported currencies / sane amounts here, not just in the form.
+  const money = resolveCreateMoney({
+    entryType: body.entryType,
+    entryFee: body.entryFee,
+    prizePool: body.prizePool,
+  });
+  if (!money.ok) return moneyError(money.message);
+
   const tournament = await createTournament({
     organizerId: organizerProfile.id,
     gameId: body.gameId,
@@ -75,11 +93,11 @@ export async function POST(request: Request) {
     playersPerRoom: body.playersPerRoom,
     format: body.format,
     entryType: body.entryType,
-    entryFeeAmount: body.entryFee?.amount,
-    entryFeeCurrency: body.entryFee?.currency,
+    entryFeeAmount: money.entryFee?.amount,
+    entryFeeCurrency: money.entryFee?.currency,
     paymentInstructions: body.paymentInstructions,
-    prizePoolAmount: body.prizePool?.amount,
-    prizePoolCurrency: body.prizePool?.currency,
+    prizePoolAmount: money.prizePool?.amount,
+    prizePoolCurrency: money.prizePool?.currency,
     customFields: body.customFields,
     rules: body.rules,
     startAt: body.startAt ? new Date(body.startAt) : undefined,

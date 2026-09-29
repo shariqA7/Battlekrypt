@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listTournaments } from "@/lib/services/tournaments";
+import { formatMoney } from "@/lib/money";
 
 export default async function Home() {
   const [{ data: live }, { data: upcoming }] = await Promise.all([
@@ -82,7 +83,7 @@ export default async function Home() {
                 </p>
                 {t.prizePoolAmount && (
                   <p className="font-mono text-bk-gold-light text-xs mt-2">
-                    {t.prizePoolCurrency} {t.prizePoolAmount.toString()}
+                    {formatMoney(t.prizePoolAmount, t.prizePoolCurrency ?? "PKR")}
                   </p>
                 )}
               </Link>
