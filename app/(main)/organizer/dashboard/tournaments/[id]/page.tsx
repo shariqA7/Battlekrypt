@@ -84,7 +84,12 @@ export default async function ManageTournamentPage({
             </p>
           )}
         </div>
-        <RegistrationQueue tournamentId={id} initialRegistrations={registrations} mode={tournament.mode} />
+        <RegistrationQueue
+          tournamentId={id}
+          initialRegistrations={registrations}
+          mode={tournament.mode}
+          rules={tournament.rules.map((r) => ({ id: r.id, title: r.title, description: r.description }))}
+        />
       </main>
     </>
   );

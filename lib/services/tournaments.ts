@@ -800,6 +800,15 @@ export async function disqualifyRegistration(
   if (!registration) return { error: "not_found" as const };
   if (registration.tournament.organizerId !== organizerId) return { error: "forbidden" as const };
 
+  // A cited rule must actually belong to this tournament — otherwise the
+  // disqualification's audit trail could point at someone else's rule.
+  if (ruleId) {
+    const rule = await prisma.tournamentRule.findUnique({ where: { id: ruleId } });
+    if (!rule || rule.tournamentId !== registration.tournamentId) {
+      return { error: "invalid_rule" as const };
+    }
+  }
+
   const updated = await prisma.registration.update({
     where: { id: registrationId },
     data: {
