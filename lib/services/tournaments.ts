@@ -222,10 +222,14 @@ export async function registerForTournament(input: RegisterInput) {
   // looked at Registration.playerId for the single registering player,
   // which is null for team registrations and ignored teammates entirely,
   // so the same person could end up on two teams in one tournament).
+  // Same "only an active registration counts" rule as the capacity check
+  // above — a rejected/disqualified registration frees the person to be
+  // re-registered (by themselves or someone else), not just their slot.
   const allPlayerIds = [input.playerId, ...(input.teamMemberPlayerIds ?? [])];
   const existing = await prisma.registration.findFirst({
     where: {
       tournamentId: input.tournamentId,
+      status: { in: ["pending", "approved"] },
       OR: [
         { playerId: { in: allPlayerIds } },
         { teamEntry: { members: { some: { playerId: { in: allPlayerIds } } } } },
@@ -871,8 +875,14 @@ export async function manualAddRegistration(
     playerProfile = await prisma.playerProfile.create({ data: { userId: userRecord.id } });
   }
 
+  // Active only (see registerForTournament) — a previously rejected/DQ'd
+  // registration shouldn't block the organizer from manually re-adding them.
   const existing = await prisma.registration.findFirst({
-    where: { tournamentId, playerId: playerProfile.id },
+    where: {
+      tournamentId,
+      playerId: playerProfile.id,
+      status: { in: ["pending", "approved"] },
+    },
   });
   if (existing) return { error: "already_registered" as const };
 

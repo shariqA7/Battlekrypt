@@ -201,7 +201,7 @@ login/signup, with defensive fallbacks in the onboard and register routes
 for edge cases (e.g. a session that predates this fix).
 
 ### New: seed script
-`prisma/seed.ts` seeds 5 launch games (PUBG Mobile, Free Fire, MLBB,
+`prisma/seed.ts` seeds 6 launch games (PUBG Mobile, BGMI, Free Fire, MLBB,
 Valorant, League of Legends) per the spec's "start small, expand via Request
 a Game" approach. Run after migrating:
 ```
