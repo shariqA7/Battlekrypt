@@ -1,4 +1,5 @@
 import { getTournamentById } from "@/lib/services/tournaments";
+import { formatMoney } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import JoinForm from "./JoinForm";
@@ -28,7 +29,11 @@ export default async function JoinTournamentPage({
         </h1>
         <p className="font-sans text-bk-body text-sm mb-6">
           {tournament.entryType === "paid"
-            ? `Entry fee: ${tournament.entryFeeCurrency} ${tournament.entryFeeAmount}`
+            ? `Entry fee: ${
+                tournament.entryFeeAmount
+                  ? formatMoney(tournament.entryFeeAmount, tournament.entryFeeCurrency ?? "PKR")
+                  : "—"
+              }`
             : "Free entry"}
         </p>
         <ClubEntryPanel tournamentId={tournament.id} />

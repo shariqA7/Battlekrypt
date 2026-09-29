@@ -9,7 +9,9 @@ import {
 } from "@/lib/services/tournaments";
 import { redirect } from "next/navigation";
 import { listPendingClubs, getClubPaymentInstructions } from "@/lib/services/clubs";
+import { listAllSuggestedRules } from "@/lib/services/rules";
 import AdminQueues from "./AdminQueues";
+import SuggestedRulesManager from "./SuggestedRulesManager";
 import ClubFeeSettings from "./ClubFeeSettings";
 import BrandingManager from "./BrandingManager";
 
@@ -41,6 +43,7 @@ export default async function AdminPage() {
     listCarouselSlides(),
     getClubPaymentInstructions(),
   ]);
+  const suggestedRules = await listAllSuggestedRules();
 
   return (
     <>
@@ -54,6 +57,8 @@ export default async function AdminPage() {
         />
         <div className="h-px bg-bk-border my-10" />
         <ClubFeeSettings initialInstructions={clubPaymentInstructions ?? ""} />
+        <div className="h-px bg-bk-border my-10" />
+        <SuggestedRulesManager initialRules={suggestedRules} />
         <div className="h-px bg-bk-border my-10" />
         <AdminQueues
           initialOrganizers={pendingOrganizers}

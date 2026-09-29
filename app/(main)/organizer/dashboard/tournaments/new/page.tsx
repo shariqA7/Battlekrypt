@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
+import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 
 interface Game {
   id: string;
@@ -33,7 +34,7 @@ export default function NewTournamentPage() {
   const [paymentInstructions, setPaymentInstructions] = useState("");
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
-  const [rulesText, setRulesText] = useState("");
+  const [rules, setRules] = useState<EditableRule[]>([]);
   const [customFields, setCustomFields] = useState<
     { key: string; label: string; type: string; required: boolean }[]
   >([]);
@@ -69,7 +70,13 @@ export default function NewTournamentPage() {
         paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
         customFields: customFields.length > 0 ? customFields : undefined,
-        rules: rulesText.split("\n").map((r) => r.trim()).filter(Boolean),
+        rules: rules.map((r) => ({
+          title: r.title,
+          description: r.description,
+          action: r.action,
+          penaltyPoints: r.penaltyPoints,
+          suggestedRuleId: r.suggestedRuleId,
+        })),
       }),
     });
 
@@ -334,14 +341,8 @@ export default function NewTournamentPage() {
             }}
           />
 
-          <label className={labelClass}>Rules (one per line)</label>
-          <textarea
-            value={rulesText}
-            onChange={(e) => setRulesText(e.target.value)}
-            rows={4}
-            className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
-            placeholder={"No emulator use\n10 minute check-in window"}
-          />
+          <label className={labelClass}>Rules</label>
+          <RulesEditor gameId={gameId} rules={rules} onChange={setRules} />
 
           {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
 

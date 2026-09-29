@@ -375,15 +375,61 @@ model Stage {
   roomRevealAt DateTime?
 
   status String @default("upcoming")
+
+  rules TournamentRule[]
 }
 
 // Phase 1: simple free-text rules. Structured type/severity + rule sets
 // + templates are Phase 3 — see schema.full.prisma.
+// What happens when a rule is broken.
+enum RuleAction {
+  warning
+  point_deduction
+  disqualification
+}
+
+// The catalog behind the "+" button when an organizer adds rules. This is
+// DATA, not code: admins add/edit/hide suggestions from the admin panel and
+// nothing in the app depends on any particular one existing. Adding one to a
+// tournament COPIES it into a TournamentRule, so editing or deleting a
+// suggestion later never changes a tournament that already has it (spec §5).
+model SuggestedRule {
+  id            String     @id @default(uuid())
+  title         String
+  description   String
+  action        RuleAction @default(warning)
+  penaltyPoints Int? // only for point_deduction
+  // Matches Game.category ("mobile", "pc", ...). null = suggested for every game.
+  gameCategory  String?
+  sortOrder     Int        @default(0)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+
+  tournamentRules TournamentRule[]
+}
+
+// A rule as it applies to ONE tournament — its own snapshot, whether it
+// started as a suggestion or was written by the organizer.
 model TournamentRule {
   id           String     @id @default(uuid())
   tournamentId String
   tournament   Tournament @relation(fields: [tournamentId], references: [id])
   description  String
+
+  // Short name ("No emulators"). Optional so rules that predate this (plain
+  // text) keep working — those show just their description.
+  title         String?
+  action        RuleAction @default(warning)
+  penaltyPoints Int? // required when action is point_deduction, otherwise null
+  position      Int        @default(0) // display order
+
+  // Optional: the rule only applies to one stage (e.g. Finals).
+  appliesToStageId String?
+  appliesToStage   Stage?  @relation(fields: [appliesToStageId], references: [id])
+
+  // Where it was copied from, if it was a suggestion. Provenance only.
+  suggestedRuleId String?
+  suggestedRule   SuggestedRule? @relation(fields: [suggestedRuleId], references: [id], onDelete: SetNull)
 
   disqualifications Registration[] @relation("DisqualifiedRule")
 }

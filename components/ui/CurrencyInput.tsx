@@ -4,8 +4,8 @@
 // Money is always {amount, currency} — never a bare number. See schema.prisma.
 
 import { useState } from "react";
+import { SUPPORTED_CURRENCIES } from "@/lib/money";
 
-const SUPPORTED_CURRENCIES = ["PKR", "USD", "INR", "SAR", "AED"];
 
 interface CurrencyInputProps {
   amount: number;

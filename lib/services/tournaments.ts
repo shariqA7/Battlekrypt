@@ -8,6 +8,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { makeTournamentSlug } from "@/lib/slug";
+import { prepareRulesForCreate } from "@/lib/services/rules";
+import type { RuleFields } from "@/lib/rules";
 import type { Prisma, TournamentStatus, TournamentType, TournamentMode, EntryType } from "@prisma/client";
 
 export interface TournamentListFilters {
@@ -65,8 +67,11 @@ export async function getTournamentById(idOrSlug: string) {
       game: true,
       organizer: true,
       stages: { orderBy: { order: "asc" } },
-      rules: true,
-      _count: { select: { registrations: true } },
+      rules: {
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        include: { appliesToStage: { select: { id: true, name: true } } },
+      },
+      _count: { select: { registrations: { where: { status: { in: ["pending", "approved"] } } } } },
     },
   });
 }
@@ -90,7 +95,9 @@ export interface CreateTournamentInput {
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   customFields?: unknown;
-  rules?: string[]; // Phase 1: free-text rules
+  // Already validated by parseRuleList (see lib/rules.ts). Plain-text rules
+  // arrive here as custom warning rules.
+  rules?: (RuleFields & { suggestedRuleId: string | null })[];
   startAt?: Date;
 }
 
@@ -118,13 +125,11 @@ export async function createTournament(input: CreateTournamentInput) {
       customFields: input.customFields as Prisma.InputJsonValue,
       startAt: input.startAt,
       status: "draft",
-      rules: input.rules
-        ? {
-          create: input.rules.map((description) => ({ description })),
-        }
+      rules: input.rules?.length
+        ? { create: await prepareRulesForCreate(input.rules) }
         : undefined,
     },
-    include: { rules: true },
+    include: { rules: { orderBy: [{ position: "asc" }, { id: "asc" }] } },
   });
 }
 
@@ -410,7 +415,7 @@ export async function getMyTournaments(organizerId: string) {
     where: { organizerId },
     include: {
       game: true,
-      _count: { select: { registrations: true } },
+      _count: { select: { registrations: { where: { status: { in: ["pending", "approved"] } } } } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -563,9 +568,42 @@ export async function updateTournament(
   if (!tournament) return { error: "not_found" as const };
   if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
 
+  const data: UpdateTournamentInput = { ...input };
+
+  // A free tournament carries no entry fee; the edit form always sends one
+  // (0), which used to get written onto free tournaments.
+  if (tournament.entryType === "free") {
+    delete data.entryFeeAmount;
+    delete data.entryFeeCurrency;
+  } else if (data.entryFeeAmount !== undefined && Number(data.entryFeeAmount) <= 0) {
+    return { error: "invalid_fee" as const };
+  }
+
+  // Money that players have already committed to can't move under them.
+  // Only an actual CHANGE is blocked — the edit form resends the current
+  // values on every save, and that must keep working.
+  const feeChanged =
+    tournament.entryType === "paid" &&
+    ((data.entryFeeAmount !== undefined &&
+      Number(tournament.entryFeeAmount) !== Number(data.entryFeeAmount)) ||
+      (data.entryFeeCurrency !== undefined &&
+        tournament.entryFeeCurrency !== data.entryFeeCurrency));
+  const prizeCurrencyChanged =
+    data.prizePoolCurrency !== undefined &&
+    tournament.prizePoolCurrency !== null &&
+    tournament.prizePoolCurrency !== data.prizePoolCurrency;
+
+  if (feeChanged || prizeCurrencyChanged) {
+    // Same definition of "holds a slot" as the capacity check: rejected and
+    // disqualified registrations don't count.
+    if ((await getActiveRegistrationCount(tournamentId)) > 0) {
+      return { error: feeChanged ? ("fee_locked" as const) : ("currency_locked" as const) };
+    }
+  }
+
   const updated = await prisma.tournament.update({
     where: { id: tournamentId },
-    data: input,
+    data,
   });
   return { data: updated };
 }

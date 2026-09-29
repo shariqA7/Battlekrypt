@@ -1,4 +1,5 @@
 import { listTournaments } from "@/lib/services/tournaments";
+import { formatMoney } from "@/lib/money";
 import Link from "next/link";
 import { Suspense } from "react";
 import FilterBar from "./FilterBar";
@@ -56,7 +57,7 @@ export default async function TournamentsPage({
                 <div className="text-right">
                   {t.prizePoolAmount ? (
                     <p className="font-mono text-bk-gold-light text-sm">
-                      {t.prizePoolCurrency} {t.prizePoolAmount.toString()}
+                      {formatMoney(t.prizePoolAmount, t.prizePoolCurrency ?? "PKR")}
                     </p>
                   ) : (
                     <p className="font-sans text-bk-muted text-xs uppercase tracking-[0.5px]">
