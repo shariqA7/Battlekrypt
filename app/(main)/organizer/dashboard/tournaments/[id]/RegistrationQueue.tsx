@@ -79,24 +79,34 @@ const STATUS_BADGE: Record<string, string> = {
 export default function RegistrationQueue({
   tournamentId,
   initialRegistrations,
+  mode,
 }: {
   tournamentId: string;
   initialRegistrations: Registration[];
+  mode: string;
 }) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   const [manualEmail, setManualEmail] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
-  async function handleManualAdd(e: React.FormEvent) {
-    e.preventDefault();
+  // Club override — bypasses the roster-lock rule, works at any tournament
+  // status (spec §4's "organizer is the override valve"). Team/player IDs
+  // are typed in directly for now (find them on the club's roster page);
+  // a proper search box here is a natural follow-up.
+  const [showClubAdd, setShowClubAdd] = useState(false);
+  const [clubTeamId, setClubTeamId] = useState("");
+  const [clubMemberIds, setClubMemberIds] = useState("");
+  const [clubPlayerId, setClubPlayerId] = useState("");
+
+  async function submitManualAdd(body: Record<string, unknown>) {
     setManualSubmitting(true);
     setManualError(null);
 
     const res = await fetch(`/api/tournaments/${tournamentId}/registrations/manual-add`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerEmail: manualEmail, paymentStatus: "waived" }),
+      body: JSON.stringify({ paymentStatus: "waived", ...body }),
     });
 
     if (!res.ok) {
@@ -106,7 +116,6 @@ export default function RegistrationQueue({
       return;
     }
 
-    setManualEmail("");
     setManualSubmitting(false);
     // A full reload, not router.refresh() — this component's `registrations`
     // state is a local useState seeded from initialRegistrations, which only
@@ -114,6 +123,25 @@ export default function RegistrationQueue({
     // parent Server Component with fresh data but wouldn't actually update
     // this already-mounted component's local state.
     window.location.reload();
+  }
+
+  function handleManualAdd(e: React.FormEvent) {
+    e.preventDefault();
+    void submitManualAdd({ playerEmail: manualEmail });
+  }
+
+  function handleClubTeamAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const memberPlayerIds = clubMemberIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    void submitManualAdd({ clubTeamId, memberPlayerIds });
+  }
+
+  function handleClubSoloAdd(e: React.FormEvent) {
+    e.preventDefault();
+    void submitManualAdd({ clubPlayerId });
   }
 
   async function handleAction(id: string, action: "approve" | "reject" | "disqualify") {
@@ -138,23 +166,83 @@ export default function RegistrationQueue({
   }
 
   const manualAddForm = (
-    <form onSubmit={handleManualAdd} className="flex gap-2 mb-4">
-      <input
-        type="email"
-        required
-        value={manualEmail}
-        onChange={(e) => setManualEmail(e.target.value)}
-        placeholder="Player's email — manually add them"
-        className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
-      />
+    <div className="mb-4">
+      <form onSubmit={handleManualAdd} className="flex gap-2">
+        <input
+          type="email"
+          required
+          value={manualEmail}
+          onChange={(e) => setManualEmail(e.target.value)}
+          placeholder="Player's email — manually add them"
+          className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+        />
+        <button
+          type="submit"
+          disabled={manualSubmitting}
+          className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
+        >
+          {manualSubmitting ? "Adding..." : "Add player"}
+        </button>
+      </form>
+
       <button
-        type="submit"
-        disabled={manualSubmitting}
-        className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
+        type="button"
+        onClick={() => setShowClubAdd((v) => !v)}
+        className="font-sans text-bk-muted text-[11px] underline mt-1.5"
       >
-        {manualSubmitting ? "Adding..." : "Add player"}
+        {showClubAdd ? "Hide" : "Add a club team or player instead"}
       </button>
-    </form>
+
+      {showClubAdd && (
+        <div className="bg-bk-surface border border-bk-border p-3 mt-2 flex flex-col gap-2">
+          <p className="font-sans text-bk-muted text-[11px]">
+            Bypasses registration status/limits — find the IDs on the club&apos;s roster page.
+          </p>
+          {mode === "solo" ? (
+            <form onSubmit={handleClubSoloAdd} className="flex gap-2">
+              <input
+                required
+                value={clubPlayerId}
+                onChange={(e) => setClubPlayerId(e.target.value)}
+                placeholder="Club roster player ID"
+                className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+              />
+              <button
+                type="submit"
+                disabled={manualSubmitting}
+                className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleClubTeamAdd} className="flex gap-2">
+              <input
+                required
+                value={clubTeamId}
+                onChange={(e) => setClubTeamId(e.target.value)}
+                placeholder="Club team ID"
+                className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+              />
+              <input
+                required
+                value={clubMemberIds}
+                onChange={(e) => setClubMemberIds(e.target.value)}
+                placeholder="Member player IDs, comma-separated"
+                className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+              />
+              <button
+                type="submit"
+                disabled={manualSubmitting}
+                className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+    </div>
   );
 
   if (registrations.length === 0) {

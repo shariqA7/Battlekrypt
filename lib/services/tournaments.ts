@@ -161,6 +161,29 @@ export async function publishTournament(tournamentId: string, organizerId: strin
 // REGISTRATION
 // ------------------------------------------------------------
 
+// A registration holds its slot while pending or approved; rejected/
+// disqualified ones don't (see registerForTournament). Used both for the
+// capacity check and to show organizers how many slots are actually open.
+async function getActiveRegistrationCount(tournamentId: string) {
+  return prisma.registration.count({
+    where: { tournamentId, status: { in: ["pending", "approved"] } },
+  });
+}
+
+// For the organizer dashboard / tournament detail: how many of the
+// tournament's slots are filled (holding pending or approved registrations)
+// vs open (never taken, or freed by a rejection/disqualification).
+export async function getTournamentCapacity(tournamentId: string) {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { maxTeams: true },
+  });
+  if (!tournament) return null;
+
+  const filled = await getActiveRegistrationCount(tournamentId);
+  return { maxTeams: tournament.maxTeams, filled, open: Math.max(tournament.maxTeams - filled, 0) };
+}
+
 export interface RegisterInput {
   tournamentId: string;
   playerId: string;
@@ -173,7 +196,6 @@ export interface RegisterInput {
 export async function registerForTournament(input: RegisterInput) {
   const tournament = await prisma.tournament.findUnique({
     where: { id: input.tournamentId },
-    include: { _count: { select: { registrations: true } } },
   });
 
   if (!tournament) return { error: "not_found" as const };
@@ -182,7 +204,15 @@ export async function registerForTournament(input: RegisterInput) {
     return { error: "registration_closed" as const };
   }
 
-  if (tournament._count.registrations >= tournament.maxTeams) {
+  // Only pending/approved registrations hold a slot. A rejected or
+  // disqualified registration frees its slot back up for anyone else to
+  // self-serve into — this is what "sell a slot" (spec §2) relies on: the
+  // organizer doesn't have to do anything for a freed slot to reopen, it
+  // just stops counting against capacity. (Before this fix, rejected/DQ'd
+  // registrations were kept for the audit trail but still counted forever,
+  // so a freed slot could only ever be filled via manual-add.)
+  const activeCount = await getActiveRegistrationCount(input.tournamentId);
+  if (activeCount >= tournament.maxTeams) {
     return { error: "full" as const };
   }
 
