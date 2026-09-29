@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
+
+type ClubCandidate = ClubTeamCandidate | ClubSoloCandidate;
 
 interface Registration {
   id: string;
@@ -91,13 +94,52 @@ export default function RegistrationQueue({
   const [manualSubmitting, setManualSubmitting] = useState(false);
 
   // Club override — bypasses the roster-lock rule, works at any tournament
-  // status (spec §4's "organizer is the override valve"). Team/player IDs
-  // are typed in directly for now (find them on the club's roster page);
-  // a proper search box here is a natural follow-up.
+  // status (spec §4's "organizer is the override valve").
   const [showClubAdd, setShowClubAdd] = useState(false);
-  const [clubTeamId, setClubTeamId] = useState("");
-  const [clubMemberIds, setClubMemberIds] = useState("");
-  const [clubPlayerId, setClubPlayerId] = useState("");
+  const [clubQuery, setClubQuery] = useState("");
+  const [clubResults, setClubResults] = useState<ClubCandidate[]>([]);
+  // For a team result: which of its roster members to actually enter.
+  const [teamSelection, setTeamSelection] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (!showClubAdd) return;
+    const q = clubQuery.trim();
+    if (q.length < 2) return;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/tournaments/${tournamentId}/club-entries/search?q=${encodeURIComponent(q)}`
+        );
+        const json = await res.json();
+        setClubResults(json.data ?? []);
+        setTeamSelection((prev) => {
+          const next = { ...prev };
+          for (const c of json.data ?? []) {
+            if (c.kind === "team" && !(c.teamId in next)) {
+              next[c.teamId] = c.members.map((m: { id: string }) => m.id);
+            }
+          }
+          return next;
+        });
+      } catch {
+        setClubResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [clubQuery, showClubAdd, tournamentId]);
+
+  // Derived rather than cleared in the effect: short queries show nothing.
+  const shownClubResults = clubQuery.trim().length >= 2 ? clubResults : [];
+
+  function toggleMember(teamId: string, playerId: string) {
+    setTeamSelection((prev) => {
+      const current = prev[teamId] ?? [];
+      const next = current.includes(playerId)
+        ? current.filter((id) => id !== playerId)
+        : [...current, playerId];
+      return { ...prev, [teamId]: next };
+    });
+  }
 
   async function submitManualAdd(body: Record<string, unknown>) {
     setManualSubmitting(true);
@@ -130,18 +172,14 @@ export default function RegistrationQueue({
     void submitManualAdd({ playerEmail: manualEmail });
   }
 
-  function handleClubTeamAdd(e: React.FormEvent) {
-    e.preventDefault();
-    const memberPlayerIds = clubMemberIds
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    void submitManualAdd({ clubTeamId, memberPlayerIds });
+  function addClubTeam(teamId: string) {
+    const memberPlayerIds = teamSelection[teamId] ?? [];
+    if (memberPlayerIds.length === 0) return;
+    void submitManualAdd({ clubTeamId: teamId, memberPlayerIds });
   }
 
-  function handleClubSoloAdd(e: React.FormEvent) {
-    e.preventDefault();
-    void submitManualAdd({ clubPlayerId });
+  function addClubSolo(playerId: string) {
+    void submitManualAdd({ clubPlayerId: playerId });
   }
 
   async function handleAction(id: string, action: "approve" | "reject" | "disqualify") {
@@ -196,49 +234,65 @@ export default function RegistrationQueue({
       {showClubAdd && (
         <div className="bg-bk-surface border border-bk-border p-3 mt-2 flex flex-col gap-2">
           <p className="font-sans text-bk-muted text-[11px]">
-            Bypasses registration status/limits — find the IDs on the club&apos;s roster page.
+            Bypasses registration status/limits — the organizer override valve.
           </p>
-          {mode === "solo" ? (
-            <form onSubmit={handleClubSoloAdd} className="flex gap-2">
-              <input
-                required
-                value={clubPlayerId}
-                onChange={(e) => setClubPlayerId(e.target.value)}
-                placeholder="Club roster player ID"
-                className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
-              />
-              <button
-                type="submit"
-                disabled={manualSubmitting}
-                className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
+          <input
+            value={clubQuery}
+            onChange={(e) => setClubQuery(e.target.value)}
+            placeholder={mode === "solo" ? "Search club or player name" : "Search club or team name"}
+            className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+          />
+          {shownClubResults.map((c) =>
+            c.kind === "solo" ? (
+              <div
+                key={c.playerId}
+                className="flex items-center justify-between bg-bk-bg border border-bk-border px-3 py-2"
               >
-                Add
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleClubTeamAdd} className="flex gap-2">
-              <input
-                required
-                value={clubTeamId}
-                onChange={(e) => setClubTeamId(e.target.value)}
-                placeholder="Club team ID"
-                className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
-              />
-              <input
-                required
-                value={clubMemberIds}
-                onChange={(e) => setClubMemberIds(e.target.value)}
-                placeholder="Member player IDs, comma-separated"
-                className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
-              />
-              <button
-                type="submit"
-                disabled={manualSubmitting}
-                className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 disabled:opacity-50"
-              >
-                Add
-              </button>
-            </form>
+                <span className="font-sans text-[12px] text-bk-body">
+                  {c.playerName} <span className="text-bk-muted">· {c.clubName}</span>
+                </span>
+                <button
+                  type="button"
+                  disabled={manualSubmitting}
+                  onClick={() => addClubSolo(c.playerId)}
+                  className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            ) : (
+              <div key={c.teamId} className="bg-bk-bg border border-bk-border px-3 py-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-sans text-[12px] text-bk-body">
+                    {c.teamName} <span className="text-bk-muted">· {c.clubName}</span>
+                  </span>
+                  <button
+                    type="button"
+                    disabled={manualSubmitting || (teamSelection[c.teamId] ?? []).length === 0}
+                    onClick={() => addClubTeam(c.teamId)}
+                    className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {c.members.map((m) => (
+                    <label
+                      key={m.id}
+                      className="flex items-center gap-1 font-sans text-[11px] text-bk-muted"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(teamSelection[c.teamId] ?? []).includes(m.id)}
+                        onChange={() => toggleMember(c.teamId, m.id)}
+                      />
+                      {m.name}
+                      {m.role === "substitute" && " (sub)"}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )
           )}
         </div>
       )}

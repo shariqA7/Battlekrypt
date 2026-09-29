@@ -105,10 +105,18 @@ export default function AuthPageContent({ mode }: { mode: "login" | "signup" }) 
     setSubmitting(false);
   }
 
+  // Carry ?redirectTo= across so someone who hit a login wall on a specific
+  // page still lands there after switching between sign in and sign up.
+  const switchPath = mode === "login" ? "/signup" : "/login";
+  const switchHref = searchParams.get("redirectTo")
+    ? `${switchPath}?redirectTo=${encodeURIComponent(redirectTo)}`
+    : switchPath;
+
   return (
     <div>
       <AuthForm
         mode={mode}
+        switchHref={switchHref}
         title={mode === "signup" ? "Create your account" : "Sign in"}
         subtitle={
           mode === "signup"

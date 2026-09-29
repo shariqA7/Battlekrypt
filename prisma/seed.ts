@@ -9,6 +9,7 @@ const prisma = new PrismaClient({ adapter });
 
 const LAUNCH_GAMES = [
   { name: "PUBG Mobile", category: "mobile" },
+  { name: "BGMI", category: "mobile" }, // Battlegrounds Mobile India — large Indian player base
   { name: "Free Fire", category: "mobile" },
   { name: "Mobile Legends: Bang Bang", category: "mobile" },
   { name: "Valorant", category: "pc" },

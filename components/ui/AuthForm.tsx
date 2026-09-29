@@ -39,6 +39,9 @@ interface AuthFormProps {
     lastName: string;
   }) => void;
   submitting?: boolean;
+  // Where the "switch to sign up / sign in" button goes. Built by the parent
+  // so it can carry the ?redirectTo= param across.
+  switchHref?: string;
 }
 
 export default function AuthForm({
@@ -50,6 +53,7 @@ export default function AuthForm({
   onLogin,
   onSignup,
   submitting = false,
+  switchHref,
 }: AuthFormProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -190,6 +194,20 @@ export default function AuthForm({
             {submitting ? "Please wait..." : mode === "signup" ? "Create account" : "Sign in"}
           </button>
         </form>
+
+        {switchHref && (
+          <div className="mt-5 pt-5 border-t border-bk-border text-center">
+            <p className="font-sans text-[12px] text-bk-muted mb-2.5">
+              {mode === "login" ? "Don't have an account?" : "Already have an account?"}
+            </p>
+            <Link
+              href={switchHref}
+              className="block w-full border border-bk-border rounded-xl font-sans font-medium text-[13px] text-bk-heading py-3 transition-colors hover:border-bk-gold-light"
+            >
+              {mode === "login" ? "Create an account" : "Sign in instead"}
+            </Link>
+          </div>
+        )}
 
         <p className="text-center text-bk-muted text-[11px] font-sans mt-5">
           By continuing, you agree to BattleKrypt&apos;s Terms and Privacy Policy.

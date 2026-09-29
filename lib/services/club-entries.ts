@@ -264,8 +264,10 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
     });
     if (!rosterRow) return { editable, teams: [], soloEntry: null };
 
+    // Active only — a rejected/disqualified registration frees the player up
+    // to be shown as available again, not permanently "already registered".
     const existing = await prisma.registration.findFirst({
-      where: { tournamentId, playerId: rosterRow.playerId },
+      where: { tournamentId, playerId: rosterRow.playerId, status: { in: ["pending", "approved"] } },
     });
     return {
       editable,
@@ -289,8 +291,16 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
     include: { members: { include: { player: { include: { user: true } } } } },
   });
 
+  // Only an active (pending/approved) registration counts as "our current
+  // entry" — a rejected/disqualified one has freed its slot (see
+  // registerForTournament) and shouldn't block a fresh submission by
+  // showing as if it still holds a spot.
   const entries = await prisma.teamEntry.findMany({
-    where: { tournamentId, clubTeamId: { in: teams.map((t) => t.id) } },
+    where: {
+      tournamentId,
+      clubTeamId: { in: teams.map((t) => t.id) },
+      registration: { status: { in: ["pending", "approved"] } },
+    },
     select: { id: true, clubTeamId: true, members: { select: { playerId: true } } },
   });
   const entryByTeam = new Map(entries.map((e) => [e.clubTeamId!, e]));
@@ -355,8 +365,19 @@ export async function manualAddClubTeamEntry(
   const rosterIds = new Set(rosterMembers.map((m) => m.playerId));
   if (!ids.every((id) => rosterIds.has(id))) return fail("member_not_on_team");
 
+  // Active only, and check team members too — Registration.playerId is null
+  // for team entries, so a plain playerId match alone would miss another
+  // team's roster already holding one of these players in this tournament
+  // (same gap as registerForTournament in lib/services/tournaments.ts).
   const alreadyIn = await prisma.registration.findFirst({
-    where: { tournamentId, playerId: { in: ids } },
+    where: {
+      tournamentId,
+      status: { in: ["pending", "approved"] },
+      OR: [
+        { playerId: { in: ids } },
+        { teamEntry: { members: { some: { playerId: { in: ids } } } } },
+      ],
+    },
   });
   if (alreadyIn) return fail("already_registered");
 
@@ -400,7 +421,9 @@ export async function manualAddClubSoloEntry(
   if (!rosterRow || rosterRow.teamId !== null) return fail("not_on_roster");
   if (rosterRow.gameId !== tournament.gameId) return fail("not_on_roster");
 
-  const existing = await prisma.registration.findFirst({ where: { tournamentId, playerId } });
+  const existing = await prisma.registration.findFirst({
+    where: { tournamentId, playerId, status: { in: ["pending", "approved"] } },
+  });
   if (existing) return fail("already_registered");
 
   const registration = await prisma.registration.create({
@@ -415,4 +438,100 @@ export async function manualAddClubSoloEntry(
   });
 
   return { data: registration };
+}
+
+// ------------------------------------------------------------
+// Organizer-side search (manual-add search box)
+// ------------------------------------------------------------
+
+function displayName(p: { firstName: string | null; lastName: string | null; user: { displayName: string } }) {
+  const dn = p.user.displayName;
+  if (!dn.includes("@")) return dn;
+  const full = `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+  return full || "Player";
+}
+
+export interface ClubTeamCandidate {
+  kind: "team";
+  teamId: string;
+  teamName: string;
+  clubName: string;
+  members: { id: string; name: string; role: "player" | "substitute" }[];
+}
+export interface ClubSoloCandidate {
+  kind: "solo";
+  playerId: string;
+  playerName: string;
+  clubName: string;
+}
+
+// Lets an organizer find a club team or solo roster player to manually add,
+// by club name or team/player name — so manual-add doesn't require knowing
+// raw IDs. Scoped to the tournament's game and mode, and to approved clubs
+// only. Requires 2+ characters; excludes email-derived display names.
+export async function searchClubEntryCandidates(
+  tournamentId: string,
+  query: string
+): Promise<(ClubTeamCandidate | ClubSoloCandidate)[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return [];
+
+  if (tournament.mode === "solo") {
+    const rows = await prisma.clubRoster.findMany({
+      where: {
+        gameId: tournament.gameId,
+        teamId: null,
+        club: { status: "approved" },
+        OR: [
+          { club: { clubName: { contains: q, mode: "insensitive" } } },
+          { player: { firstName: { contains: q, mode: "insensitive" } } },
+          { player: { lastName: { contains: q, mode: "insensitive" } } },
+          {
+            player: {
+              user: {
+                AND: [
+                  { displayName: { contains: q, mode: "insensitive" } },
+                  { NOT: { displayName: { contains: "@" } } },
+                ],
+              },
+            },
+          },
+        ],
+      },
+      include: { player: { include: { user: true } }, club: { select: { clubName: true } } },
+      take: 8,
+    });
+    return rows.map((r) => ({
+      kind: "solo" as const,
+      playerId: r.playerId,
+      playerName: displayName(r.player),
+      clubName: r.club.clubName,
+    }));
+  }
+
+  const teams = await prisma.clubTeam.findMany({
+    where: {
+      gameId: tournament.gameId,
+      club: { status: "approved" },
+      OR: [
+        { name: { contains: q, mode: "insensitive" } },
+        { club: { clubName: { contains: q, mode: "insensitive" } } },
+      ],
+    },
+    include: {
+      club: { select: { clubName: true } },
+      members: { include: { player: { include: { user: true } } } },
+    },
+    take: 8,
+  });
+  return teams.map((t) => ({
+    kind: "team" as const,
+    teamId: t.id,
+    teamName: t.name,
+    clubName: t.club.clubName,
+    members: t.members.map((m) => ({ id: m.playerId, name: displayName(m.player), role: m.role })),
+  }));
 }
