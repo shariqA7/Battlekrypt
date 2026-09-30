@@ -14,6 +14,7 @@ import type { Prisma, TournamentStatus, TournamentType, TournamentMode, EntryTyp
 
 export interface TournamentListFilters {
   game?: string;
+  organizerId?: string;
   type?: TournamentType;
   mode?: TournamentMode;
   entryType?: EntryType;
@@ -26,6 +27,16 @@ export interface TournamentListFilters {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
+// Shared by every place a registration is actually created (self, club,
+// organizer manual-add) — see incrementTournamentClick for the matching
+// click counter. Best-effort: a failed count bump shouldn't fail the
+// registration itself.
+export async function bumpRegistrationCount(tournamentId: string) {
+  await prisma.tournament
+    .update({ where: { id: tournamentId }, data: { registrationCount: { increment: 1 } } })
+    .catch(() => null);
+}
+
 export async function listTournaments(filters: TournamentListFilters) {
   const page = Math.max(filters.page ?? 1, 1);
   const limit = Math.min(filters.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
@@ -37,6 +48,7 @@ export async function listTournaments(filters: TournamentListFilters) {
     ...(filters.type && { type: filters.type }),
     ...(filters.mode && { mode: filters.mode }),
     ...(filters.entryType && { entryType: filters.entryType }),
+    ...(filters.organizerId && { organizerId: filters.organizerId }),
     ...(filters.game && { game: { name: { equals: filters.game, mode: "insensitive" } } }),
     ...(filters.search && {
       name: { contains: filters.search, mode: "insensitive" },
@@ -48,7 +60,7 @@ export async function listTournaments(filters: TournamentListFilters) {
       where,
       include: {
         game: true,
-        organizer: { select: { id: true, orgName: true } },
+        organizer: { select: { id: true, orgName: true, socialLinks: true } },
       },
       orderBy: { startAt: "asc" },
       skip: (page - 1) * limit,
@@ -277,9 +289,9 @@ export async function registerForTournament(input: RegisterInput) {
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
       },
     });
+    await bumpRegistrationCount(input.tournamentId);
     return { data: registration };
   }
-
   const registration = await prisma.registration.create({
     data: {
       tournamentId: input.tournamentId,
@@ -289,6 +301,7 @@ export async function registerForTournament(input: RegisterInput) {
       customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
     },
   });
+  await bumpRegistrationCount(input.tournamentId);
 
   return { data: registration };
 }
@@ -713,19 +726,128 @@ export async function getOrganizerByUserId(userId: string) {
 export async function getPublicOrganizerProfile(organizerId: string) {
   const organizer = await prisma.organizerProfile.findUnique({
     where: { id: organizerId },
-    include: {
-      user: { select: { kycStatus: true } },
-      _count: { select: { tournaments: true } },
-    },
+    include: { user: { select: { kycStatus: true } } },
   });
   if (!organizer) return null;
 
+  // "Tournaments Hosted" per spec §10 is completed-only, not every
+  // tournament ever created (a pile of drafts/cancellations shouldn't
+  // count toward credibility).
   const completedTournaments = await prisma.tournament.findMany({
     where: { organizerId, status: "completed" },
-    select: { prizePoolAmount: true, prizePoolCurrency: true },
+    select: { prizePoolAmount: true, prizePoolCurrency: true, payoutConfirmed: true },
   });
 
-  return { ...organizer, completedTournaments };
+  // "Total Prize Pool Distributed" — payout-confirmed only (spec §10), so
+  // a prize pool that's merely been announced doesn't count until the
+  // organizer confirms it actually went out. Broken down per currency
+  // rather than force-converted (spec §6) — formatMoneyBreakdown handles
+  // the actual per-currency grouping/display.
+  const prizeDistributed = completedTournaments
+    .filter((t) => t.payoutConfirmed && t.prizePoolAmount && t.prizePoolCurrency)
+    .map((t) => ({ amount: t.prizePoolAmount!, currency: t.prizePoolCurrency! }));
+
+  // Like/Dislike ratio — one vote per player per tournament they actually
+  // joined (spec §10), aggregated across all of the organizer's tournaments.
+  const voteCounts = await prisma.tournamentVote.groupBy({
+    by: ["value"],
+    where: { tournament: { organizerId } },
+    _count: true,
+  });
+  const likes = voteCounts.find((v) => v.value === "like")?._count ?? 0;
+  const dislikes = voteCounts.find((v) => v.value === "dislike")?._count ?? 0;
+
+  return {
+    ...organizer,
+    tournamentsHosted: completedTournaments.length,
+    prizeDistributed,
+    likes,
+    dislikes,
+  };
+}
+
+// Organizer confirms prize money for a completed tournament has actually
+// gone out. Only meaningful once the tournament is completed and has a
+// prize pool — confirming payout on a still-running or prizeless
+// tournament doesn't mean anything (see Tournament.payoutConfirmed).
+export async function markPayoutConfirmed(tournamentId: string, userId: string) {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    include: { organizer: true },
+  });
+  if (!tournament) return { error: "not_found" as const };
+  if (tournament.organizer.userId !== userId) return { error: "forbidden" as const };
+  if (tournament.status !== "completed") return { error: "not_completed" as const };
+  if (!tournament.prizePoolAmount) return { error: "no_prize_pool" as const };
+
+  const updated = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { payoutConfirmed: true },
+  });
+  return { data: updated };
+}
+
+// A player may vote once they hold ANY registration for this tournament —
+// as themselves, or as a member of a club team entry — regardless of that
+// registration's current status (spec §10: "tied to registration record —
+// can't be gamed by non-participants"; being later disqualified doesn't
+// retroactively strip standing to rate the event they played in).
+async function hasJoinedTournament(tournamentId: string, playerId: string) {
+  const registration = await prisma.registration.findFirst({
+    where: {
+      tournamentId,
+      OR: [
+        { playerId },
+        { teamEntry: { members: { some: { playerId } } } },
+      ],
+    },
+    select: { id: true },
+  });
+  return registration !== null;
+}
+
+export async function voteOnTournament(
+  tournamentId: string,
+  playerId: string,
+  value: "like" | "dislike"
+) {
+  if (!(await hasJoinedTournament(tournamentId, playerId))) {
+    return { error: "not_joined" as const };
+  }
+  const vote = await prisma.tournamentVote.upsert({
+    where: { tournamentId_playerId: { tournamentId, playerId } },
+    create: { tournamentId, playerId, value },
+    update: { value },
+  });
+  return { data: vote };
+}
+
+export async function getTournamentVoteSummary(tournamentId: string, playerId?: string) {
+  const [counts, myVote] = await Promise.all([
+    prisma.tournamentVote.groupBy({ by: ["value"], where: { tournamentId }, _count: true }),
+    playerId
+      ? prisma.tournamentVote.findUnique({
+          where: { tournamentId_playerId: { tournamentId, playerId } },
+        })
+      : Promise.resolve(null),
+  ]);
+  return {
+    likes: counts.find((v) => v.value === "like")?._count ?? 0,
+    dislikes: counts.find((v) => v.value === "dislike")?._count ?? 0,
+    myVote: myVote?.value ?? null,
+  };
+}
+
+// Basic shareable-link click tracking (spec §3). Fire-and-forget, called
+// from a client component on actual mount so Next.js Link prefetches
+// (which don't run page JS) don't inflate the count.
+export async function incrementTournamentClick(idOrSlug: string) {
+  await prisma.tournament
+    .updateMany({
+      where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
+      data: { clickCount: { increment: 1 } },
+    })
+    .catch(() => null);
 }
 
 export async function updateOrganizerProfile(
@@ -946,6 +1068,7 @@ export async function manualAddRegistration(
     },
   });
 
+  await bumpRegistrationCount(tournamentId);
   return { data: registration };
 }
 

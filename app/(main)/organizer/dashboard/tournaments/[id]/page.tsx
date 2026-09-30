@@ -8,6 +8,7 @@ import RulesManager from "./RulesManager";
 import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
+import PayoutButton from "./PayoutButton";
 
 export default async function ManageTournamentPage({
   params,
@@ -63,6 +64,12 @@ export default async function ManageTournamentPage({
           )}
           <CancelButton tournamentId={id} status={tournament.status} />
           <SaveAsTemplateButton tournamentId={id} />
+          <PayoutButton
+            tournamentId={id}
+            status={tournament.status}
+            hasPrizePool={!!tournament.prizePoolAmount}
+            payoutConfirmed={tournament.payoutConfirmed}
+          />
         </div>
 
         <StageManager tournamentId={id} initialStages={tournament.stages} />

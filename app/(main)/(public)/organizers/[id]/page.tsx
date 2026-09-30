@@ -1,4 +1,5 @@
 import { getPublicOrganizerProfile } from "@/lib/services/tournaments";
+import { formatMoneyBreakdown } from "@/lib/money";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { notFound } from "next/navigation";
 
@@ -12,6 +13,7 @@ export default async function OrganizerProfilePage({
   if (!organizer) notFound();
 
   const socialLinks = (organizer.socialLinks ?? {}) as Record<string, string>;
+  const totalVotes = organizer.likes + organizer.dislikes;
 
   return (
     <>
@@ -44,10 +46,17 @@ export default async function OrganizerProfilePage({
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mb-8">
+        <a
+          href={`/live?organizerId=${organizer.id}`}
+          className="inline-block text-bk-muted font-sans text-xs uppercase tracking-[0.5px] underline mb-6"
+        >
+          See live matches
+        </a>
+
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="bg-bk-surface p-4">
             <p className="font-mono text-2xl text-bk-gold-light">
-              {organizer._count.tournaments}
+              {organizer.tournamentsHosted}
             </p>
             <p className="font-sans text-bk-muted text-xs uppercase tracking-[0.5px]">
               Tournaments hosted
@@ -55,13 +64,23 @@ export default async function OrganizerProfilePage({
           </div>
           <div className="bg-bk-surface p-4">
             <p className="font-mono text-2xl text-bk-heading">
-              {organizer.completedTournaments.length}
+              {formatMoneyBreakdown(organizer.prizeDistributed)}
             </p>
             <p className="font-sans text-bk-muted text-xs uppercase tracking-[0.5px]">
-              Completed
+              Prize pool distributed
             </p>
           </div>
         </div>
+
+        {totalVotes > 0 && (
+          <div className="bg-bk-surface p-4 mb-8 flex items-center gap-4">
+            <span className="font-mono text-lg text-[#1D9E75]">👍 {organizer.likes}</span>
+            <span className="font-mono text-lg text-bk-live">👎 {organizer.dislikes}</span>
+            <span className="font-sans text-bk-muted text-xs uppercase tracking-[0.5px]">
+              From players who joined their tournaments
+            </span>
+          </div>
+        )}
       </main>
     </>
   );

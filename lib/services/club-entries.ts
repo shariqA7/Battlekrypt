@@ -16,7 +16,7 @@
 // this and stays editable any time.
 
 import { prisma } from "@/lib/prisma";
-import { registerForTournament } from "@/lib/services/tournaments";
+import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
 
 export const CLUB_ENTRY_ERRORS = {
   validation_error: { status: 400, message: "Invalid input." },
@@ -403,6 +403,7 @@ export async function manualAddClubTeamEntry(
     });
   });
 
+  await bumpRegistrationCount(tournamentId);
   return { data: registration };
 }
 
@@ -437,6 +438,7 @@ export async function manualAddClubSoloEntry(
     },
   });
 
+  await bumpRegistrationCount(tournamentId);
   return { data: registration };
 }
 
