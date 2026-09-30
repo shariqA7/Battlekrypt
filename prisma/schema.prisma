@@ -146,25 +146,25 @@ model OrganizerProfile {
 // deleting the template later never touches a tournament already created
 // from it, same snapshot rule as SuggestedRule (spec §5).
 model TournamentTemplate {
-  id     String           @id @default(uuid())
+  id          String           @id @default(uuid())
   organizerId String
   organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
-  name   String
+  name        String
 
-  gameId String
-  game   Game             @relation(fields: [gameId], references: [id])
-  type   TournamentType
-  mode   TournamentMode
+  gameId         String
+  game           Game             @relation(fields: [gameId], references: [id])
+  type           TournamentType
+  mode           TournamentMode
   maxTeamSize    Int?
   maxTeams       Int
   playersPerRoom Int?
   format         TournamentFormat
 
   entryType           EntryType
-  entryFeeAmount      Decimal? @db.Decimal(14, 2)
+  entryFeeAmount      Decimal?  @db.Decimal(14, 2)
   entryFeeCurrency    String?
   paymentInstructions String?
-  prizePoolAmount     Decimal? @db.Decimal(14, 2)
+  prizePoolAmount     Decimal?  @db.Decimal(14, 2)
   prizePoolCurrency   String?
 
   // Same shape as Tournament.customFields — an array of {key, label, type,
@@ -289,21 +289,21 @@ enum ClubRosterRole {
 // Editable anytime — the per-tournament roster lock lives on the
 // tournament's TeamEntry/TeamMember rows, not here.
 model ClubRoster {
-  id       String         @id @default(uuid())
-  clubId   String
-  club     ClubProfile    @relation(fields: [clubId], references: [id])
-  playerId String         @unique
-  player   PlayerProfile  @relation(fields: [playerId], references: [id])
-  gameId   String
-  game     Game           @relation(fields: [gameId], references: [id])
-  teamId   String? // null for solo games
-  team     ClubTeam?      @relation(fields: [teamId], references: [id], onDelete: Restrict)
-  role     ClubRosterRole @default(player)
+  id        String         @id @default(uuid())
+  clubId    String
+  club      ClubProfile    @relation(fields: [clubId], references: [id])
+  playerId  String         @unique
+  player    PlayerProfile  @relation(fields: [playerId], references: [id])
+  gameId    String
+  game      Game           @relation(fields: [gameId], references: [id])
+  teamId    String? // null for solo games
+  team      ClubTeam?      @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  role      ClubRosterRole @default(player)
   // Only meaningful when teamId is set. The captain, along with the club
   // owner, may submit/edit this team's tournament entries. At most one
   // captain per team — enforced in the service layer (setTeamCaptain).
-  isCaptain Boolean       @default(false)
-  joinedAt DateTime       @default(now())
+  isCaptain Boolean        @default(false)
+  joinedAt  DateTime       @default(now())
 
   @@index([clubId, gameId])
   @@index([teamId])
@@ -409,9 +409,9 @@ model Tournament {
   playersPerRoom Int?
   format         TournamentFormat
 
-  entryType        EntryType
-  entryFeeAmount   Decimal? @db.Decimal(14, 2)
-  entryFeeCurrency String?
+  entryType           EntryType
+  entryFeeAmount      Decimal?  @db.Decimal(14, 2)
+  entryFeeCurrency    String?
   // Free text: "JazzCash 0300-1234567 (Ali)", "Bank transfer to ...", etc.
   // Shown to the player on the join page, above the payment-proof upload,
   // so they know where to actually send money before being asked to prove
@@ -423,7 +423,7 @@ model Tournament {
   // Organizer-confirmed that prize money actually went out (spec §10).
   // Only payout-confirmed prize pools count toward the organizer's public
   // "Total Prize Pool Distributed".
-  payoutConfirmed Boolean @default(false)
+  payoutConfirmed   Boolean  @default(false)
 
   competitiveTier CompetitiveTier @default(none)
 
@@ -566,9 +566,9 @@ enum AddedBy {
 }
 
 model TeamEntry {
-  id           String     @id @default(uuid())
+  id           String       @id @default(uuid())
   tournamentId String
-  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournament   Tournament   @relation(fields: [tournamentId], references: [id])
   name         String
   clubId       String?
   club         ClubProfile? @relation(fields: [clubId], references: [id])
@@ -622,12 +622,13 @@ model Registration {
   registeredAt DateTime  @default(now())
   approvedAt   DateTime?
 }
+
 model SiteSettings {
-  id        String   @id @default("singleton")
-  logoUrl   String?
+  id                      String   @id @default("singleton")
+  logoUrl                 String?
   // Shown on the club registration form: amount + where to send the fee.
   clubPaymentInstructions String?
-  updatedAt DateTime @updatedAt
+  updatedAt               DateTime @updatedAt
 }
 
 model AuthCarouselSlide {
@@ -645,9 +646,9 @@ model AuthCarouselSlide {
 // ------------------------------------------------------------
 
 model AdminActionLog {
-  id         String @id @default(uuid())
+  id         String   @id @default(uuid())
   adminId    String
-  admin      User   @relation("AdminActor", fields: [adminId], references: [id])
+  admin      User     @relation("AdminActor", fields: [adminId], references: [id])
   action     String
   targetType String
   targetId   String
