@@ -40,12 +40,20 @@ export default async function OrganizerDashboard() {
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
             {organizerProfile.orgName}
           </h1>
-          <Link
-            href="/organizer/dashboard/tournaments/new"
-            className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.6px] uppercase px-4 py-2.5"
-          >
-            + New tournament
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/organizer/dashboard/settings"
+              className="text-bk-muted font-sans text-[12px] uppercase tracking-[0.6px] underline"
+            >
+              Profile settings
+            </Link>
+            <Link
+              href="/organizer/dashboard/tournaments/new"
+              className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.6px] uppercase px-4 py-2.5"
+            >
+              + New tournament
+            </Link>
+          </div>
         </div>
 
         {!isApproved && (

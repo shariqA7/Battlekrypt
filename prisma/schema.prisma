@@ -113,6 +113,7 @@ model PlayerProfile {
   teamMemberships TeamMember[]
   clubRoster      ClubRoster?
   clubInvites     ClubInvite[]
+  tournamentVotes TournamentVote[]
 
   createdAt DateTime @default(now())
 }
@@ -419,6 +420,10 @@ model Tournament {
 
   prizePoolAmount   Decimal? @db.Decimal(14, 2)
   prizePoolCurrency String?
+  // Organizer-confirmed that prize money actually went out (spec §10).
+  // Only payout-confirmed prize pools count toward the organizer's public
+  // "Total Prize Pool Distributed".
+  payoutConfirmed Boolean @default(false)
 
   competitiveTier CompetitiveTier @default(none)
 
@@ -426,6 +431,11 @@ model Tournament {
 
   status  TournamentStatus @default(draft)
   startAt DateTime?
+
+  // Basic shareable-link tracking (spec §3) — incremented on a real page
+  // view and on a successful registration.
+  clickCount        Int @default(0)
+  registrationCount Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -435,6 +445,28 @@ model Tournament {
   registrations Registration[]
   flags         TournamentFlag[]
   teamEntries   TeamEntry[]
+  votes         TournamentVote[]
+}
+
+// One like/dislike per player per tournament, and only if they actually
+// joined (spec §10).
+model TournamentVote {
+  id           String        @id @default(uuid())
+  tournamentId String
+  tournament   Tournament    @relation(fields: [tournamentId], references: [id])
+  playerId     String
+  player       PlayerProfile @relation(fields: [playerId], references: [id])
+  value        VoteValue
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tournamentId, playerId])
+}
+
+enum VoteValue {
+  like
+  dislike
 }
 
 model Stage {

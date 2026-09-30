@@ -4,6 +4,8 @@ import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import RoomReveal from "./RoomReveal";
 import FlagButton from "./FlagButton";
 import Standings from "./Standings";
+import TrackView from "./TrackView";
+import VoteWidget from "./VoteWidget";
 import { notFound } from "next/navigation";
 
 export default async function TournamentDetailPage({
@@ -21,6 +23,7 @@ export default async function TournamentDetailPage({
 
   return (
     <>
+      <TrackView tournamentId={tournament.id} />
       <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
         <div className="h-[120px] bg-bk-surface mb-6 flex items-end p-3 relative">
           {tournament.status === "in_progress" && (
@@ -112,7 +115,10 @@ export default async function TournamentDetailPage({
           </>
         )}
 
-        <div className="mt-8">
+        <Standings standings={standings} />
+
+        <div className="mt-8 flex items-center justify-between">
+          <VoteWidget tournamentId={tournament.id} />
           <FlagButton tournamentId={tournament.id} />
         </div>
       </main>
