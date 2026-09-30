@@ -64,6 +64,7 @@ model Game {
   clubRosters  ClubRoster[]
   clubInvites  ClubInvite[]
   clubTeams    ClubTeam[]
+  templates    TournamentTemplate[]
 }
 
 enum GameRequestStatus {
@@ -127,8 +128,83 @@ model OrganizerProfile {
 
   tournaments  Tournament[]
   gameRequests GameRequest[]
+  templates    TournamentTemplate[]
 
   createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------
+// TOURNAMENT TEMPLATES (Phase 3)
+// ------------------------------------------------------------
+
+// Saves a tournament's whole reusable config — everything EXCEPT
+// instance-specific fields (date, room credentials) — spec §5. "Start from
+// Template" pre-fills the new-tournament form from this; the organizer edits
+// whatever changed before creating. Rules and stages copied INTO a new
+// tournament are that tournament's own rows from then on — editing or
+// deleting the template later never touches a tournament already created
+// from it, same snapshot rule as SuggestedRule (spec §5).
+model TournamentTemplate {
+  id     String           @id @default(uuid())
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+  name   String
+
+  gameId String
+  game   Game             @relation(fields: [gameId], references: [id])
+  type   TournamentType
+  mode   TournamentMode
+  maxTeamSize    Int?
+  maxTeams       Int
+  playersPerRoom Int?
+  format         TournamentFormat
+
+  entryType           EntryType
+  entryFeeAmount      Decimal? @db.Decimal(14, 2)
+  entryFeeCurrency    String?
+  paymentInstructions String?
+  prizePoolAmount     Decimal? @db.Decimal(14, 2)
+  prizePoolCurrency   String?
+
+  // Same shape as Tournament.customFields — an array of {key, label, type,
+  // required}. Copied as-is into a new tournament.
+  customFields Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rules  TemplateRule[]
+  stages TemplateStage[]
+}
+
+// A rule as saved in a template — same shape as TournamentRule (spec §5's
+// "rule set"), minus stage scoping (a template's stages are just names, not
+// real Stage rows yet, so there is nothing to scope to until the tournament
+// exists).
+model TemplateRule {
+  id         String             @id @default(uuid())
+  templateId String
+  template   TournamentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  title         String?
+  description   String
+  action        RuleAction @default(warning)
+  penaltyPoints Int?
+  position      Int        @default(0)
+
+  // Provenance only, same as TournamentRule.suggestedRuleId.
+  suggestedRuleId String?
+  suggestedRule   SuggestedRule? @relation(fields: [suggestedRuleId], references: [id], onDelete: SetNull)
+}
+
+// A stage NAME and order only — a real Stage also has a date and room
+// credentials, which are instance-specific and never saved in a template.
+model TemplateStage {
+  id         String             @id @default(uuid())
+  templateId String
+  template   TournamentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  name       String
+  order      Int
 }
 
 // ------------------------------------------------------------
@@ -406,6 +482,7 @@ model SuggestedRule {
   createdAt     DateTime   @default(now())
 
   tournamentRules TournamentRule[]
+  templateRules   TemplateRule[]
 }
 
 // A rule as it applies to ONE tournament — its own snapshot, whether it

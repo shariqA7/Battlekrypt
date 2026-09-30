@@ -11,6 +11,12 @@ interface Game {
   name: string;
 }
 
+interface TemplateSummary {
+  id: string;
+  name: string;
+  game: { name: string };
+}
+
 export default function NewTournamentPage() {
   const router = useRouter();
   const [games, setGames] = useState<Game[]>([]);
@@ -38,12 +44,69 @@ export default function NewTournamentPage() {
   const [customFields, setCustomFields] = useState<
     { key: string; label: string; type: string; required: boolean }[]
   >([]);
+  // Stage NAMES pulled from a template — instance details (date, room) still
+  // get added on the tournament page afterward, same as any manually-created
+  // stage. Created right after the tournament itself, in handleSubmit.
+  const [pendingStageNames, setPendingStageNames] = useState<string[]>([]);
+
+  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
+  const [templateId, setTemplateId] = useState("");
+  const [templateError, setTemplateError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/games")
       .then((r) => r.json())
       .then((data) => setGames(data.data ?? []));
+    fetch("/api/templates")
+      .then((r) => r.json())
+      .then((data) => setTemplates(data.data ?? []))
+      .catch(() => setTemplates([]));
   }, []);
+
+  async function applyTemplate(id: string) {
+    setTemplateId(id);
+    setTemplateError(null);
+    if (!id) return;
+
+    const res = await fetch(`/api/templates/${id}`);
+    if (!res.ok) {
+      setTemplateError((await res.json()).error.message);
+      return;
+    }
+    const t = await res.json();
+
+    setGameId(t.gameId);
+    setType(t.type);
+    setMode(t.mode);
+    if (t.maxTeamSize) setMaxTeamSize(t.maxTeamSize);
+    setMaxTeams(t.maxTeams);
+    if (t.playersPerRoom) setPlayersPerRoom(t.playersPerRoom);
+    setFormat(t.format);
+    setEntryType(t.entryType);
+    if (t.entryFee) {
+      setEntryFeeAmount(t.entryFee.amount);
+      setEntryFeeCurrency(t.entryFee.currency);
+    }
+    setPaymentInstructions(t.paymentInstructions ?? "");
+    if (t.prizePool) {
+      setPrizePoolAmount(t.prizePool.amount);
+      setPrizePoolCurrency(t.prizePool.currency);
+    }
+    if (Array.isArray(t.customFields)) setCustomFields(t.customFields);
+    setRules(
+      t.rules.map((r: EditableRule) => ({
+        title: r.title,
+        description: r.description,
+        action: r.action,
+        penaltyPoints: r.penaltyPoints,
+        suggestedRuleId: r.suggestedRuleId,
+      }))
+    );
+    setPendingStageNames(t.stageNames ?? []);
+    // Name, description, banner and start time are instance-specific — left
+    // for the organizer to fill in themselves, same as the spec's "organizer
+    // only edits what changed" (§5).
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -88,6 +151,19 @@ export default function NewTournamentPage() {
     }
 
     const tournament = await res.json();
+
+    // Stage NAMES from a template are added one at a time via the existing
+    // stages endpoint — there's no bulk-create route, and this mirrors doing
+    // it by hand on the tournament page afterward. Best-effort: a failure
+    // here shouldn't block navigating to the tournament that was already
+    // created successfully.
+    for (const stageName of pendingStageNames) {
+      await fetch(`/api/tournaments/${tournament.id}/stages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: stageName }),
+      }).catch(() => {});
+    }
     router.push(`/tournaments/${tournament.slug}`);
   }
 
@@ -105,6 +181,33 @@ export default function NewTournamentPage() {
         <p className="font-sans text-bk-body text-sm mb-6">
           Creates a draft — you can publish it once it&apos;s ready.
         </p>
+
+        {templates.length > 0 && (
+          <div className="bg-bk-surface border border-bk-border p-3 mb-5">
+            <label className={labelClass}>Start from a template</label>
+            <select
+              value={templateId}
+              onChange={(e) => void applyTemplate(e.target.value)}
+              className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[38px]"
+            >
+              <option value="">Start from scratch</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.game.name})
+                </option>
+              ))}
+            </select>
+            {templateId && (
+              <p className="font-sans text-bk-muted text-[12px] mt-1.5">
+                Pre-filled below — the name, description, banner and start time are still
+                yours to set.
+              </p>
+            )}
+            {templateError && (
+              <p className="text-bk-live text-[12px] font-sans mt-1.5">{templateError}</p>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <label className={labelClass}>Game</label>
