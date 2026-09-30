@@ -7,6 +7,7 @@ import { getClubRoster, listClubInvites } from "@/lib/services/club-roster";
 import ResubmitForm from "./ResubmitForm";
 import RosterManager from "./RosterManager";
 
+import AdSlot from "@/components/ui/AdSlot";
 export default async function ClubDashboardPage() {
   const supabase = await createClient();
   const {
@@ -34,7 +35,7 @@ export default async function ClubDashboardPage() {
         listClubInvites(club.id),
       ])
     : [[], null, []];
-  const limits = getClubLimits(club);
+  const limits = await getClubLimits(club);
 
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
@@ -93,6 +94,7 @@ export default async function ClubDashboardPage() {
           initialInvites={invites}
         />
       )}
+      <AdSlot placement="dashboard" />
     </main>
   );
 }

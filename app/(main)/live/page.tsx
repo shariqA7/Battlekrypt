@@ -4,6 +4,7 @@ import { listTournaments } from "@/lib/services/tournaments";
 import { prisma } from "@/lib/prisma";
 import LiveFilterBar from "./LiveFilterBar";
 
+import AdSlot from "@/components/ui/AdSlot";
 // Prefer a livestream-first platform when deep-linking to an organizer's
 // stream (spec §10) — Discord/Instagram/etc. aren't "watch this live" links.
 const STREAM_PLATFORMS = ["twitch", "youtube"] as const;
@@ -80,6 +81,7 @@ export default async function LivePage({
           })}
         </div>
       )}
+      <AdSlot placement="browse" />
     </main>
   );
 }

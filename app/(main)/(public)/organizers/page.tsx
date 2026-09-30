@@ -23,7 +23,7 @@ export default async function OrganizersPage() {
             >
               <span className="font-sans font-medium text-bk-heading text-sm flex items-center gap-1.5">
                 {o.orgName}
-                {o.user.kycStatus === "approved" && <VerifiedBadge size={13} />}
+                {o.verified && <VerifiedBadge size={13} />}
               </span>
               <span className="font-sans text-bk-muted text-xs">
                 {o._count.tournaments} tournament{o._count.tournaments !== 1 ? "s" : ""}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import FilterBar from "./FilterBar";
 
+import AdSlot from "@/components/ui/AdSlot";
 export default async function TournamentsPage({
   searchParams,
 }: {
@@ -69,6 +70,7 @@ export default async function TournamentsPage({
             ))}
           </div>
         )}
+        <AdSlot placement="browse" />
       </main>
     </>
   );

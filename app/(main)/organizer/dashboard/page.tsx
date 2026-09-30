@@ -4,6 +4,7 @@ import { getMyTournaments } from "@/lib/services/tournaments";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import AdSlot from "@/components/ui/AdSlot";
 const STATUS_DOT: Record<string, string> = {
   draft: "bg-bk-muted",
   published: "bg-bk-gold-light",
@@ -93,6 +94,7 @@ export default async function OrganizerDashboard() {
             ))}
           </div>
         )}
+        <AdSlot placement="dashboard" />
       </main>
     </>
   );

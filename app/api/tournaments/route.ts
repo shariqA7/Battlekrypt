@@ -7,6 +7,7 @@ import { listTournaments, createTournament } from "@/lib/services/tournaments";
 
 import { resolveCreateMoney } from "@/lib/money";
 import { parseRuleList } from "@/lib/rules";
+import { PlanLimitError } from "@/lib/services/plan-gates";
 
 function moneyError(message: string) {
   return NextResponse.json(
@@ -106,7 +107,18 @@ export async function POST(request: Request) {
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
+  }).catch((err: unknown) => {
+    // Plan limits (tournaments per month / games hosted) come back as a 403.
+    if (err instanceof PlanLimitError) return err;
+    throw err;
   });
+
+  if (tournament instanceof PlanLimitError) {
+    return NextResponse.json(
+      { error: { code: tournament.code, message: tournament.message } },
+      { status: 403 }
+    );
+  }
 
   return NextResponse.json(tournament, { status: 201 });
 }

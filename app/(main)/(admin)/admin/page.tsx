@@ -14,6 +14,10 @@ import AdminQueues from "./AdminQueues";
 import SuggestedRulesManager from "./SuggestedRulesManager";
 import ClubFeeSettings from "./ClubFeeSettings";
 import BrandingManager from "./BrandingManager";
+import PlanManager from "./PlanManager";
+import PlanSettings from "./PlanSettings";
+import PlanRequestsQueue from "./PlanRequestsQueue";
+import { getPlanSettings, listPendingPlanRequests, listPlans } from "@/lib/services/plan-requests";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -44,6 +48,11 @@ export default async function AdminPage() {
     getClubPaymentInstructions(),
   ]);
   const suggestedRules = await listAllSuggestedRules();
+  const [plans, planSettings, planRequests] = await Promise.all([
+    listPlans(),
+    getPlanSettings(),
+    listPendingPlanRequests(),
+  ]);
 
   return (
     <>
@@ -59,6 +68,15 @@ export default async function AdminPage() {
         <ClubFeeSettings initialInstructions={clubPaymentInstructions ?? ""} />
         <div className="h-px bg-bk-border my-10" />
         <SuggestedRulesManager initialRules={suggestedRules} />
+        <div className="h-px bg-bk-border my-10" />
+        <PlanRequestsQueue initial={planRequests} />
+        <div className="h-px bg-bk-border my-10" />
+        <PlanManager initialPlans={plans} />
+        <div className="h-px bg-bk-border my-10" />
+        <PlanSettings
+          initialInstructions={planSettings.planPaymentInstructions ?? ""}
+          initialAdsEnabled={planSettings.adsEnabled}
+        />
         <div className="h-px bg-bk-border my-10" />
         <AdminQueues
           initialOrganizers={pendingOrganizers}

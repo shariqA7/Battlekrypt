@@ -22,7 +22,7 @@ export default async function OrganizerProfilePage({
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
             {organizer.orgName}
           </h1>
-          {organizer.user.kycStatus === "approved" && <VerifiedBadge size={18} />}
+          {organizer.verified && <VerifiedBadge size={18} />}
         </div>
         {organizer.bio && (
           <p className="font-sans text-bk-body text-sm mb-4">{organizer.bio}</p>

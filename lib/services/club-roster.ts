@@ -50,7 +50,11 @@ export const CLUB_ERRORS = {
   entry_limit: {
     status: 403,
     message:
-      "Your plan allows one team or solo player per game. Upgrade to add more.",
+      "Your plan's limit of teams or solo players in this game has been reached. Upgrade to add more.",
+  },
+  game_limit: {
+    status: 403,
+    message: "Your plan's limit on the number of games you can field entries in has been reached. Upgrade to add more.",
   },
   paid_substitutes: {
     status: 403,
@@ -199,7 +203,7 @@ export async function searchPlayers(query: string, clubId: string) {
 // Teams
 // ------------------------------------------------------------
 
-type ClubForLimits = { id: string; subscriptionPlanCode: string };
+type ClubForLimits = { id: string; subscriptionPlanCode: string; planExpiresAt: Date | null };
 
 // "Entries" = teams + solo players a club fields in one game. Pending solo
 // invites count too so a free club can't queue up several and exceed the cap.
@@ -226,6 +230,39 @@ async function countEntries(
   return { teams, soloRoster, soloPending };
 }
 
+// Distinct games a club currently has anything in: a team, a rostered solo
+// player, or a pending solo invite (counted so a free club can't queue up
+// invites across many games and exceed the cap once they're accepted).
+async function clubGameIds(
+  db: Pick<typeof prisma, "clubTeam" | "clubRoster" | "clubInvite">,
+  clubId: string
+) {
+  const [teams, roster, invites] = await Promise.all([
+    db.clubTeam.findMany({ where: { clubId }, select: { gameId: true }, distinct: ["gameId"] }),
+    db.clubRoster.findMany({ where: { clubId }, select: { gameId: true }, distinct: ["gameId"] }),
+    db.clubInvite.findMany({
+      where: { clubId, status: "pending" },
+      select: { gameId: true },
+      distinct: ["gameId"],
+    }),
+  ]);
+  return new Set([...teams, ...roster, ...invites].map((r) => r.gameId));
+}
+
+// True if fielding something in `gameId` would push the club past its
+// plan's games-per-club limit. Entering a game the club is already in is
+// always fine.
+async function exceedsGameLimit(
+  db: Pick<typeof prisma, "clubTeam" | "clubRoster" | "clubInvite">,
+  clubId: string,
+  gameId: string,
+  maxGames: number | null
+) {
+  if (maxGames === null) return false;
+  const games = await clubGameIds(db, clubId);
+  return !games.has(gameId) && games.size >= maxGames;
+}
+
 function cleanName(value: unknown, min: number, max: number) {
   if (typeof value !== "string") return null;
   const v = value.trim();
@@ -244,11 +281,15 @@ export async function createTeam(
     return fail("validation_error", "Coach name must be 2–60 characters.");
   }
 
-  const limits = getClubLimits(club);
+  const limits = await getClubLimits(club);
   if (coachName && !limits.canSetCoach) return fail("paid_coach");
 
   const game = await prisma.game.findFirst({ where: { id: input.gameId, isApproved: true } });
   if (!game) return fail("game_not_found");
+
+  if (await exceedsGameLimit(prisma, club.id, game.id, limits.maxGames)) {
+    return fail("game_limit");
+  }
 
   if (limits.maxEntriesPerGame !== null) {
     const c = await countEntries(prisma, club.id, game.id);
@@ -292,7 +333,7 @@ export async function updateTeam(
     } else {
       const coach = cleanName(input.coachName, 2, 60);
       if (!coach) return fail("validation_error", "Coach name must be 2–60 characters.");
-      if (!getClubLimits(club).canSetCoach) return fail("paid_coach");
+      if (!(await getClubLimits(club)).canSetCoach) return fail("paid_coach");
       data.coachName = coach;
     }
   }
@@ -343,7 +384,7 @@ export async function sendInvite(
   const role: ClubRosterRole = input.role ?? "player";
   if (role !== "player" && role !== "substitute") return fail("validation_error");
 
-  const limits = getClubLimits(club);
+  const limits = await getClubLimits(club);
 
   const game = await prisma.game.findFirst({ where: { id: input.gameId, isApproved: true } });
   if (!game) return fail("game_not_found");
@@ -383,10 +424,16 @@ export async function sendInvite(
     ]);
     const cap = role === "player" ? limits.maxPlayersPerTeam : limits.maxSubstitutesPerTeam;
     if (members + pending >= cap) return fail("team_full");
-  } else if (limits.maxEntriesPerGame !== null) {
-    const c = await countEntries(prisma, club.id, game.id);
-    if (c.teams + c.soloRoster + c.soloPending >= limits.maxEntriesPerGame) {
-      return fail("entry_limit");
+  } else {
+    // A solo invite opens a new game for the club if it has nothing there yet.
+    if (await exceedsGameLimit(prisma, club.id, game.id, limits.maxGames)) {
+      return fail("game_limit");
+    }
+    if (limits.maxEntriesPerGame !== null) {
+      const c = await countEntries(prisma, club.id, game.id);
+      if (c.teams + c.soloRoster + c.soloPending >= limits.maxEntriesPerGame) {
+        return fail("entry_limit");
+      }
     }
   }
 
@@ -459,7 +506,7 @@ export async function acceptInvite(playerId: string, inviteId: string) {
       if (invite.status !== "pending") return fail("invite_not_pending");
       if (invite.club.status !== "approved") return fail("club_not_approved");
 
-      const limits = getClubLimits(invite.club);
+      const limits = await getClubLimits(invite.club);
 
       // A team invite whose team is gone, or a solo "substitute", is invalid.
       if (invite.teamId) {

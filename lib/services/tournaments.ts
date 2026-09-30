@@ -9,6 +9,8 @@
 import { prisma } from "@/lib/prisma";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
+import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
+import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import type { RuleFields } from "@/lib/rules";
 import type { Prisma, TournamentStatus, TournamentType, TournamentMode, EntryType } from "@prisma/client";
 
@@ -73,11 +75,11 @@ export async function listTournaments(filters: TournamentListFilters) {
 }
 
 export async function getTournamentById(idOrSlug: string) {
-  return prisma.tournament.findFirst({
+  const tournament = await prisma.tournament.findFirst({
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     include: {
       game: true,
-      organizer: true,
+      organizer: { include: { user: { select: { kycStatus: true } } } },
       stages: { orderBy: { order: "asc" } },
       rules: {
         orderBy: [{ position: "asc" }, { id: "asc" }],
@@ -86,6 +88,16 @@ export async function getTournamentById(idOrSlug: string) {
       _count: { select: { registrations: { where: { status: { in: ["pending", "approved"] } } } } },
     },
   });
+  if (!tournament) return null;
+
+  // Verified badge is derived (spec §7): paid plan AND approved KYC.
+  const paid = await getPaidPlanCodes();
+  return {
+    ...tournament,
+    organizerVerified:
+      holdsPaidPlan(tournament.organizer, paid) &&
+      tournament.organizer.user.kycStatus === "approved",
+  };
 }
 
 export interface CreateTournamentInput {
@@ -113,7 +125,13 @@ export interface CreateTournamentInput {
   startAt?: Date;
 }
 
+// Throws PlanLimitError (lib/services/plan-gates.ts) when the organizer's
+// plan doesn't allow another tournament this month or in this game.
 export async function createTournament(input: CreateTournamentInput) {
+  const organizer = await prisma.organizerProfile.findUnique({ where: { id: input.organizerId } });
+  if (!organizer) throw new Error("Organizer profile not found.");
+  await assertOrganizerCanCreateTournament(organizer, input.gameId);
+
   return prisma.tournament.create({
     data: {
       slug: makeTournamentSlug(input.name),
@@ -654,13 +672,16 @@ export async function getPlayerProfileByUserId(userId: string) {
 }
 
 export async function getPublicPlayerProfile(playerId: string) {
-  return prisma.playerProfile.findUnique({
+  const player = await prisma.playerProfile.findUnique({
     where: { id: playerId },
     include: {
       user: { select: { displayName: true, avatarUrl: true } },
       _count: { select: { registrations: true } },
     },
   });
+  if (!player) return null;
+  // Player verified = paid plan (no KYC needed), spec §7.
+  return { ...player, verified: holdsPaidPlan(player, await getPaidPlanCodes()) };
 }
 
 export interface UpdatePlayerProfileInput {
@@ -757,8 +778,11 @@ export async function getPublicOrganizerProfile(organizerId: string) {
   const likes = voteCounts.find((v) => v.value === "like")?._count ?? 0;
   const dislikes = voteCounts.find((v) => v.value === "dislike")?._count ?? 0;
 
+  const paid = await getPaidPlanCodes();
+
   return {
     ...organizer,
+    verified: holdsPaidPlan(organizer, paid) && organizer.user.kycStatus === "approved",
     tournamentsHosted: completedTournaments.length,
     prizeDistributed,
     likes,
@@ -1073,13 +1097,20 @@ export async function manualAddRegistration(
 }
 
 export async function listOrganizers() {
-  return prisma.organizerProfile.findMany({
-    include: {
-      user: { select: { kycStatus: true } },
-      _count: { select: { tournaments: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const [organizers, paid] = await Promise.all([
+    prisma.organizerProfile.findMany({
+      include: {
+        user: { select: { kycStatus: true } },
+        _count: { select: { tournaments: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    getPaidPlanCodes(),
+  ]);
+  return organizers.map((o) => ({
+    ...o,
+    verified: holdsPaidPlan(o, paid) && o.user.kycStatus === "approved",
+  }));
 }
 
 // ------------------------------------------------------------

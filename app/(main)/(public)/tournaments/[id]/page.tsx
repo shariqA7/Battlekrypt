@@ -8,6 +8,7 @@ import TrackView from "./TrackView";
 import VoteWidget from "./VoteWidget";
 import { notFound } from "next/navigation";
 
+import AdSlot from "@/components/ui/AdSlot";
 export default async function TournamentDetailPage({
   params,
 }: {
@@ -121,6 +122,7 @@ export default async function TournamentDetailPage({
           <VoteWidget tournamentId={tournament.id} />
           <FlagButton tournamentId={tournament.id} />
         </div>
+        <AdSlot placement="tournament_detail" />
       </main>
     </>
   );
