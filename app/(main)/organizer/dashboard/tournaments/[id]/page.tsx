@@ -7,6 +7,7 @@ import StageManager from "./StageManager";
 import RulesManager from "./RulesManager";
 import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
+import SaveAsTemplateButton from "./SaveAsTemplateButton";
 
 export default async function ManageTournamentPage({
   params,
@@ -61,6 +62,7 @@ export default async function ManageTournamentPage({
             </a>
           )}
           <CancelButton tournamentId={id} status={tournament.status} />
+          <SaveAsTemplateButton tournamentId={id} />
         </div>
 
         <StageManager tournamentId={id} initialStages={tournament.stages} />
@@ -84,7 +86,12 @@ export default async function ManageTournamentPage({
             </p>
           )}
         </div>
-        <RegistrationQueue tournamentId={id} initialRegistrations={registrations} mode={tournament.mode} />
+        <RegistrationQueue
+          tournamentId={id}
+          initialRegistrations={registrations}
+          mode={tournament.mode}
+          rules={tournament.rules.map((r) => ({ id: r.id, title: r.title, description: r.description }))}
+        />
       </main>
     </>
   );

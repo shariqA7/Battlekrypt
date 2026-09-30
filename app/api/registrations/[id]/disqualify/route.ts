@@ -32,6 +32,12 @@ export async function POST(
       { status: 403 }
     );
   }
+  if (result.error === "invalid_rule") {
+    return NextResponse.json(
+      { error: { code: "invalid_rule", message: "That rule doesn't belong to this tournament." } },
+      { status: 400 }
+    );
+  }
 
   return NextResponse.json(result.data);
 }

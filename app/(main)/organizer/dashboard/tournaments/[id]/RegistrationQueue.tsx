@@ -16,6 +16,12 @@ interface Registration {
   teamEntry: { name: string; members: unknown[] } | null;
 }
 
+interface TournamentRuleOption {
+  id: string;
+  title: string | null;
+  description: string;
+}
+
 function ResultInput({
   registrationId,
   initialPlacement,
@@ -83,12 +89,21 @@ export default function RegistrationQueue({
   tournamentId,
   initialRegistrations,
   mode,
+  rules,
 }: {
   tournamentId: string;
   initialRegistrations: Registration[];
   mode: string;
+  rules: TournamentRuleOption[];
 }) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
+  // Which registration's disqualify panel is open, if any — replaces a
+  // window.prompt so the organizer can cite one of the tournament's own
+  // rules instead of just typing free text.
+  const [disqualifyingId, setDisqualifyingId] = useState<string | null>(null);
+  const [dqRuleId, setDqRuleId] = useState("");
+  const [dqReason, setDqReason] = useState("");
+  const [dqError, setDqError] = useState<string | null>(null);
   const [manualEmail, setManualEmail] = useState("");
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualSubmitting, setManualSubmitting] = useState(false);
@@ -182,25 +197,40 @@ export default function RegistrationQueue({
     void submitManualAdd({ clubPlayerId: playerId });
   }
 
-  async function handleAction(id: string, action: "approve" | "reject" | "disqualify") {
-    let body: string | undefined;
-    if (action === "disqualify") {
-      const reason = window.prompt("Reason for disqualification:");
-      if (!reason) return;
-      body = JSON.stringify({ reason });
-    }
-
-    const res = await fetch(`/api/registrations/${id}/${action}`, {
-      method: "POST",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body,
-    });
+  async function handleAction(id: string, action: "approve" | "reject") {
+    const res = await fetch(`/api/registrations/${id}/${action}`, { method: "POST" });
     if (res.ok) {
       const updated = await res.json();
       setRegistrations((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r))
       );
     }
+  }
+
+  function openDisqualify(id: string) {
+    setDisqualifyingId(id);
+    setDqRuleId("");
+    setDqReason("");
+    setDqError(null);
+  }
+
+  async function submitDisqualify() {
+    if (!disqualifyingId || !dqReason.trim()) return;
+    setDqError(null);
+    const res = await fetch(`/api/registrations/${disqualifyingId}/disqualify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: dqReason.trim(), ruleId: dqRuleId || undefined }),
+    });
+    if (!res.ok) {
+      setDqError((await res.json()).error.message);
+      return;
+    }
+    const updated = await res.json();
+    setRegistrations((prev) =>
+      prev.map((r) => (r.id === disqualifyingId ? { ...r, status: updated.status } : r))
+    );
+    setDisqualifyingId(null);
   }
 
   const manualAddForm = (
@@ -363,7 +393,7 @@ export default function RegistrationQueue({
                   initialPoints={r.points}
                 />
                 <button
-                  onClick={() => handleAction(r.id, "disqualify")}
+                  onClick={() => openDisqualify(r.id)}
                   className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                 >
                   Disqualify
@@ -373,6 +403,51 @@ export default function RegistrationQueue({
           </div>
         );
       })}
+
+      {disqualifyingId && (
+        <div className="bg-bk-surface border border-bk-live p-3 mt-2 flex flex-col gap-2">
+          <p className="font-sans text-bk-heading text-[13px]">Disqualify this registration</p>
+          {rules.length > 0 && (
+            <select
+              value={dqRuleId}
+              onChange={(e) => setDqRuleId(e.target.value)}
+              className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 h-[34px]"
+            >
+              <option value="">No specific rule cited</option>
+              {rules.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title ?? r.description}
+                </option>
+              ))}
+            </select>
+          )}
+          <textarea
+            value={dqReason}
+            onChange={(e) => setDqReason(e.target.value)}
+            placeholder="Reason for disqualification"
+            rows={2}
+            className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-3 py-2"
+          />
+          {dqError && <p className="text-bk-live text-[12px] font-sans">{dqError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!dqReason.trim()}
+              onClick={() => void submitDisqualify()}
+              className="bg-bk-live text-white font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50"
+            >
+              Confirm disqualification
+            </button>
+            <button
+              type="button"
+              onClick={() => setDisqualifyingId(null)}
+              className="border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-3 py-1.5"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
