@@ -125,6 +125,10 @@ export default function UserMenu({
               <UserIcon />
               Profile
             </MenuLink>
+            <MenuLink href="/plans" onNavigate={() => setOpen(false)}>
+              <TrophyIcon />
+              My plans
+            </MenuLink>
             {isClub ? (
               <MenuLink href="/club/dashboard" onNavigate={() => setOpen(false)}>
                 <ShieldIcon />

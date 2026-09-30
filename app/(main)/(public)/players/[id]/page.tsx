@@ -1,5 +1,6 @@
 import { getPublicPlayerProfile } from "@/lib/services/tournaments";
 import { notFound } from "next/navigation";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 
 export default async function PlayerProfilePage({
   params,
@@ -22,8 +23,9 @@ export default async function PlayerProfilePage({
           )}
         </div>
         <div>
-          <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
+          <h1 className="font-sans font-extrabold text-2xl text-bk-heading flex items-center gap-2">
             {player.user.displayName}
+            {player.verified && <VerifiedBadge size={18} />}
           </h1>
         </div>
       </div>

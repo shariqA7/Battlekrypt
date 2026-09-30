@@ -6,6 +6,7 @@ import ClubInvites from "./ClubInvites";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import AdSlot from "@/components/ui/AdSlot";
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending approval", color: "text-bk-text-muted" },
   approved: { label: "Approved", color: "text-bk-gold-light" },
@@ -105,6 +106,7 @@ export default async function PlayerDashboard() {
             })}
           </div>
         )}
+        <AdSlot placement="dashboard" />
       </main>
     </>
   );

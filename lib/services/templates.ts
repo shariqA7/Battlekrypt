@@ -11,12 +11,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { MAX_RULES_PER_TOURNAMENT } from "@/lib/rules";
+import { checkOrganizerCanSaveTemplate } from "@/lib/services/plan-gates";
 
 export const TEMPLATE_ERRORS = {
   validation_error: { status: 400, message: "Invalid template." },
   not_found: { status: 404, message: "Template not found." },
   forbidden: { status: 403, message: "This isn't your template." },
   source_forbidden: { status: 403, message: "You don't own this tournament." },
+  plan_limit: { status: 403, message: "Your plan's template limit has been reached." },
 } as const;
 
 export type TemplateErrorCode = keyof typeof TEMPLATE_ERRORS;
@@ -62,6 +64,11 @@ export async function createTemplateFromTournament(
   if (!trimmedName || trimmedName.length > MAX_NAME_LENGTH) {
     return fail("validation_error", `Template name must be 1–${MAX_NAME_LENGTH} characters.`);
   }
+
+  const organizer = await prisma.organizerProfile.findUnique({ where: { id: organizerId } });
+  if (!organizer) return fail("forbidden");
+  const planMessage = await checkOrganizerCanSaveTemplate(organizer);
+  if (planMessage) return fail("plan_limit", planMessage);
 
   const count = await prisma.tournamentTemplate.count({ where: { organizerId } });
   if (count >= MAX_TEMPLATES_PER_ORGANIZER) {

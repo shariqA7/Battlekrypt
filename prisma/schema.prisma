@@ -50,6 +50,7 @@ model User {
   clubProfile      ClubProfile?
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
+  planRequests    PlanRequest[]
 }
 
 model Game {
@@ -115,6 +116,11 @@ model PlayerProfile {
   clubInvites     ClubInvite[]
   tournamentVotes TournamentVote[]
 
+  // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
+  // is treated as free at read time (lib/plans.ts), no cron needed.
+  planCode      String    @default("player_free")
+  planExpiresAt DateTime?
+
   createdAt DateTime @default(now())
 }
 
@@ -130,6 +136,10 @@ model OrganizerProfile {
   tournaments  Tournament[]
   gameRequests GameRequest[]
   templates    TournamentTemplate[]
+
+  // Subscription plan (Phase 5) — see PlayerProfile.planCode.
+  planCode      String    @default("organizer_free")
+  planExpiresAt DateTime?
 
   createdAt DateTime @default(now())
 }
@@ -231,11 +241,10 @@ model ClubProfile {
   status      ClubStatus @default(pending)
   feeProofUrl String? // screenshot of registration-fee payment
 
-  // Placeholder for the Phase 5 subscription system: "club_free" or any
-  // paid plan code. Roster limits (teams/players per game, substitutes,
-  // coach) read this via lib/club-limits.ts. Until Phase 5 ships, set it
-  // by hand to test paid-club behavior.
-  subscriptionPlanCode String @default("club_free")
+  // Subscription plan (Phase 5): code of a Plan row. Limits come from that
+  // row via lib/club-limits.ts; an expired paid plan counts as free.
+  subscriptionPlanCode String    @default("club_free")
+  planExpiresAt        DateTime?
 
   teams       ClubTeam[]
   roster      ClubRoster[]
@@ -628,6 +637,10 @@ model SiteSettings {
   logoUrl                 String?
   // Shown on the club registration form: amount + where to send the fee.
   clubPaymentInstructions String?
+  // Shown on the plan-upgrade form: where to send the plan payment.
+  planPaymentInstructions String?
+  // Ads stay off until an ad network is wired into components/ui/AdSlot.
+  adsEnabled              Boolean  @default(false)
   updatedAt               DateTime @updatedAt
 }
 
@@ -667,4 +680,65 @@ model TournamentFlag {
   reason       String
   resolved     Boolean    @default(false)
   createdAt    DateTime   @default(now())
+}
+
+
+// ------------------------------------------------------------
+// SUBSCRIPTION PLANS (Phase 5)
+// ------------------------------------------------------------
+
+enum PlanAudience {
+  organizer
+  club
+  player
+}
+
+// Admin-editable plan definitions (spec §7). `limits` is a JSON object whose
+// shape depends on `audience` — see lib/plans.ts for the keys and defaults.
+// Limits are convenience/cosmetic only; free plans never gate anything
+// competitive (joining, rating, tier eligibility).
+model Plan {
+  code          String       @id // e.g. "organizer_free", "club_pro"
+  audience      PlanAudience
+  name          String
+  isPaid        Boolean      @default(false)
+  priceAmount   Decimal?     @db.Decimal(14, 2)
+  priceCurrency String?
+  durationDays  Int          @default(30)
+  limits        Json         @default("{}")
+  isActive      Boolean      @default(true)
+  sortOrder     Int          @default(0)
+
+  requests PlanRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([audience, sortOrder])
+}
+
+enum PlanRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+// An account asks to move to a paid plan and uploads payment proof (same
+// screenshot-proof flow as club registration). An admin approves or rejects.
+model PlanRequest {
+  id         String            @id @default(uuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id])
+  audience   PlanAudience
+  planCode   String
+  plan       Plan              @relation(fields: [planCode], references: [code])
+  proofUrl   String
+  status     PlanRequestStatus @default(pending)
+  adminNote  String?
+  reviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId, audience])
 }
