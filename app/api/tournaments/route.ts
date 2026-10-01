@@ -90,6 +90,14 @@ export async function POST(request: Request) {
   const rules = parseRuleList(body.rules);
   if (!rules.ok) return moneyError(rules.message);
 
+  const VALID_TIERS = ["none", "D", "C", "B", "A", "S", "National"];
+  if (body.competitiveTier !== undefined && !VALID_TIERS.includes(body.competitiveTier)) {
+    return NextResponse.json(
+      { error: { code: "validation_error", message: "competitiveTier must be one of none/D/C/B/A/S/National." } },
+      { status: 400 }
+    );
+  }
+
   const tournament = await createTournament({
     organizerId: organizerProfile.id,
     gameId: body.gameId,
@@ -108,6 +116,7 @@ export async function POST(request: Request) {
     paymentInstructions: body.paymentInstructions,
     prizePoolAmount: money.prizePool?.amount,
     prizePoolCurrency: money.prizePool?.currency,
+    competitiveTier: body.competitiveTier,
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,

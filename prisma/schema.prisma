@@ -66,12 +66,13 @@ model Game {
   isApproved Boolean  @default(true)
   createdAt  DateTime @default(now())
 
-  tournaments  Tournament[]
-  gameRequests GameRequest[]
-  clubRosters  ClubRoster[]
-  clubInvites  ClubInvite[]
-  clubTeams    ClubTeam[]
-  templates    TournamentTemplate[]
+  tournaments   Tournament[]
+  gameRequests  GameRequest[]
+  clubRosters   ClubRoster[]
+  clubInvites   ClubInvite[]
+  clubTeams     ClubTeam[]
+  templates     TournamentTemplate[]
+  playerRatings PlayerGameRating[]
 }
 
 enum GameRequestStatus {
@@ -121,6 +122,7 @@ model PlayerProfile {
   clubRoster      ClubRoster?
   clubInvites     ClubInvite[]
   tournamentVotes TournamentVote[]
+  gameRatings     PlayerGameRating[]
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
   // is treated as free at read time (lib/plans.ts), no cron needed.
@@ -145,10 +147,17 @@ model OrganizerProfile {
   planCode      String    @default("organizer_free")
   planExpiresAt DateTime?
 
-  tournaments  Tournament[]
-  gameRequests GameRequest[]
-  templates    TournamentTemplate[]
-  members      OrganizationMember[]
+  // Same free-text convention as PlayerProfile.country/region. Used to
+  // resolve which CompetitiveTierSetting applies to this organizer's
+  // tournaments (country match > region match > world default — spec §9,
+  // "admin can set it by country, region, or world").
+  country String?
+  region  String?
+
+  tournaments    Tournament[]
+  gameRequests   GameRequest[]
+  templates      TournamentTemplate[]
+  members        OrganizationMember[]
   featuredSlides FeaturedSlide[]
 
   createdAt DateTime @default(now())
@@ -472,7 +481,7 @@ model ClubProfile {
   // "falcon!" can't both exist. Cleared when a club is disbanded so the
   // rightful owner can take the name. Null on clubs created before this
   // existed; lib/services/club-names.ts checks those by scanning.
-  nameKey String? @unique
+  nameKey        String?         @unique
   featuredSlides FeaturedSlide[]
 
   upgradeStatus ClubUpgradeStatus @default(none)
@@ -508,6 +517,12 @@ model ClubTeam {
   // Plain text — set by the club owner, paid clubs only (Phase 5 gate).
   // No uniqueness: the same coach name can appear on any club/team.
   coachName String?
+
+  // Per-game team rating (spec §9) — a club team persists across
+  // tournaments (unlike an ad-hoc non-club squad, which has no identity
+  // once its one tournament ends), so it's the only "team" that can
+  // meaningfully carry a rating rather than each member's individual one.
+  rating Int @default(1000)
 
   members ClubRoster[]
   invites ClubInvite[]
@@ -625,8 +640,10 @@ enum TournamentStatus {
   cancelled
 }
 
-// Kept as an enum for forward-compatibility with Phase 6, but no
-// enforcement/config table exists yet in this trimmed schema.
+// Enforced by CompetitiveTierSetting (the admin-configurable ladder),
+// PlayerGameRating/ClubTeam.rating (the rating engine), and the
+// resolveTierSetting/checkTierEntryGate functions in
+// lib/services/competitive-tiers.ts — see Phase 6.
 enum CompetitiveTier {
   none
   D
@@ -635,6 +652,69 @@ enum CompetitiveTier {
   A
   S
   National
+}
+
+// Admin-configurable tier ladder (spec §9) — never hardcoded. One row per
+// (tier, scope) combination; "world" is the mandatory fallback so every
+// tier always resolves to *something* even where no country/region
+// override has been set. Resolution order when gating a tournament or a
+// registration: the organizer's country, then their region, then world.
+model CompetitiveTierSetting {
+  id String @id @default(uuid())
+
+  tier       CompetitiveTier // never "none" — that's "not competitive", not a tier
+  scope      TierSettingScope
+  // Country/region name, matched against OrganizerProfile.country/region
+  // (case-insensitive, exact match). Null when scope is "world".
+  scopeValue String?
+
+  minPrizePoolUsd Decimal @db.Decimal(14, 2)
+  // Rating gate for D/C/B/A/S — null for D and C (spec: "None / light
+  // floor"). Not used for National, which gates on minWins instead.
+  minRating       Int?
+  // National-only: "5+ S-tier wins" — a completed-tournament win count,
+  // not a rating threshold (see getNationalEligibility).
+  minWins         Int?
+
+  publishPath TierPublishPath @default(instant)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tier, scope, scopeValue])
+}
+
+enum TierSettingScope {
+  world
+  region
+  country
+}
+
+enum TierPublishPath {
+  instant
+  // B/A per spec are "Instant (auto-checked)" — same publishPath as D/C
+  // from the settings' point of view (no human review), the "auto-checked"
+  // part is just the rating-gate check the registration flow already does.
+  admin_review
+  always_admin
+}
+
+// Per-game player rating (spec §9: "per-game — never blended into one
+// number"). Only moves from Tournament results, never Leagues/Scrims.
+// Baseline 1000 is an arbitrary starting point, easy to change later —
+// what matters per spec is relative movement, not the absolute number.
+model PlayerGameRating {
+  id       String        @id @default(uuid())
+  playerId String
+  player   PlayerProfile @relation(fields: [playerId], references: [id])
+  gameId   String
+  game     Game          @relation(fields: [gameId], references: [id])
+
+  rating Int @default(1000)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([playerId, gameId])
 }
 
 model Tournament {
@@ -676,8 +756,17 @@ model Tournament {
 
   customFields Json?
 
-  status  TournamentStatus @default(draft)
-  startAt DateTime?
+  status             TournamentStatus @default(draft)
+  // Set when an organizer tries to publish an S/National-tier tournament
+  // (spec §9: "Admin review required" / "Always Admin-approved"). Tournament
+  // stays "draft" — status itself is untouched — while this is true; an
+  // admin approving flips status straight to "published" and clears this,
+  // rejecting just clears it so the organizer can edit and resubmit. Kept
+  // as a separate flag rather than a new status value so nothing else that
+  // reads TournamentStatus (registration gating, capacity checks, etc.)
+  // needs to learn about a new in-between state.
+  submittedForReview Boolean          @default(false)
+  startAt            DateTime?
 
   // Basic shareable-link tracking (spec §3) — incremented on a real page
   // view and on a successful registration.
@@ -693,7 +782,7 @@ model Tournament {
   flags         TournamentFlag[]
   teamEntries   TeamEntry[]
   votes         TournamentVote[]
-  featured FeaturedTournament?
+  featured      FeaturedTournament?
 }
 
 // One like/dislike per player per tournament, and only if they actually
@@ -921,7 +1010,6 @@ model TournamentFlag {
   createdAt    DateTime   @default(now())
 }
 
-
 // ------------------------------------------------------------
 // SUBSCRIPTION PLANS (Phase 5)
 // ------------------------------------------------------------
@@ -982,7 +1070,6 @@ model PlanRequest {
   @@index([userId, audience])
 }
 
-
 // ------------------------------------------------------------
 // FEATURED CONTENT (admin-curated)
 // ------------------------------------------------------------
@@ -992,7 +1079,7 @@ model PlanRequest {
 // the `dashboardCarousel` perk (so the edge ends when the plan lapses).
 // A slide with neither is a platform announcement and always shows.
 model FeaturedSlide {
-  id          String           @id @default(uuid())
+  id          String            @id @default(uuid())
   imageUrl    String
   title       String
   text        String?
@@ -1000,10 +1087,10 @@ model FeaturedSlide {
   organizerId String?
   organizer   OrganizerProfile? @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   clubId      String?
-  club        ClubProfile?     @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  isActive    Boolean          @default(true)
-  position    Int              @default(0)
-  createdAt   DateTime         @default(now())
+  club        ClubProfile?      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  isActive    Boolean           @default(true)
+  position    Int               @default(0)
+  createdAt   DateTime          @default(now())
 
   @@index([isActive, position])
 }

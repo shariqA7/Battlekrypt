@@ -5,11 +5,13 @@ import {
   listFlaggedTournaments,
 } from "@/lib/services/tournaments";
 import { listPendingClubs } from "@/lib/services/clubs";
+import { listPendingTierReviewTournaments } from "@/lib/services/tournaments";
 import { listAllSuggestedRules } from "@/lib/services/rules";
 import { listPendingApplications } from "@/lib/services/org-applications";
 import { listPendingClaims } from "@/lib/services/club-name-claims";
 import { listActiveBans } from "@/lib/services/bans";
 import AdminQueues from "../AdminQueues";
+import TierReviewQueue from "../TierReviewQueue";
 import SuggestedRulesManager from "../SuggestedRulesManager";
 import OrgApplications from "../OrgApplications";
 import NameClaims from "../NameClaims";
@@ -29,6 +31,7 @@ export default async function AdminApprovalsPage() {
     nameClaims,
     activeBans,
     planRequests,
+    pendingTierReviews,
   ] = await Promise.all([
     listPendingOrganizers(),
     listPendingClubs(),
@@ -39,6 +42,7 @@ export default async function AdminApprovalsPage() {
     listPendingClaims(),
     listActiveBans(),
     listPendingPlanRequests(),
+    listPendingTierReviewTournaments(),
   ]);
 
   return (
@@ -100,6 +104,12 @@ export default async function AdminApprovalsPage() {
         initialClubs={pendingClubs}
         initialGameRequests={pendingGameRequests}
         initialFlags={flaggedTournaments}
+      />
+      <TierReviewQueue
+        initialTournaments={pendingTierReviews.map((t) => ({
+          ...t,
+          prizePoolAmount: t.prizePoolAmount?.toString() ?? null,
+        }))}
       />
       <SuggestedRulesManager initialRules={suggestedRules} />
     </div>

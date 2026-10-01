@@ -60,12 +60,13 @@ export async function POST(
     forbidden: { status: 403, message: "You don't own this tournament." },
     player_not_found: { status: 404, message: "No player found with that email." },
     already_registered: { status: 409, message: "This player is already registered." },
+    tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
   };
 
   if (result.error) {
     const mapped = errorMap[result.error];
     return NextResponse.json(
-      { error: { code: result.error, message: mapped.message } },
+      { error: { code: result.error, message: "message" in result && result.message ? result.message : mapped.message } },
       { status: mapped.status }
     );
   }

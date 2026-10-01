@@ -44,6 +44,11 @@ export async function PATCH(
   const prize = parseOptionalMoney(body.prizePool, "Prize pool");
   if (!prize.ok) return moneyError(prize.message);
 
+  const VALID_TIERS = ["none", "D", "C", "B", "A", "S", "National"];
+  if (body.competitiveTier !== undefined && !VALID_TIERS.includes(body.competitiveTier)) {
+    return moneyError("competitiveTier must be one of none/D/C/B/A/S/National.");
+  }
+
   const result = await updateTournament(id, auth.organizerProfile.id, {
     name: body.name,
     description: body.description,
@@ -55,6 +60,7 @@ export async function PATCH(
     paymentInstructions: body.paymentInstructions,
     prizePoolAmount: prize.value?.amount,
     prizePoolCurrency: prize.value?.currency,
+    competitiveTier: body.competitiveTier,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
 
@@ -87,6 +93,17 @@ export async function PATCH(
   }
   if (result.error === "invalid_fee") {
     return moneyError("A paid tournament needs an entry fee greater than zero.");
+  }
+  if (result.error === "tier_locked") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "tier_locked",
+          message: "The competitive tier can only be changed while this tournament is still a draft.",
+        },
+      },
+      { status: 409 }
+    );
   }
 
   return NextResponse.json(result.data);

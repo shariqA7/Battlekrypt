@@ -11,8 +11,18 @@ import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
+import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
+import { tryToUsd } from "@/lib/currency-fx";
+import { awardTournamentRatings } from "@/lib/services/ratings";
 import type { RuleFields } from "@/lib/rules";
-import type { Prisma, TournamentStatus, TournamentType, TournamentMode, EntryType } from "@prisma/client";
+import type {
+  Prisma,
+  TournamentStatus,
+  TournamentType,
+  TournamentMode,
+  EntryType,
+  CompetitiveTier,
+} from "@prisma/client";
 
 export interface TournamentListFilters {
   game?: string;
@@ -118,6 +128,7 @@ export interface CreateTournamentInput {
   paymentInstructions?: string;
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
+  competitiveTier?: CompetitiveTier;
   customFields?: unknown;
   // Already validated by parseRuleList (see lib/rules.ts). Plain-text rules
   // arrive here as custom warning rules.
@@ -152,6 +163,7 @@ export async function createTournament(input: CreateTournamentInput) {
       paymentInstructions: input.paymentInstructions,
       prizePoolAmount: input.prizePoolAmount,
       prizePoolCurrency: input.prizePoolCurrency,
+      competitiveTier: input.competitiveTier ?? "none",
       customFields: input.customFields as Prisma.InputJsonValue,
       startAt: input.startAt,
       status: "draft",
@@ -182,6 +194,48 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   });
   if (organizerUser?.kycStatus !== "approved") {
     return { error: "organizer_not_approved" as const };
+  }
+
+  // Competitive-tier prize-pool floor (spec §9) — checked in USD-equivalent
+  // regardless of which currency the organizer entered, via live FX
+  // conversion (see lib/currency-fx.ts). "none" isn't a competitive tier —
+  // no floor, no review gate.
+  if (tournament.competitiveTier !== "none") {
+    const setting = await resolveTierSetting(
+      tournament.competitiveTier,
+      tournament.organizer.country,
+      tournament.organizer.region
+    );
+    if (setting) {
+      if (!tournament.prizePoolAmount || !tournament.prizePoolCurrency) {
+        return { error: "tier_floor_not_met" as const, message: "This tier requires a prize pool." };
+      }
+      const fxResult = await tryToUsd(Number(tournament.prizePoolAmount), tournament.prizePoolCurrency);
+      if ("error" in fxResult) {
+        return {
+          error: "fx_unavailable" as const,
+          message: "Couldn't verify the prize pool against this tier's floor right now — try again shortly.",
+        };
+      }
+      const usd = fxResult.usd;
+      if (usd < Number(setting.minPrizePoolUsd)) {
+        return {
+          error: "tier_floor_not_met" as const,
+          message: `${tournament.competitiveTier}-tier requires a prize pool of at least $${setting.minPrizePoolUsd} USD-equivalent (this one converts to ~$${usd.toFixed(2)}).`,
+        };
+      }
+
+      // Floor met. D/C/B/A are "instant" (B/A's rating gate is enforced at
+      // registration time, not here — see checkTierEntryGate). S/National
+      // go to admin review instead of publishing outright.
+      if (setting.publishPath !== "instant") {
+        const updated = await prisma.tournament.update({
+          where: { id: tournamentId },
+          data: { submittedForReview: true },
+        });
+        return { data: updated, pendingReview: true as const };
+      }
+    }
   }
 
   const updated = await prisma.tournament.update({
@@ -226,6 +280,12 @@ export interface RegisterInput {
   paymentProofUrl?: string;
   teamName?: string;
   teamMemberPlayerIds?: string[]; // for duo/squad modes
+  // Set only when this registration is a club's persistent team entering
+  // (submitClubTeamEntry) — the tier entry gate checks THIS team's rating
+  // rather than whichever member happens to be listed first, since the
+  // club team (not any one member) is what carries a rating across
+  // tournaments (see ClubTeam.rating).
+  clubTeamId?: string;
 }
 
 export async function registerForTournament(input: RegisterInput) {
@@ -272,6 +332,19 @@ export async function registerForTournament(input: RegisterInput) {
     },
   });
   if (existing) return { error: "already_registered" as const };
+
+  // Competitive-tier entry gate (spec §9) — a B/A/S/National tournament
+  // requires the registering player (or, for a club team, the team itself)
+  // to already meet that tier's rating/win-count floor. D/C and non-
+  // competitive tournaments have no gate. See checkTierEntryGate for the
+  // resolution order (country > region > world settings).
+  const gate = await checkTierEntryGate(
+    input.tournamentId,
+    input.clubTeamId ? { clubTeamId: input.clubTeamId } : { playerId: input.playerId }
+  );
+  if ("error" in gate && gate.error === "tier_gate") {
+    return { error: "tier_gate" as const, message: gate.message };
+  }
 
   const paymentStatus =
     tournament.entryType === "free"
@@ -587,6 +660,7 @@ export interface UpdateTournamentInput {
   paymentInstructions?: string;
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
+  competitiveTier?: CompetitiveTier;
   startAt?: Date;
 }
 
@@ -630,6 +704,28 @@ export async function updateTournament(
     if ((await getActiveRegistrationCount(tournamentId)) > 0) {
       return { error: feeChanged ? ("fee_locked" as const) : ("currency_locked" as const) };
     }
+  }
+
+  // A competitive tier is what the prize-pool floor and the registration
+  // rating gate were checked against — letting it change once the
+  // tournament is live would let an organizer bait-and-switch (publish as
+  // D, quietly bump to S once real money's on the table) or strand already-
+  // registered players who met a lower tier's gate. Only draft tournaments
+  // can have their tier changed.
+  const tierChanged =
+    data.competitiveTier !== undefined && data.competitiveTier !== tournament.competitiveTier;
+  if (tierChanged && tournament.status !== "draft") {
+    return { error: "tier_locked" as const };
+  }
+
+  // Editing the tier or the prize pool while an S/National submission is
+  // still pending invalidates that submission — the admin would otherwise
+  // be reviewing stale numbers. Re-publishing re-submits with the new ones.
+  if (
+    tournament.submittedForReview &&
+    (tierChanged || data.prizePoolAmount !== undefined || data.prizePoolCurrency !== undefined)
+  ) {
+    (data as Prisma.TournamentUpdateInput).submittedForReview = false;
   }
 
   const updated = await prisma.tournament.update({
@@ -851,8 +947,8 @@ export async function getTournamentVoteSummary(tournamentId: string, playerId?: 
     prisma.tournamentVote.groupBy({ by: ["value"], where: { tournamentId }, _count: true }),
     playerId
       ? prisma.tournamentVote.findUnique({
-          where: { tournamentId_playerId: { tournamentId, playerId } },
-        })
+        where: { tournamentId_playerId: { tournamentId, playerId } },
+      })
       : Promise.resolve(null),
   ]);
   return {
@@ -990,6 +1086,64 @@ export async function listFlaggedTournaments() {
   });
 }
 
+// S/National-tier tournaments an organizer has submitted for the
+// admin-review publish path (spec §9) — see publishTournament's
+// submittedForReview branch. Still "draft" until an admin acts.
+export async function listPendingTierReviewTournaments() {
+  return prisma.tournament.findMany({
+    where: { status: "draft", submittedForReview: true },
+    include: { organizer: true, game: true },
+    orderBy: { updatedAt: "asc" },
+  });
+}
+
+export async function approveTierReview(tournamentId: string, adminId: string) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+  if (!tournament.submittedForReview) return { error: "not_pending" as const };
+
+  const updated = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { status: "published", submittedForReview: false },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "approved_tier_publish",
+      targetType: "Tournament",
+      targetId: tournamentId,
+    },
+  });
+
+  return { data: updated };
+}
+
+// Rejecting doesn't cancel the tournament — it stays a draft the organizer
+// can revise (lower the tier, adjust the prize pool, etc.) and resubmit.
+export async function rejectTierReview(tournamentId: string, adminId: string, reason?: string) {
+  const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
+  if (!tournament) return { error: "not_found" as const };
+  if (!tournament.submittedForReview) return { error: "not_pending" as const };
+
+  const updated = await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { submittedForReview: false },
+  });
+
+  await prisma.adminActionLog.create({
+    data: {
+      adminId,
+      action: "rejected_tier_publish",
+      targetType: "Tournament",
+      targetId: tournamentId,
+      notes: reason,
+    },
+  });
+
+  return { data: updated };
+}
+
 // ------------------------------------------------------------
 // STATUS TRANSITIONS
 // ------------------------------------------------------------
@@ -1019,6 +1173,14 @@ export async function updateTournamentStatus(
     where: { id: tournamentId },
     data: { status: newStatus as TournamentStatus },
   });
+
+  // Rating only moves once results are final (spec §9) — this transition
+  // is one-way (nothing goes FROM completed back to in_progress), so this
+  // only ever fires once per tournament. A placement corrected afterward
+  // does NOT retroactively recompute ratings (see awardTournamentRatings).
+  if (newStatus === "completed") {
+    await awardTournamentRatings(tournamentId);
+  }
 
   return { data: updated };
 }
@@ -1078,6 +1240,15 @@ export async function manualAddRegistration(
     },
   });
   if (existing) return { error: "already_registered" as const };
+
+  // Same tier entry gate as self-registration (spec §9) — manual-add
+  // overrides the registration window/roster-lock, not competitive
+  // eligibility; an organizer can't use it to seed an S-tier bracket with
+  // unrated players.
+  const gate = await checkTierEntryGate(tournamentId, { playerId: playerProfile.id });
+  if ("error" in gate && gate.error === "tier_gate") {
+    return { error: "tier_gate" as const, message: gate.message };
+  }
 
   // Organizer-added registrations skip the pending queue — the organizer
   // is directly vouching for this player, so it's approved immediately.

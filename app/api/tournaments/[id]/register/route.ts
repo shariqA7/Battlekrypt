@@ -59,12 +59,13 @@ export async function POST(
     full: { status: 409, message: "This tournament is full." },
     already_registered: { status: 409, message: "You're already registered for this tournament." },
     payment_proof_required: { status: 400, message: "Payment proof is required for a paid tournament." },
+    tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
   };
 
   if (result.error) {
     const mapped = errorMap[result.error];
     return NextResponse.json(
-      { error: { code: result.error, message: mapped.message } },
+      { error: { code: result.error, message: "message" in result && result.message ? result.message : mapped.message } },
       { status: mapped.status }
     );
   }

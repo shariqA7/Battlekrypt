@@ -25,9 +25,11 @@ const TERMINAL_STATUSES = ["completed", "cancelled"];
 export default function PublishButton({
   tournamentId,
   status,
+  submittedForReview,
 }: {
   tournamentId: string;
   status: string;
+  submittedForReview?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +68,17 @@ export default function PublishButton({
   }
 
   if (status === "draft") {
+    // Set by publishTournament's admin_review/always_admin branch (spec §9:
+    // S/National tiers). Tournament is still technically "draft" — this is
+    // the only signal that it's actually waiting on an admin, not just
+    // unpublished.
+    if (submittedForReview) {
+      return (
+        <span className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light bg-[rgba(244,200,66,0.1)] px-2.5 py-1.5">
+          Pending admin review
+        </span>
+      );
+    }
     return (
       <div className="text-right">
         <button

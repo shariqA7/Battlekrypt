@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
+import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 
 interface Game {
   id: string;
@@ -40,6 +41,7 @@ export default function NewTournamentPage() {
   const [paymentInstructions, setPaymentInstructions] = useState("");
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
+  const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>("none");
   const [rules, setRules] = useState<EditableRule[]>([]);
   const [customFields, setCustomFields] = useState<
     { key: string; label: string; type: string; required: boolean }[]
@@ -132,6 +134,7 @@ export default function NewTournamentPage() {
         entryFee: entryType === "paid" ? { amount: entryFeeAmount, currency: entryFeeCurrency } : undefined,
         paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
+        competitiveTier,
         customFields: customFields.length > 0 ? customFields : undefined,
         rules: rules.map((r) => ({
           title: r.title,
@@ -443,6 +446,10 @@ export default function NewTournamentPage() {
               setPrizePoolCurrency(currency);
             }}
           />
+
+          <div className="mt-4">
+            <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
+          </div>
 
           <label className={labelClass}>Rules</label>
           <RulesEditor gameId={gameId} rules={rules} onChange={setRules} />
