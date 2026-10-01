@@ -111,6 +111,12 @@ export async function awardTournamentRatings(tournamentId: string) {
       : clubTeamRatingMap.get(u.clubTeamId!) ?? 1000,
   }));
 
+  // Two different "field sizes": the placement score is about how many
+  // ENTRIES competed (a 4-player squad is one entry, one placement), while the
+  // average rating compares against every rated unit. Using the unit count for
+  // the score made a last-place 4-player squad look like it finished well up
+  // the field.
+  const entryCount = registrations.length;
   const fieldSize = rated.length;
   const totalRating = rated.reduce((sum, u) => sum + u.rating, 0);
 
@@ -124,7 +130,7 @@ export async function awardTournamentRatings(tournamentId: string) {
       // baseline just by being rated highly.
       const fieldAvgExcludingSelf =
         fieldSize > 1 ? (totalRating - unit.rating) / (fieldSize - 1) : unit.rating;
-      const newRating = computeNewRating(unit, fieldSize, fieldAvgExcludingSelf);
+      const newRating = computeNewRating(unit, entryCount, fieldAvgExcludingSelf);
 
       return unit.playerId
         ? prisma.playerGameRating.upsert({
