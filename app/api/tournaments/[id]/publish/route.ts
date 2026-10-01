@@ -69,6 +69,18 @@ export async function POST(
       { status: 403 }
     );
   }
+  if (result.error === "tier_floor_not_met") {
+    return NextResponse.json(
+      { error: { code: "tier_floor_not_met", message: result.message } },
+      { status: 409 }
+    );
+  }
+  if (result.error === "fx_unavailable") {
+    return NextResponse.json(
+      { error: { code: "fx_unavailable", message: result.message } },
+      { status: 503 }
+    );
+  }
 
-  return NextResponse.json(result.data);
+  return NextResponse.json(result.data, result.pendingReview ? { status: 202 } : undefined);
 }

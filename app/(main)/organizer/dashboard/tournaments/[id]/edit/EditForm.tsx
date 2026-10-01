@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
+import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 
 interface TournamentForEdit {
   id: string;
@@ -17,6 +18,7 @@ interface TournamentForEdit {
   paymentInstructions: string | null;
   prizePoolAmount: unknown;
   prizePoolCurrency: string | null;
+  competitiveTier: CompetitiveTierValue;
   startAt: Date | null;
 }
 
@@ -38,6 +40,9 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
     tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0
   );
   const [prizePoolCurrency, setPrizePoolCurrency] = useState(tournament.prizePoolCurrency ?? "PKR");
+  const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
+    tournament.competitiveTier
+  );
   const [startAt, setStartAt] = useState(
     tournament.startAt ? new Date(tournament.startAt).toISOString().slice(0, 16) : ""
   );
@@ -66,6 +71,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         ...(prizePoolAmount > 0 && {
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
         }),
+        competitiveTier,
       }),
     });
 
@@ -159,6 +165,10 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           setPrizePoolCurrency(c);
         }}
       />
+
+      <div className="mt-4">
+        <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
+      </div>
 
       {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
 

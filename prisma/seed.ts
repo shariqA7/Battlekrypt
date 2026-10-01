@@ -101,6 +101,42 @@ async function seedSuggestedRules() {
   console.log(`Seeded ${DEFAULT_SUGGESTED_RULES.length} suggested rules.`);
 }
 
+// Mandatory "world" fallback row per tier (spec §9's own table) — see
+// lib/services/competitive-tiers.ts for how these get resolved against a
+// country/region override and why they're deliberately not hardcoded
+// anywhere gating actually happens. create-only (update: {}) so re-running
+// the seed never clobbers an admin's edits to these numbers.
+const DEFAULT_WORLD_TIER_SETTINGS: {
+  tier: "D" | "C" | "B" | "A" | "S" | "National";
+  minPrizePoolUsd: number;
+  minRating: number | null;
+  minWins: number | null;
+  publishPath: "instant" | "admin_review" | "always_admin";
+}[] = [
+  { tier: "D", minPrizePoolUsd: 20, minRating: null, minWins: null, publishPath: "instant" },
+  { tier: "C", minPrizePoolUsd: 100, minRating: null, minWins: null, publishPath: "instant" },
+  { tier: "B", minPrizePoolUsd: 300, minRating: 3000, minWins: null, publishPath: "instant" },
+  { tier: "A", minPrizePoolUsd: 900, minRating: 7000, minWins: null, publishPath: "instant" },
+  { tier: "S", minPrizePoolUsd: 1800, minRating: 10000, minWins: null, publishPath: "admin_review" },
+  { tier: "National", minPrizePoolUsd: 50000, minRating: null, minWins: 5, publishPath: "always_admin" },
+];
+
+async function seedTierSettings() {
+  for (const setting of DEFAULT_WORLD_TIER_SETTINGS) {
+    // findFirst + create instead of upsert: a null scopeValue can't be used
+    // inside a compound-unique "where".
+    const exists = await prisma.competitiveTierSetting.findFirst({
+      where: { tier: setting.tier, scope: "world", scopeValue: null },
+    });
+    if (!exists) {
+      await prisma.competitiveTierSetting.create({
+        data: { ...setting, scope: "world", scopeValue: null },
+      });
+    }
+  }
+  console.log(`Seeded ${DEFAULT_WORLD_TIER_SETTINGS.length} world-tier settings.`);
+}
+
 async function main() {
   for (const game of LAUNCH_GAMES) {
     await prisma.game.upsert({
@@ -111,6 +147,7 @@ async function main() {
   }
   console.log(`Seeded ${LAUNCH_GAMES.length} games.`);
   await seedSuggestedRules();
+  await seedTierSettings();
 }
 
 main()

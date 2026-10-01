@@ -17,6 +17,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
+import { checkTierEntryGate } from "@/lib/services/competitive-tiers";
 
 export const CLUB_ENTRY_ERRORS = {
   validation_error: { status: 400, message: "Invalid input." },
@@ -49,6 +50,7 @@ export const CLUB_ENTRY_ERRORS = {
   },
   not_club_entry: { status: 400, message: "This entry isn't linked to your club." },
   forbidden: { status: 403, message: "You don't own this tournament." },
+  tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
 } as const;
 
 export type ClubEntryErrorCode = keyof typeof CLUB_ENTRY_ERRORS;
@@ -141,6 +143,7 @@ export async function submitClubTeamEntry(
     playerId: ids[0],
     teamMemberPlayerIds: ids.slice(1),
     teamName: team.name,
+    clubTeamId: teamId,
     paymentProofUrl: opts.paymentProofUrl,
     customFieldResponses: opts.customFieldResponses,
   });
@@ -381,6 +384,11 @@ export async function manualAddClubTeamEntry(
   });
   if (alreadyIn) return fail("already_registered");
 
+  // Same tier entry gate as self-registration (spec §9), checked against
+  // the club TEAM's rating (not any one member's) — see checkTierEntryGate.
+  const gate = await checkTierEntryGate(tournamentId, { clubTeamId });
+  if ("error" in gate && gate.error === "tier_gate") return fail("tier_gate", gate.message);
+
   const registration = await prisma.$transaction(async (tx) => {
     const teamEntry = await tx.teamEntry.create({
       data: {
@@ -426,6 +434,9 @@ export async function manualAddClubSoloEntry(
     where: { tournamentId, playerId, status: { in: ["pending", "approved"] } },
   });
   if (existing) return fail("already_registered");
+
+  const gate = await checkTierEntryGate(tournamentId, { playerId });
+  if ("error" in gate && gate.error === "tier_gate") return fail("tier_gate", gate.message);
 
   const registration = await prisma.registration.create({
     data: {

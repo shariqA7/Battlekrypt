@@ -48,7 +48,11 @@ export default async function ManageTournamentPage({
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
             {tournament.name}
           </h1>
-          <PublishButton tournamentId={id} status={tournament.status} />
+          <PublishButton
+            tournamentId={id}
+            status={tournament.status}
+            submittedForReview={tournament.submittedForReview}
+          />
         </div>
         <p className="font-sans text-bk-body text-sm mb-3">
           Manage registrations and match rooms
