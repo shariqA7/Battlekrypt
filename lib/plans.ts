@@ -36,6 +36,8 @@ export const LIMIT_KEYS = {
     maxTemplates: "limit",
     advancedAnalytics: "flag",
     prioritySupport: "flag",
+    allowSameNameClub: "flag",
+    dashboardCarousel: "flag",
   },
   club: {
     maxEntriesPerGame: "limit",
@@ -45,6 +47,7 @@ export const LIMIT_KEYS = {
     canSetCoach: "flag",
     merchStore: "flag",
     enhancedProfile: "flag",
+    dashboardCarousel: "flag",
   },
   player: {
     priorityRegistration: "flag",
@@ -58,6 +61,10 @@ export interface OrganizerLimits {
   maxTemplates: number | null;
   advancedAnalytics: boolean;
   prioritySupport: boolean;
+  // May also run a club with the same name as the organization.
+  allowSameNameClub: boolean;
+  // Gets the large featured carousel at the top of the dashboard.
+  dashboardCarousel: boolean;
 }
 
 export interface ClubPlanLimits {
@@ -71,6 +78,7 @@ export interface ClubPlanLimits {
   // Merch store (Phase 9) — flag only, nothing consumes it yet.
   merchStore: boolean;
   enhancedProfile: boolean;
+  dashboardCarousel: boolean;
 }
 
 export interface PlayerLimits {
@@ -94,6 +102,8 @@ const FREE_DEFAULTS: LimitsByAudience = {
     maxTemplates: 1,
     advancedAnalytics: false,
     prioritySupport: false,
+    allowSameNameClub: false,
+    dashboardCarousel: false,
   },
   club: {
     maxEntriesPerGame: 1,
@@ -103,6 +113,7 @@ const FREE_DEFAULTS: LimitsByAudience = {
     canSetCoach: false,
     merchStore: false,
     enhancedProfile: false,
+    dashboardCarousel: false,
   },
   player: { priorityRegistration: false, extendedStats: false },
 };
@@ -114,6 +125,8 @@ const PAID_DEFAULTS: LimitsByAudience = {
     maxTemplates: null,
     advancedAnalytics: true,
     prioritySupport: true,
+    allowSameNameClub: true,
+    dashboardCarousel: true,
   },
   club: {
     maxEntriesPerGame: null,
@@ -123,6 +136,7 @@ const PAID_DEFAULTS: LimitsByAudience = {
     canSetCoach: true,
     merchStore: true,
     enhancedProfile: true,
+    dashboardCarousel: true,
   },
   player: { priorityRegistration: true, extendedStats: true },
 };

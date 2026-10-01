@@ -1,9 +1,10 @@
-// POST /api/club/register — a signed-in user registers a club.
-// Creates the ClubProfile in "pending" status; an admin approves it after
-// checking the registration-fee payment proof.
+// POST /api/club/register — a signed-in player creates a club. No admin
+// approval and no fee: the club is live immediately on the free plan. The name
+// must not already be used by another club or an organization.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserRecord } from "@/lib/ensure-user";
+import { banGuard } from "@/lib/services/bans";
 import { getClubByUserId, registerClub } from "@/lib/services/clubs";
 
 export async function POST(request: Request) {
@@ -18,9 +19,11 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   }
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const existing = await getClubByUserId(user.id);
-  if (existing) {
+  if (existing && existing.status !== "disbanded") {
     return NextResponse.json(
       { error: { code: "already_club", message: "You already have a club." } },
       { status: 409 }
@@ -42,25 +45,30 @@ export async function POST(request: Request) {
     );
   }
 
-  if (typeof body.feeProofUrl !== "string" || !body.feeProofUrl.startsWith("http")) {
+  await ensureUserRecord(user);
+
+  const result = await registerClub(user.id, {
+    clubName,
+    logoUrl: typeof body.logoUrl === "string" && body.logoUrl ? body.logoUrl : null,
+  });
+
+  if (result.error === "already_club") {
+    return NextResponse.json(
+      { error: { code: "already_club", message: "You already have a club." } },
+      { status: 409 }
+    );
+  }
+  if (result.error) {
     return NextResponse.json(
       {
         error: {
-          code: "validation_error",
-          message: "Proof of registration-fee payment is required.",
+          code: "name_taken",
+          message: result.check.ok ? "Name unavailable." : result.check.message,
+          canClaim: result.check.ok ? false : result.check.canClaim,
         },
       },
-      { status: 400 }
+      { status: 409 }
     );
   }
-
-  await ensureUserRecord(user);
-
-  const club = await registerClub(user.id, {
-    clubName,
-    logoUrl: typeof body.logoUrl === "string" && body.logoUrl ? body.logoUrl : null,
-    feeProofUrl: body.feeProofUrl,
-  });
-
-  return NextResponse.json(club, { status: 201 });
+  return NextResponse.json(result.data, { status: 201 });
 }

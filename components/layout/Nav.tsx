@@ -22,16 +22,24 @@ export default async function Nav() {
   let isOrganizer = false;
   let isClub = false;
   let isAdmin = false;
+  let orgApplicationStatus: "pending" | "rejected" | null = null;
   let displayName: string | null = null;
   let avatarUrl: string | null = null;
   let email = "";
 
   if (user) {
-    const [organizerProfile, clubProfile, userRecord] = await Promise.all([
+    const [organizerProfile, clubProfile, userRecord, orgApplication] = await Promise.all([
       prisma.organizerProfile.findUnique({ where: { userId: user.id } }),
       prisma.clubProfile.findUnique({ where: { userId: user.id } }),
       prisma.user.findUnique({ where: { id: user.id } }),
+      prisma.organizationApplication.findUnique({
+        where: { userId: user.id },
+        select: { status: true },
+      }),
     ]);
+    if (orgApplication && orgApplication.status !== "approved") {
+      orgApplicationStatus = orgApplication.status;
+    }
     isOrganizer = !!organizerProfile;
     isClub = !!clubProfile;
     isAdmin = !!userRecord?.isAdmin;
@@ -75,6 +83,12 @@ export default async function Nav() {
 
         {!user ? (
           <>
+            <Link
+              href="/organizer/register"
+              className="text-bk-gold-light font-sans text-[11px] font-medium tracking-[0.6px] uppercase"
+            >
+              Register as an organization
+            </Link>
             <Link href="/login" className="text-bk-heading font-sans text-[12px] font-medium">
               Login
             </Link>
@@ -93,6 +107,7 @@ export default async function Nav() {
             isAdmin={isAdmin}
             isOrganizer={isOrganizer}
             isClub={isClub}
+            orgApplicationStatus={orgApplicationStatus}
           />
         )}
       </div>

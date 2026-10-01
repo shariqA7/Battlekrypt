@@ -48,6 +48,12 @@ model User {
   playerProfile    PlayerProfile?
   organizerProfile OrganizerProfile?
   clubProfile      ClubProfile?
+  orgApplication   OrganizationApplication?
+  orgMemberships   OrganizationMember[]
+  bans             AccountBan[]             @relation("BannedUser")
+  nameClaims       ClubNameClaim[]          @relation("ClaimantUser")
+  visits           VisitSession[]
+  payments         PaymentRecord[]          @relation("Payer")
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
   planRequests    PlanRequest[]
@@ -133,15 +139,225 @@ model OrganizerProfile {
   bio         String?
   socialLinks Json?
 
+  // Subscription plan (Phase 5) — see PlanHolder in lib/plans.ts. Approval of
+  // an organization application always starts on the free plan; a paid plan
+  // the applicant picked is bought afterwards on /plans.
+  planCode      String    @default("organizer_free")
+  planExpiresAt DateTime?
+
   tournaments  Tournament[]
   gameRequests GameRequest[]
   templates    TournamentTemplate[]
+  members      OrganizationMember[]
+  featuredSlides FeaturedSlide[]
+
+  createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------
+// ORGANIZATION REGISTRATION (admin-reviewed)
+// ------------------------------------------------------------
+
+enum OrgApplicationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum OrgMemberRole {
+  manager
+  staff
+}
+
+// An organization's request to join the platform. One row per account —
+// a rejected applicant edits and resubmits THIS row (attemptCount goes up)
+// rather than creating a new one. The OrganizerProfile is only created when
+// an admin approves, so a pending/rejected applicant has no organizer access.
+model OrganizationApplication {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  orgName     String
+  // Lowercased, letters+digits only ("Falcon Esports!" -> "falconesports").
+  // Unique so two organizations can't hold near-identical names.
+  orgNameKey  String @unique
+  orgType     String
+  description String
+
+  registrationNumber String?
+  website            String?
+  country            String
+  city               String
+  address            String
+  contactEmail       String
+  contactPhone       String
+
+  // The person running the organization's account.
+  handlerName  String
+  handlerRole  String
+  handlerPhone String
+
+  // Code of the Plan row the applicant picked (e.g. "organizer_pro"). Only
+  // a preference: nothing is granted until they pay on /plans.
+  plan   String               @default("organizer_free")
+  status OrgApplicationStatus @default(pending)
+
+  attemptCount   Int       @default(1) // how many times it has been submitted
+  rejectionCount Int       @default(0)
+  rejectionNote  String? // admin's overall message
+  fieldFeedback  Json? // { fieldName: "what to fix" }
+  nextResubmitAt DateTime? // set on rejection: 2h, then 24h, then 7d
+
+  submittedAt  DateTime  @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// People an approved organization adds to help run it. Added by email; if
+// that email already has an account, userId is linked.
+model OrganizationMember {
+  id          String           @id @default(uuid())
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id])
+
+  email String
+  name  String?
+  role  OrgMemberRole @default(staff)
 
   // Subscription plan (Phase 5) — see PlayerProfile.planCode.
   planCode      String    @default("organizer_free")
   planExpiresAt DateTime?
 
   createdAt DateTime @default(now())
+
+  @@unique([organizerId, email])
+}
+
+// ------------------------------------------------------------
+// ADMIN ANALYTICS
+// ------------------------------------------------------------
+
+// One row per browsing session (not per page view): who, from where, on what
+// device. Written by the session beacon, read only by the admin panel. This
+// holds personal data (IP address) — disclose it in the privacy policy and
+// purge old rows with purgeOldVisits() in lib/services/analytics.ts.
+model VisitSession {
+  id     String  @id @default(uuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  ip         String?
+  country    String? // ISO code, e.g. "PK"
+  region     String?
+  city       String?
+  deviceType String // desktop | mobile | tablet | unknown
+  os         String?
+  browser    String?
+  path       String
+  referrer   String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([country])
+}
+
+enum PaymentKind {
+  club_upgrade
+  org_plan
+  player_plan
+  other
+}
+
+// A manual ledger of money the PLATFORM received (paid club plans, organization
+// plans). There is no payment gateway yet, so an admin records each payment —
+// club upgrades are recorded when the admin approves the payment proof.
+model PaymentRecord {
+  id     String      @id @default(uuid())
+  userId String
+  user   User        @relation("Payer", fields: [userId], references: [id])
+  kind   PaymentKind
+
+  amount    Decimal @db.Decimal(14, 2)
+  currency  String
+  method    String // "JazzCash", "Bank transfer", …
+  reference String?
+  note      String?
+
+  recordedById String
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+}
+
+// ------------------------------------------------------------
+// CLUB NAME PROTECTION + ACCOUNT BANS
+// ------------------------------------------------------------
+
+// A ban blocks the whole account EXCEPT logging in: a banned user signs in
+// and is shown the reason plus how to contact support. endsAt = null means
+// permanent. History is kept; "active" = not lifted and not expired.
+model AccountBan {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation("BannedUser", fields: [userId], references: [id])
+
+  reason      String
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime?
+  createdById String
+  liftedAt    DateTime?
+  liftedById  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+enum ClubNameClaimStatus {
+  pending
+  upheld
+  dismissed
+}
+
+// Someone says "that club is using MY name". If an admin upholds it, the
+// squatting club is disbanded, its owner is banned for the duration the
+// admin picks, and the name is held for the claimant until they use it.
+model ClubNameClaim {
+  id         String @id @default(uuid())
+  claimantId String
+  claimant   User   @relation("ClaimantUser", fields: [claimantId], references: [id])
+
+  nameKey  String // the contested name, normalized
+  clubName String // as typed in the claim
+  clubId   String? // the club holding the name when the claim was filed
+
+  explanation String
+  evidenceUrl String?
+
+  status       ClubNameClaimStatus @default(pending)
+  adminNote    String?
+  banDays      Int? // what the admin chose on upholding; null = permanent
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  // Set when the claimant actually creates the club/organization with the
+  // name. Until then the name is reserved for them.
+  fulfilledAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([nameKey])
+  @@index([claimantId])
 }
 
 // ------------------------------------------------------------
@@ -228,6 +444,17 @@ enum ClubStatus {
   pending
   approved
   rejected
+  // Taken down after an upheld name claim. The row is kept for history but
+  // the club can no longer act (every club feature requires "approved").
+  disbanded
+}
+
+// Clubs are created instantly and free. A PAID plan needs a registration-fee
+// payment proof that an admin verifies; this tracks that upgrade request.
+enum ClubUpgradeStatus {
+  none
+  pending
+  rejected
 }
 
 model ClubProfile {
@@ -238,8 +465,19 @@ model ClubProfile {
   clubName String
   logoUrl  String?
 
-  status      ClubStatus @default(pending)
-  feeProofUrl String? // screenshot of registration-fee payment
+  status      ClubStatus @default(approved)
+  feeProofUrl String? // screenshot of the PAID-plan fee payment (upgrade only)
+
+  // Normalized name (see lib/org-name.ts) — unique, so "Falcon" and
+  // "falcon!" can't both exist. Cleared when a club is disbanded so the
+  // rightful owner can take the name. Null on clubs created before this
+  // existed; lib/services/club-names.ts checks those by scanning.
+  nameKey String? @unique
+  featuredSlides FeaturedSlide[]
+
+  upgradeStatus ClubUpgradeStatus @default(none)
+  disbandedAt   DateTime?
+  disbandReason String?
 
   // Subscription plan (Phase 5): code of a Plan row. Limits come from that
   // row via lib/club-limits.ts; an expired paid plan counts as free.
@@ -455,6 +693,7 @@ model Tournament {
   flags         TournamentFlag[]
   teamEntries   TeamEntry[]
   votes         TournamentVote[]
+  featured FeaturedTournament?
 }
 
 // One like/dislike per player per tournament, and only if they actually
@@ -741,4 +980,39 @@ model PlanRequest {
 
   @@index([status, createdAt])
   @@index([userId, audience])
+}
+
+
+// ------------------------------------------------------------
+// FEATURED CONTENT (admin-curated)
+// ------------------------------------------------------------
+
+// Slides in the big carousel at the top of dashboards. A slide may belong to
+// an organization or a club: it is only shown while that account's plan has
+// the `dashboardCarousel` perk (so the edge ends when the plan lapses).
+// A slide with neither is a platform announcement and always shows.
+model FeaturedSlide {
+  id          String           @id @default(uuid())
+  imageUrl    String
+  title       String
+  text        String?
+  linkUrl     String?
+  organizerId String?
+  organizer   OrganizerProfile? @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  clubId      String?
+  club        ClubProfile?     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  isActive    Boolean          @default(true)
+  position    Int              @default(0)
+  createdAt   DateTime         @default(now())
+
+  @@index([isActive, position])
+}
+
+// The admin's hand-picked "upcoming tournaments" list.
+model FeaturedTournament {
+  id           String     @id @default(uuid())
+  tournamentId String     @unique
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  position     Int        @default(0)
+  createdAt    DateTime   @default(now())
 }

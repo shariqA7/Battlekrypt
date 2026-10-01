@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getOrganizerByUserId, updateOrganizerProfile } from "@/lib/services/tournaments";
+import { banGuard } from "@/lib/services/bans";
 
 export async function GET() {
   const supabase = await createClient();
@@ -16,6 +17,9 @@ export async function GET() {
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const organizer = await getOrganizerByUserId(user.id);
   if (!organizer) {
@@ -40,6 +44,9 @@ export async function PATCH(request: Request) {
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const organizer = await getOrganizerByUserId(user.id);
   if (!organizer) {

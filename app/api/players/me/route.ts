@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPlayerProfileByUserId, updatePlayerProfile } from "@/lib/services/tournaments";
 import { updatePlayerProfileSchema, formatZodError } from "@/lib/validation/tournaments";
+import { banGuard } from "@/lib/services/bans";
 
 export async function GET() {
   const supabase = await createClient();
@@ -17,6 +18,9 @@ export async function GET() {
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const profile = await getPlayerProfileByUserId(user.id);
   return NextResponse.json(profile);
@@ -34,6 +38,9 @@ export async function PATCH(request: Request) {
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const rawBody = await request.json();
   const parsed = updatePlayerProfileSchema.safeParse(rawBody);

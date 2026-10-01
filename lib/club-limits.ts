@@ -8,6 +8,8 @@
 import { FREE_PLAN_CODE, resolvePlan, type ClubPlanLimits } from "@/lib/plans";
 
 export const FREE_CLUB_PLAN = FREE_PLAN_CODE.club;
+// Plan code a club gets when its paid upgrade is approved (Phase 5 "club_pro" row).
+export const PAID_CLUB_PLAN = "club_pro";
 
 export interface ClubLimits extends ClubPlanLimits {
   isPaid: boolean;

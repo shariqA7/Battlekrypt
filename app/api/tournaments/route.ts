@@ -8,6 +8,7 @@ import { listTournaments, createTournament } from "@/lib/services/tournaments";
 import { resolveCreateMoney } from "@/lib/money";
 import { parseRuleList } from "@/lib/rules";
 import { PlanLimitError } from "@/lib/services/plan-gates";
+import { banGuard } from "@/lib/services/bans";
 
 function moneyError(message: string) {
   return NextResponse.json(
@@ -44,6 +45,9 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const organizerProfile = await prisma.organizerProfile.findUnique({
     where: { userId: user.id },

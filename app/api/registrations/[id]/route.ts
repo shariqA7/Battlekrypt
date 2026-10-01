@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getRegistrationById } from "@/lib/services/tournaments";
+import { banGuard } from "@/lib/services/bans";
 
 export async function GET(
   _request: Request,
@@ -19,6 +20,9 @@ export async function GET(
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const result = await getRegistrationById(id, user.id);
   if (result.error === "not_found") {

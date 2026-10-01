@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import AdSlot from "@/components/ui/AdSlot";
+import DashboardTop from "@/components/dashboard/DashboardTop";
 const STATUS_DOT: Record<string, string> = {
   draft: "bg-bk-muted",
   published: "bg-bk-gold-light",
@@ -27,7 +28,7 @@ export default async function OrganizerDashboard() {
     where: { userId: user.id },
   });
 
-  if (!organizerProfile) redirect("/organizer/onboard");
+  if (!organizerProfile) redirect("/organizer/register");
 
   const userRecord = await prisma.user.findUnique({ where: { id: user.id } });
   const isApproved = userRecord?.kycStatus === "approved";
@@ -36,12 +37,21 @@ export default async function OrganizerDashboard() {
 
   return (
     <>
+      <div className="w-full max-w-5xl mx-auto px-6 pt-8">
+        <DashboardTop />
+      </div>
       <main className="flex-1 px-6 py-10 max-w-3xl mx-auto w-full">
         <div className="flex justify-between items-center mb-2">
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
             {organizerProfile.orgName}
           </h1>
           <div className="flex items-center gap-3">
+            <Link
+              href="/organizer/dashboard/members"
+              className="text-bk-muted font-sans text-[12px] uppercase tracking-[0.6px] underline"
+            >
+              Members
+            </Link>
             <Link
               href="/organizer/dashboard/settings"
               className="text-bk-muted font-sans text-[12px] uppercase tracking-[0.6px] underline"

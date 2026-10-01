@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { banGuard } from "@/lib/services/bans";
 
 export async function requirePlayer() {
   const supabase = await createClient();
@@ -18,6 +19,9 @@ export async function requirePlayer() {
       ),
     } as const;
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return { response: banned } as const;
 
   const playerProfile = await prisma.playerProfile.findUnique({ where: { userId: user.id } });
   if (!playerProfile) {
@@ -49,6 +53,9 @@ export async function requireAuthenticatedUser() {
       ),
     } as const;
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return { response: banned } as const;
 
   return { user } as const;
 }
