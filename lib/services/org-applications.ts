@@ -187,6 +187,8 @@ export async function approveApplication(id: string, adminId: string) {
         userId: app.userId,
         orgName: app.orgName,
         bio: app.description,
+        // Lets country-specific tier settings (Phase 6) apply to this organizer.
+        country: app.country,
         // Always starts on the free plan; a paid plan the applicant picked is
         // bought on /plans (screenshot proof -> admin approval).
         planCode: "organizer_free",

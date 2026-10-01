@@ -239,10 +239,6 @@ model OrganizationMember {
   name  String?
   role  OrgMemberRole @default(staff)
 
-  // Subscription plan (Phase 5) — see PlayerProfile.planCode.
-  planCode      String    @default("organizer_free")
-  planExpiresAt DateTime?
-
   createdAt DateTime @default(now())
 
   @@unique([organizerId, email])

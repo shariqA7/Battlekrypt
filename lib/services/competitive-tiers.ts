@@ -39,9 +39,9 @@ export async function upsertTierSetting(input: TierSettingInput) {
   };
 
   // Not prisma.upsert(): the world row has scopeValue = null, and Prisma
-  // can't put null inside a compound-unique "where". (Postgres also treats
-  // NULLs as distinct in a plain unique index — the migration adds a partial
-  // index so there can only be one world row per tier.)
+  // can't put null inside a compound-unique "where". Postgres also treats
+  // NULLs as distinct in the unique index, so the database does NOT stop two
+  // world rows per tier — this lookup-then-write is what keeps it to one.
   const existing = await prisma.competitiveTierSetting.findFirst({
     where: { tier: input.tier, scope: input.scope, scopeValue },
   });
