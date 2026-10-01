@@ -7,6 +7,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import AdSlot from "@/components/ui/AdSlot";
+import DashboardTop from "@/components/dashboard/DashboardTop";
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   pending: { label: "Pending approval", color: "text-bk-text-muted" },
   approved: { label: "Approved", color: "text-bk-gold-light" },
@@ -41,6 +42,9 @@ export default async function PlayerDashboard() {
 
   return (
     <>
+      <div className="w-full max-w-5xl mx-auto px-6 pt-8">
+        <DashboardTop />
+      </div>
       <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
         <div className="flex justify-between items-center mb-1">
           <div className="flex items-center gap-3">

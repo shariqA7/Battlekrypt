@@ -4,6 +4,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { banGuard } from "@/lib/services/bans";
 
 export async function requireOrganizer() {
   const supabase = await createClient();
@@ -19,6 +20,9 @@ export async function requireOrganizer() {
       ),
     } as const;
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return { response: banned } as const;
 
   const organizerProfile = await prisma.organizerProfile.findUnique({
     where: { userId: user.id },

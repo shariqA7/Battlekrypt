@@ -29,7 +29,7 @@ export default async function Home() {
             Browse tournaments
           </Link>
           <Link
-            href="/organizer/onboard"
+            href="/organizer/register"
             className="border border-bk-gold-light text-bk-gold-light font-sans font-bold text-[13px] tracking-[0.5px] uppercase px-6 py-3"
           >
             Host a tournament

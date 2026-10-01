@@ -1,5 +1,5 @@
 // GET /api/club/me — own club profile + approval status (+ rejection reason)
-// PATCH /api/club/me — update name/logo, or resubmit fee proof after a rejection
+// PATCH /api/club/me — update name/logo, or send payment proof to upgrade to the paid plan
 import { NextResponse } from "next/server";
 import { requireClubOwner } from "@/lib/club-helpers";
 import { getLatestRejectionReason, updateClub } from "@/lib/services/clubs";
@@ -9,7 +9,7 @@ export async function GET() {
   if ("response" in auth) return auth.response;
 
   const rejectionReason =
-    auth.club.status === "rejected" ? await getLatestRejectionReason(auth.club.id) : null;
+    auth.club.upgradeStatus === "rejected" ? await getLatestRejectionReason(auth.club.id) : null;
 
   return NextResponse.json({ ...auth.club, rejectionReason });
 }
@@ -54,15 +54,36 @@ export async function PATCH(request: Request) {
 
   const result = await updateClub(auth.club.id, update);
 
-  if (result.error === "already_approved") {
+  if (result.error === "name_taken") {
     return NextResponse.json(
       {
         error: {
-          code: "already_approved",
-          message: "Your club is already approved — payment proof can't be changed.",
+          code: "name_taken",
+          message: result.check.ok ? "Name unavailable." : result.check.message,
+          canClaim: result.check.ok ? false : result.check.canClaim,
         },
       },
       { status: 409 }
+    );
+  }
+  if (result.error === "already_paid" || result.error === "upgrade_pending") {
+    return NextResponse.json(
+      {
+        error: {
+          code: result.error,
+          message:
+            result.error === "already_paid"
+              ? "Your club is already on a paid plan."
+              : "Your payment is already waiting for review.",
+        },
+      },
+      { status: 409 }
+    );
+  }
+  if (result.error === "not_active") {
+    return NextResponse.json(
+      { error: { code: "not_active", message: "This club is no longer active." } },
+      { status: 403 }
     );
   }
   if (result.error) {

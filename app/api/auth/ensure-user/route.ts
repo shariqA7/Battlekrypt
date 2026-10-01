@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserRecord } from "@/lib/ensure-user";
+import { createApplicationFromMetadata } from "@/lib/services/org-applications";
 import { NextResponse } from "next/server";
 
 // Called client-side immediately after supabase.auth.signInWithPassword()
@@ -21,5 +22,6 @@ export async function POST() {
   }
 
   const { isNewUser } = await ensureUserRecord(user);
+  await createApplicationFromMetadata(user);
   return NextResponse.json({ isNewUser });
 }

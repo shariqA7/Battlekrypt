@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SUPPORTED_CURRENCIES } from "@/lib/money";
 
 interface PendingOrganizer {
   id: string;
@@ -45,6 +46,11 @@ export default function AdminQueues({
   const [clubs, setClubs] = useState(initialClubs);
   const [gameRequests, setGameRequests] = useState(initialGameRequests);
   const [flags, setFlags] = useState(initialFlags);
+  // Approving a paid-plan upgrade also records what was paid, so it shows up
+  // in the Payments page and revenue totals.
+  const [approvingClub, setApprovingClub] = useState<string | null>(null);
+  const [pay, setPay] = useState({ amount: "", currency: "PKR", method: "", reference: "" });
+  const [clubError, setClubError] = useState<string | null>(null);
 
   async function handleResolveFlag(tournamentId: string, flagId: string) {
     const res = await fetch(`/api/admin/flags/${flagId}/resolve`, { method: "POST" });
@@ -69,12 +75,15 @@ export default function AdminQueues({
   }
 
   async function handleClub(id: string, action: "approve" | "reject") {
+    setClubError(null);
     let body: string | undefined;
     if (action === "reject") {
       // The reason is shown to the club owner so they know what to fix.
       const reason = window.prompt("Reason for rejection (shown to the club):");
       if (reason === null) return;
       body = JSON.stringify({ reason });
+    } else {
+      body = JSON.stringify(pay.amount ? pay : {});
     }
     const res = await fetch(`/api/admin/clubs/${id}/${action}`, {
       method: "POST",
@@ -83,6 +92,10 @@ export default function AdminQueues({
     });
     if (res.ok) {
       setClubs((prev) => prev.filter((c) => c.id !== id));
+      setApprovingClub(null);
+      setPay({ amount: "", currency: "PKR", method: "", reference: "" });
+    } else {
+      setClubError((await res.json()).error.message);
     }
   }
 
@@ -136,17 +149,15 @@ export default function AdminQueues({
 
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">
-          Club approvals ({clubs.length})
+          Paid club upgrades ({clubs.length})
         </p>
         {clubs.length === 0 ? (
           <p className="text-bk-muted font-sans text-sm">Nothing pending.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {clubs.map((c) => (
-              <div
-                key={c.id}
-                className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between"
-              >
+              <div key={c.id} className="bg-bk-surface border border-bk-border p-3">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="font-sans text-bk-heading text-sm">{c.clubName}</p>
                   <p className="font-sans text-bk-muted text-xs mt-0.5">
@@ -159,16 +170,18 @@ export default function AdminQueues({
                       rel="noopener noreferrer"
                       className="font-sans text-xs text-bk-gold-light hover:underline mt-1 inline-block"
                     >
-                      View payment proof
+                      View payment proof (paid-plan upgrade)
                     </a>
                   )}
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleClub(c.id, "approve")}
+                    onClick={() =>
+                      approvingClub === c.id ? handleClub(c.id, "approve") : setApprovingClub(c.id)
+                    }
                     className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                   >
-                    Approve
+                    {approvingClub === c.id ? "Confirm" : "Approve"}
                   </button>
                   <button
                     onClick={() => handleClub(c.id, "reject")}
@@ -177,6 +190,46 @@ export default function AdminQueues({
                     Reject
                   </button>
                 </div>
+              </div>
+              {approvingClub === c.id && (
+                <div className="mt-3 pt-3 border-t border-bk-border flex flex-wrap gap-2 items-end">
+                  <input
+                    type="number"
+                    min={0}
+                    value={pay.amount}
+                    onChange={(e) => setPay({ ...pay, amount: e.target.value })}
+                    placeholder="Amount received"
+                    className="w-32 bg-bk-bg border border-bk-border text-bk-heading text-[12px] px-2 h-[32px]"
+                  />
+                  <select
+                    value={pay.currency}
+                    onChange={(e) => setPay({ ...pay, currency: e.target.value })}
+                    className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] px-2 h-[32px]"
+                  >
+                    {SUPPORTED_CURRENCIES.map((cur) => (
+                      <option key={cur}>{cur}</option>
+                    ))}
+                  </select>
+                  <input
+                    value={pay.method}
+                    onChange={(e) => setPay({ ...pay, method: e.target.value })}
+                    placeholder="Paid via (JazzCash, bank…)"
+                    className="w-44 bg-bk-bg border border-bk-border text-bk-heading text-[12px] px-2 h-[32px]"
+                  />
+                  <input
+                    value={pay.reference}
+                    onChange={(e) => setPay({ ...pay, reference: e.target.value })}
+                    placeholder="Reference (optional)"
+                    className="w-40 bg-bk-bg border border-bk-border text-bk-heading text-[12px] px-2 h-[32px]"
+                  />
+                  <p className="w-full font-sans text-[11px] text-bk-muted">
+                    Fill these in to record the payment in revenue totals, then press Confirm.
+                  </p>
+                </div>
+              )}
+              {clubError && approvingClub === c.id && (
+                <p className="mt-2 font-sans text-[12px] text-bk-live">{clubError}</p>
+              )}
               </div>
             ))}
           </div>

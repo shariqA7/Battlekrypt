@@ -6,7 +6,7 @@
 // plan for `durationDays`; when that lapses the account silently reverts to
 // free at read time (see resolvePlan), nothing needs to run on a schedule.
 
-import type { PlanAudience } from "@prisma/client";
+import type { PaymentKind, PlanAudience } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   FREE_PLAN_CODE,
@@ -33,6 +33,12 @@ type Fail = { error: PlanRequestErrorCode; message?: string };
 const fail = (error: PlanRequestErrorCode, message?: string): Fail => ({ error, message });
 
 const AUDIENCES: PlanAudience[] = ["organizer", "club", "player"];
+
+const PAYMENT_KIND_BY_AUDIENCE: Record<PlanAudience, PaymentKind> = {
+  organizer: "org_plan",
+  club: "club_upgrade",
+  player: "player_plan",
+};
 export function isAudience(v: unknown): v is PlanAudience {
   return typeof v === "string" && (AUDIENCES as string[]).includes(v);
 }
@@ -261,6 +267,22 @@ export async function approvePlanRequest(requestId: string, adminId: string) {
       where: { id: requestId },
       data: { status: "approved", reviewedAt: now },
     });
+    // Keep the admin payments ledger complete: every approved plan purchase
+    // is money the platform received. (Skipped only if the plan has no price.)
+    if (req.plan.priceAmount !== null && req.plan.priceCurrency) {
+      await tx.paymentRecord.create({
+        data: {
+          userId: req.userId,
+          kind: PAYMENT_KIND_BY_AUDIENCE[req.audience],
+          amount: req.plan.priceAmount,
+          currency: req.plan.priceCurrency,
+          method: "Screenshot proof",
+          reference: req.id,
+          note: `${req.plan.name} (${req.planCode})`,
+          recordedById: adminId,
+        },
+      });
+    }
     await tx.adminActionLog.create({
       data: {
         adminId,

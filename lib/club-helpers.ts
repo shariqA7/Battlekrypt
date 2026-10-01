@@ -22,6 +22,9 @@ export async function requireClubOwner() {
     } as const;
   }
 
+  const banned = await banGuard(user.id);
+  if (banned) return { response: banned } as const;
+
   const club = await getClubByUserId(user.id);
   if (!club) {
     return {
@@ -69,6 +72,7 @@ export function clubError(result: { error: ClubErrorCode; message?: string }) {
 
 // Same as clubError, for club-entries.ts failures.
 import { CLUB_ENTRY_ERRORS, type ClubEntryErrorCode } from "@/lib/services/club-entries";
+import { banGuard } from "@/lib/services/bans";
 
 export function clubEntryError(result: { error: ClubEntryErrorCode; message?: string }) {
   const def = CLUB_ENTRY_ERRORS[result.error];

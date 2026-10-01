@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { registerForTournament } from "@/lib/services/tournaments";
 import { ensureUserRecord } from "@/lib/ensure-user";
+import { banGuard } from "@/lib/services/bans";
 
 export async function POST(
   request: Request,
@@ -21,6 +22,9 @@ export async function POST(
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   // Every user has a PlayerProfile by default (see spec) — create one
   // on first use if it doesn't exist yet (e.g. signed up via OAuth and

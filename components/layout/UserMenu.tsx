@@ -17,6 +17,7 @@ interface UserMenuProps {
   isAdmin: boolean;
   isOrganizer: boolean;
   isClub: boolean;
+  orgApplicationStatus?: "pending" | "rejected" | null;
 }
 
 export default function UserMenu({
@@ -26,6 +27,7 @@ export default function UserMenu({
   isAdmin,
   isOrganizer,
   isClub,
+  orgApplicationStatus = null,
 }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,7 +101,7 @@ export default function UserMenu({
             </div>
           </div>
 
-          {(isAdmin || isOrganizer) && (
+          {(isAdmin || isOrganizer || orgApplicationStatus) && (
             <div className="border-b border-bk-border py-1">
               {isAdmin && (
                 <MenuLink href="/admin" onNavigate={() => setOpen(false)}>
@@ -111,6 +113,14 @@ export default function UserMenu({
                 <MenuLink href="/organizer/dashboard" onNavigate={() => setOpen(false)}>
                   <TrophyIcon />
                   Organizer dashboard
+                </MenuLink>
+              )}
+              {!isOrganizer && orgApplicationStatus && (
+                <MenuLink href="/organizer/application" onNavigate={() => setOpen(false)}>
+                  <TrophyIcon />
+                  {orgApplicationStatus === "pending"
+                    ? "Organization: under review"
+                    : "Organization: needs changes"}
                 </MenuLink>
               )}
             </div>
@@ -129,6 +139,12 @@ export default function UserMenu({
               <TrophyIcon />
               My plans
             </MenuLink>
+            {!isOrganizer && !orgApplicationStatus && (
+              <MenuLink href="/organizer/register" onNavigate={() => setOpen(false)}>
+                <TrophyIcon />
+                Register as an organization
+              </MenuLink>
+            )}
             {isClub ? (
               <MenuLink href="/club/dashboard" onNavigate={() => setOpen(false)}>
                 <ShieldIcon />

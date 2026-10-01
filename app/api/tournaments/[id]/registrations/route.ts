@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { listRegistrations } from "@/lib/services/tournaments";
+import { banGuard } from "@/lib/services/bans";
 
 export async function GET(
   request: Request,
@@ -23,6 +24,9 @@ export async function GET(
       { status: 401 }
     );
   }
+
+  const banned = await banGuard(user.id);
+  if (banned) return banned;
 
   const organizerProfile = await prisma.organizerProfile.findUnique({
     where: { userId: user.id },
