@@ -36,7 +36,7 @@ export default async function MyChallengesPage() {
               <Link href={`/challenges/${c.id}`} className="flex justify-between gap-4 px-4 py-3 hover:bg-bk-surface">
                 <div>
                   <p className="font-sans text-[13px] text-bk-heading">{c.title}</p>
-                  <p className="font-sans text-[12px] text-bk-muted">{c.game.name} · {STATUS_LABEL[c.status]}</p>
+                  <p className="font-sans text-[12px] text-bk-muted">{c.game.name} · {STATUS_LABEL[c.status]} · {c._count.applications} applied</p>
                 </div>
                 <p className="font-sans text-[13px] text-bk-gold-light shrink-0">{prizeLabel(c)}</p>
               </Link>

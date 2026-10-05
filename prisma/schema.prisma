@@ -45,16 +45,18 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  playerProfile    PlayerProfile?
-  organizerProfile OrganizerProfile?
-  clubProfile      ClubProfile?
-  orgApplication   OrganizationApplication?
-  orgMemberships   OrganizationMember[]
-  bans             AccountBan[]             @relation("BannedUser")
-  nameClaims       ClubNameClaim[]          @relation("ClaimantUser")
-  visits           VisitSession[]
-  challenges       Challenge[]              @relation("ChallengePoster")
-  payments         PaymentRecord[]          @relation("Payer")
+  playerProfile         PlayerProfile?
+  organizerProfile      OrganizerProfile?
+  clubProfile           ClubProfile?
+  orgApplication        OrganizationApplication?
+  orgMemberships        OrganizationMember[]
+  bans                  AccountBan[]             @relation("BannedUser")
+  nameClaims            ClubNameClaim[]          @relation("ClaimantUser")
+  visits                VisitSession[]
+  challenges            Challenge[]              @relation("ChallengePoster")
+  challengeApplications ChallengeApplication[]   @relation("ChallengeApplicant")
+  notifications         Notification[]
+  payments              PaymentRecord[]          @relation("Payer")
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
   planRequests    PlanRequest[]
@@ -522,9 +524,10 @@ model ClubTeam {
   // meaningfully carry a rating rather than each member's individual one.
   rating Int @default(1000)
 
-  members ClubRoster[]
-  invites ClubInvite[]
-  entries TeamEntry[]
+  members               ClubRoster[]
+  invites               ClubInvite[]
+  entries               TeamEntry[]
+  challengeApplications ChallengeApplication[]
 
   createdAt DateTime @default(now())
 
@@ -1044,7 +1047,12 @@ model Challenge {
   // How the poster will pay/deliver (e.g. "JazzCash or bank transfer, PKR").
   payoutMethod     String
 
-  status       ChallengeStatus @default(open)
+  status       ChallengeStatus        @default(open)
+  // Set when the poster confirms their pick: the chosen challenger(s) must
+  // finish by completeBy (selectedAt + completeWithinDays).
+  selectedAt   DateTime?
+  completeBy   DateTime?
+  applications ChallengeApplication[]
   reviewNote   String?
   reviewedById String?
   reviewedAt   DateTime?
@@ -1187,4 +1195,150 @@ model FeaturedTournament {
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   position     Int        @default(0)
   createdAt    DateTime   @default(now())
+}
+
+enum ChallengeApplicationStatus {
+  applied
+  selected
+  not_selected // another challenger was picked, or the challenge was cancelled
+  withdrawn
+}
+
+enum ChallengeStage {
+  playing // picked; must submit proof before the challenge deadline
+  proof_review // proof sent; poster has 48h to confirm or dispute (silence = confirmed)
+  proof_disputed // poster disputed the proof; an admin decides
+  awaiting_payout_details // win confirmed; challenger adds where to send the prize
+  awaiting_payment // poster has 72h to pay/deliver and upload the receipt
+  payment_sent // poster says paid; challenger confirms (silence for 5 days = received)
+  payment_disputed // "not received" / "never paid"; poster has 24h to show proof
+  completed
+  failed // no proof in time, proof rejected, or no payout details
+}
+
+enum ChallengeDisputeKind {
+  proof // poster disputes the challenger's proof of winning
+  payment // challenger says the prize was not paid / not received
+}
+
+enum ChallengeDisputeStatus {
+  awaiting_response // the other side has 24h to answer
+  awaiting_admin // answered, or the 24h passed: an admin decides
+  resolved
+}
+
+enum ChallengeDisputeOutcome {
+  for_challenger
+  for_poster
+}
+
+enum ChallengeEntrantKind {
+  player
+  team
+}
+
+// One application per account per challenge. A club owner applies with one of
+// the club's teams; a player applies as themselves. Rating is a snapshot so
+// the poster sees what the applicant had when they applied.
+model ChallengeApplication {
+  id          String    @id @default(uuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  applicantUserId String
+  applicant       User   @relation("ChallengeApplicant", fields: [applicantUserId], references: [id])
+
+  kind        ChallengeEntrantKind
+  clubTeamId  String?
+  clubTeam    ClubTeam?            @relation(fields: [clubTeamId], references: [id])
+  entrantName String // player display name, or "Team name (Club name)"
+  rating      Int
+  message     String?
+
+  status    ChallengeApplicationStatus @default(applied)
+  decidedAt DateTime?
+
+  // ---- Once picked (status = selected): proof -> payment -> done. `stage`
+  // says where the entry is and `stageDeadline` when the current step lapses.
+  stage              ChallengeStage     @default(playing)
+  stageDeadline      DateTime?
+  // The win: a match/game ID and screenshots (result + match history).
+  matchId            String?
+  proofUrls          String[]
+  proofNote          String?
+  proofSubmittedAt   DateTime?
+  // Where to send the prize. Shown only to the poster, and erased once the
+  // entry completes or fails.
+  payoutDetails      String?
+  // The poster's receipt (cash) or delivery screenshot (in-game / reward).
+  paymentReceiptUrls String[]
+  paymentNote        String?
+  paymentSentAt      DateTime?
+  // An admin ruled the poster owes the prize: keeps their account frozen
+  // until it's paid.
+  paymentOwed        Boolean            @default(false)
+  completedAt        DateTime?
+  failedReason       String?
+  disputes           ChallengeDispute[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([challengeId, applicantUserId])
+  @@index([challengeId, status])
+  @@index([applicantUserId])
+}
+
+// In-app notifications (the project sends no email): applications, picks,
+// and — in the next parts — proof, payment and dispute deadlines.
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type  String
+  title String
+  body  String?
+  href  String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+// A disagreement over one entry: either the poster doubts the proof, or the
+// challenger says the prize never arrived. The side being accused gets 24h to
+// answer with evidence; then an admin decides. For payment disputes the poster
+// is frozen (can't post or take applications) until it is settled.
+model ChallengeDispute {
+  id            String               @id @default(uuid())
+  applicationId String
+  application   ChallengeApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  challengeId   String
+
+  kind               ChallengeDisputeKind
+  openedById         String
+  reason             String
+  openerEvidenceUrls String[]
+
+  responderNote         String?
+  responderEvidenceUrls String[]
+  respondedAt           DateTime?
+  responseDueAt         DateTime
+
+  status         ChallengeDisputeStatus   @default(awaiting_response)
+  // The accused side didn't answer in time.
+  missedDeadline Boolean                  @default(false)
+  outcome        ChallengeDisputeOutcome?
+  adminNote      String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([applicationId])
+  @@index([challengeId])
 }

@@ -18,6 +18,8 @@ import NameClaims from "../NameClaims";
 import PlanRequestsQueue from "../PlanRequestsQueue";
 import { listPendingPlanRequests } from "@/lib/services/plan-requests";
 import ChallengeReview from "../ChallengeReview";
+import ChallengeDisputes from "../ChallengeDisputes";
+import { listDisputesForAdmin } from "@/lib/services/challenge-fulfillment";
 import { getChallengeReviewUsd, listChallengesAwaitingReview } from "@/lib/services/challenges";
 import { prizeLabel } from "@/lib/challenge-format";
 
@@ -35,6 +37,7 @@ export default async function AdminApprovalsPage() {
     activeBans,
     planRequests,
     heldChallenges,
+    disputes,
     challengeReviewUsd,
     pendingTierReviews,
   ] = await Promise.all([
@@ -48,6 +51,7 @@ export default async function AdminApprovalsPage() {
     listActiveBans(),
     listPendingPlanRequests(),
     listChallengesAwaitingReview(),
+    listDisputesForAdmin(),
     getChallengeReviewUsd(),
     listPendingTierReviewTournaments(),
   ]);
@@ -82,6 +86,37 @@ export default async function AdminApprovalsPage() {
         }))}
       />
       <PlanRequestsQueue initial={planRequests} />
+      <ChallengeDisputes
+        initial={disputes.map((d) => {
+          const a = d.application;
+          return {
+            id: d.id,
+            kind: d.kind,
+            status: d.status as "awaiting_response" | "awaiting_admin",
+            missedDeadline: d.missedDeadline,
+            reason: d.reason,
+            openerEvidenceUrls: d.openerEvidenceUrls,
+            responderNote: d.responderNote,
+            responderEvidenceUrls: d.responderEvidenceUrls,
+            responseDueAt: d.responseDueAt.toISOString(),
+            createdAt: d.createdAt.toISOString(),
+            openedByPoster: d.openedById === a.challenge.posterUserId,
+            challengeId: a.challenge.id,
+            challengeTitle: a.challenge.title,
+            prizeLabel: prizeLabel(a.challenge),
+            posterName: a.challenge.posterName,
+            posterEmail: d.posterEmail,
+            challengerName: a.applicant.displayName,
+            challengerEmail: a.applicant.email,
+            matchId: a.matchId,
+            proofUrls: a.proofUrls,
+            proofNote: a.proofNote,
+            receiptUrls: a.paymentReceiptUrls,
+            payoutDetails: a.payoutDetails,
+            paymentNote: a.paymentNote,
+          };
+        })}
+      />
       <ChallengeReview
         thresholdUsd={challengeReviewUsd}
         initial={heldChallenges.map((c) => ({
