@@ -53,6 +53,7 @@ model User {
   bans             AccountBan[]             @relation("BannedUser")
   nameClaims       ClubNameClaim[]          @relation("ClaimantUser")
   visits           VisitSession[]
+  challenges       Challenge[]              @relation("ChallengePoster")
   payments         PaymentRecord[]          @relation("Payer")
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
@@ -73,6 +74,7 @@ model Game {
   clubTeams     ClubTeam[]
   templates     TournamentTemplate[]
   playerRatings PlayerGameRating[]
+  challenges    Challenge[]
 }
 
 enum GameRequestStatus {
@@ -965,7 +967,94 @@ model SiteSettings {
   planPaymentInstructions String?
   // Ads stay off until an ad network is wired into components/ui/AdSlot.
   adsEnabled              Boolean  @default(false)
+  // A challenge whose cash prize (in USD) is above this waits for admin
+  // approval before it goes live. Plan caps (Plan.limits) apply first.
+  challengeReviewUsd      Decimal  @default(10000) @db.Decimal(14, 2)
   updatedAt               DateTime @updatedAt
+}
+
+// ------------------------------------------------------------
+// CHALLENGES
+// ------------------------------------------------------------
+
+enum ChallengePosterType {
+  organizer
+  club
+  player
+}
+
+// Who may take the challenge on.
+enum ChallengeEntrantType {
+  player
+  team
+  either
+}
+
+enum ChallengePrizeType {
+  cash // money, paid by the poster directly (the platform never holds funds)
+  in_game // in-game currency/items, e.g. "600 UC", delivered to the winner
+  reward // anything else, e.g. free entry to the poster's scrim or league
+}
+
+enum ChallengeStatus {
+  pending_review // over the admin-review prize threshold; not public yet
+  open // accepting applications
+  in_progress // challenger(s) chosen, playing
+  completed
+  expired // nobody was chosen before the deadline
+  cancelled
+  rejected // admin declined it
+}
+
+// A poster (organization, club or player on a plan that allows it) offers a
+// prize to whoever beats them / completes a task. Posting is capped by the
+// poster's plan (count per month, prize size) — see lib/services/challenges.ts.
+model Challenge {
+  id           String              @id @default(uuid())
+  posterUserId String
+  poster       User                @relation("ChallengePoster", fields: [posterUserId], references: [id])
+  posterType   ChallengePosterType
+  // Snapshot of the organization / club / player name at posting time.
+  posterName   String
+
+  title       String
+  description String // the rules: what has to be done to win
+  gameId      String
+  game        Game   @relation(fields: [gameId], references: [id])
+
+  entrantType ChallengeEntrantType @default(either)
+  // Applicants need at least this rating in the game (Phase 6 ratings).
+  minRating   Int?
+
+  // How many challengers the poster will pick, and how many applications are
+  // accepted before the challenge stops taking more (anti-flooding).
+  slots               Int
+  maxApplicants       Int
+  applicationsCloseAt DateTime
+  // How long the chosen challenger(s) have to complete it, set by the poster.
+  completeWithinDays  Int
+
+  prizeType        ChallengePrizeType
+  prizeDescription String // e.g. "600 UC", "Free entry to our weekend scrim"
+  cashAmount       Decimal?           @db.Decimal(14, 2)
+  cashCurrency     String?
+  // USD value used for plan caps and the review threshold: converted from
+  // the cash amount, or the poster's estimate for in-game prizes.
+  prizeUsd         Decimal?           @db.Decimal(14, 2)
+  // How the poster will pay/deliver (e.g. "JazzCash or bank transfer, PKR").
+  payoutMethod     String
+
+  status       ChallengeStatus @default(open)
+  reviewNote   String?
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([posterUserId, posterType, createdAt])
+  @@index([gameId])
 }
 
 model AuthCarouselSlide {

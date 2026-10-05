@@ -17,6 +17,9 @@ import OrgApplications from "../OrgApplications";
 import NameClaims from "../NameClaims";
 import PlanRequestsQueue from "../PlanRequestsQueue";
 import { listPendingPlanRequests } from "@/lib/services/plan-requests";
+import ChallengeReview from "../ChallengeReview";
+import { getChallengeReviewUsd, listChallengesAwaitingReview } from "@/lib/services/challenges";
+import { prizeLabel } from "@/lib/challenge-format";
 
 export default async function AdminApprovalsPage() {
   await requireAdminPage();
@@ -31,6 +34,8 @@ export default async function AdminApprovalsPage() {
     nameClaims,
     activeBans,
     planRequests,
+    heldChallenges,
+    challengeReviewUsd,
     pendingTierReviews,
   ] = await Promise.all([
     listPendingOrganizers(),
@@ -42,6 +47,8 @@ export default async function AdminApprovalsPage() {
     listPendingClaims(),
     listActiveBans(),
     listPendingPlanRequests(),
+    listChallengesAwaitingReview(),
+    getChallengeReviewUsd(),
     listPendingTierReviewTournaments(),
   ]);
 
@@ -75,6 +82,22 @@ export default async function AdminApprovalsPage() {
         }))}
       />
       <PlanRequestsQueue initial={planRequests} />
+      <ChallengeReview
+        thresholdUsd={challengeReviewUsd}
+        initial={heldChallenges.map((c) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description,
+          gameName: c.game.name,
+          posterName: c.posterName,
+          posterType: c.posterType,
+          posterEmail: c.poster.email,
+          prizeLabel: prizeLabel(c),
+          prizeUsd: c.prizeUsd?.toString() ?? null,
+          payoutMethod: c.payoutMethod,
+          createdAt: c.createdAt.toISOString(),
+        }))}
+      />
       <NameClaims
         initialClaims={nameClaims.map((c) => ({
           id: c.id,

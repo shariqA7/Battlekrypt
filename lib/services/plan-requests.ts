@@ -391,6 +391,12 @@ export async function updatePlan(code: string, adminId: string, input: UpdatePla
     if (!input.isActive && code === FREE_PLAN_CODE[plan.audience]) {
       return fail("validation_error", "The free plan can't be deactivated.");
     }
+    // A paid plan with no price can't be sold — the new Basic/Business plans
+    // start off sale until an admin prices them.
+    const priceAfter = data.priceAmount !== undefined ? data.priceAmount : plan.priceAmount;
+    if (input.isActive && plan.isPaid && (priceAfter === null || priceAfter === undefined)) {
+      return fail("validation_error", "Set a price before putting this plan on sale.");
+    }
     data.isActive = input.isActive;
   }
 
