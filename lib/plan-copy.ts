@@ -33,7 +33,17 @@ export function describeLimits(audience: PlanAudience, l: Limits): string[] {
     if (l.priorityRegistration) out.push("Early access to tournament slots (coming soon)");
     if (l.extendedStats) out.push("Extended, exportable stats (coming soon)");
   }
-  if (audience !== "player" || out.length === 0) return out;
+  out.push(
+    l.maxChallengesPerMonth === null
+      ? "Post unlimited challenges"
+      : `Post ${l.maxChallengesPerMonth} challenge${l.maxChallengesPerMonth === 1 ? "" : "s"} per month`
+  );
+  out.push(
+    l.maxChallengePrizeUsd === null
+      ? "No cap on challenge prize size"
+      : `Challenge prizes up to $${l.maxChallengePrizeUsd}`
+  );
+  if (l.canJoinChallenges) out.push("Join challenges");
   return out;
 }
 

@@ -7,15 +7,18 @@ import TierSettingsManager from "../TierSettingsManager";
 import { listTierSettings } from "@/lib/services/competitive-tiers";
 import PlanSettings from "../PlanSettings";
 import { getPlanSettings } from "@/lib/services/plan-requests";
+import ChallengeSettings from "../ChallengeSettings";
+import { getChallengeReviewUsd } from "@/lib/services/challenges";
 
 export default async function AdminSettingsPage() {
   await requireAdminPage();
-  const [siteSettings, slides, instructions, planSettings, tierSettings] = await Promise.all([
+  const [siteSettings, slides, instructions, planSettings, tierSettings, challengeReviewUsd] = await Promise.all([
     getSiteSettings(),
     listCarouselSlides(),
     getClubPaymentInstructions(),
     getPlanSettings(),
     listTierSettings(),
+    getChallengeReviewUsd(),
   ]);
 
   return (
@@ -26,6 +29,7 @@ export default async function AdminSettingsPage() {
       </div>
       <BrandingManager initialLogoUrl={siteSettings.logoUrl ?? ""} initialSlides={slides} />
       <ClubFeeSettings initialInstructions={instructions ?? ""} />
+      <ChallengeSettings initialUsd={challengeReviewUsd} />
       <TierSettingsManager
         initialSettings={tierSettings
           // "none" means "not competitive" — it is never a configurable tier.

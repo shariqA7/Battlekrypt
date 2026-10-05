@@ -32,6 +32,9 @@ const LABELS: Record<string, { label: string; kind: "limit" | "count" | "flag" }
   enhancedProfile: { label: "Enhanced profile", kind: "flag" },
   priorityRegistration: { label: "Priority registration", kind: "flag" },
   extendedStats: { label: "Extended stats", kind: "flag" },
+  maxChallengesPerMonth: { label: "Challenges posted / month", kind: "limit" },
+  maxChallengePrizeUsd: { label: "Max challenge prize (USD)", kind: "limit" },
+  canJoinChallenges: { label: "Can join challenges", kind: "flag" },
 };
 
 const input =

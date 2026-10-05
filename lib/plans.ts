@@ -38,6 +38,9 @@ export const LIMIT_KEYS = {
     prioritySupport: "flag",
     allowSameNameClub: "flag",
     dashboardCarousel: "flag",
+    maxChallengesPerMonth: "limit",
+    maxChallengePrizeUsd: "limit",
+    canJoinChallenges: "flag",
   },
   club: {
     maxEntriesPerGame: "limit",
@@ -48,10 +51,16 @@ export const LIMIT_KEYS = {
     merchStore: "flag",
     enhancedProfile: "flag",
     dashboardCarousel: "flag",
+    maxChallengesPerMonth: "limit",
+    maxChallengePrizeUsd: "limit",
+    canJoinChallenges: "flag",
   },
   player: {
     priorityRegistration: "flag",
     extendedStats: "flag",
+    maxChallengesPerMonth: "limit",
+    maxChallengePrizeUsd: "limit",
+    canJoinChallenges: "flag",
   },
 } as const satisfies Record<PlanAudience, Record<string, LimitKind>>;
 
@@ -65,6 +74,12 @@ export interface OrganizerLimits {
   allowSameNameClub: boolean;
   // Gets the large featured carousel at the top of the dashboard.
   dashboardCarousel: boolean;
+  // Challenges (not tournaments — they never touch ratings or tier
+  // eligibility): how many this account may post per calendar month, the
+  // biggest prize it may offer in USD, and whether it may apply to others'.
+  maxChallengesPerMonth: number | null;
+  maxChallengePrizeUsd: number | null;
+  canJoinChallenges: boolean;
 }
 
 export interface ClubPlanLimits {
@@ -79,11 +94,17 @@ export interface ClubPlanLimits {
   merchStore: boolean;
   enhancedProfile: boolean;
   dashboardCarousel: boolean;
+  maxChallengesPerMonth: number | null;
+  maxChallengePrizeUsd: number | null;
+  canJoinChallenges: boolean;
 }
 
 export interface PlayerLimits {
   priorityRegistration: boolean;
   extendedStats: boolean;
+  maxChallengesPerMonth: number | null;
+  maxChallengePrizeUsd: number | null;
+  canJoinChallenges: boolean;
 }
 
 export interface LimitsByAudience {
@@ -104,6 +125,9 @@ const FREE_DEFAULTS: LimitsByAudience = {
     prioritySupport: false,
     allowSameNameClub: false,
     dashboardCarousel: false,
+    maxChallengesPerMonth: 1,
+    maxChallengePrizeUsd: 10,
+    canJoinChallenges: false,
   },
   club: {
     maxEntriesPerGame: 1,
@@ -114,8 +138,17 @@ const FREE_DEFAULTS: LimitsByAudience = {
     merchStore: false,
     enhancedProfile: false,
     dashboardCarousel: false,
+    maxChallengesPerMonth: 1,
+    maxChallengePrizeUsd: 10,
+    canJoinChallenges: false,
   },
-  player: { priorityRegistration: false, extendedStats: false },
+  player: {
+    priorityRegistration: false,
+    extendedStats: false,
+    maxChallengesPerMonth: 1,
+    maxChallengePrizeUsd: 10,
+    canJoinChallenges: false,
+  },
 };
 
 const PAID_DEFAULTS: LimitsByAudience = {
@@ -127,6 +160,11 @@ const PAID_DEFAULTS: LimitsByAudience = {
     prioritySupport: true,
     allowSameNameClub: true,
     dashboardCarousel: true,
+    // Fallbacks for a paid row with missing keys: the Basic-level numbers,
+    // so a broken row can't hand out Business-level allowances.
+    maxChallengesPerMonth: 10,
+    maxChallengePrizeUsd: 100,
+    canJoinChallenges: true,
   },
   club: {
     maxEntriesPerGame: null,
@@ -137,8 +175,17 @@ const PAID_DEFAULTS: LimitsByAudience = {
     merchStore: true,
     enhancedProfile: true,
     dashboardCarousel: true,
+    maxChallengesPerMonth: 10,
+    maxChallengePrizeUsd: 100,
+    canJoinChallenges: true,
   },
-  player: { priorityRegistration: true, extendedStats: true },
+  player: {
+    priorityRegistration: true,
+    extendedStats: true,
+    maxChallengesPerMonth: 10,
+    maxChallengePrizeUsd: 100,
+    canJoinChallenges: true,
+  },
 };
 
 function isWholeNumber(v: unknown): v is number {

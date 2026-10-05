@@ -7,6 +7,7 @@ const NAV_LINKS = [
   { label: "Games", href: "/games" },
   { label: "Live", href: "/live" },
   { label: "Tournaments", href: "/tournaments" },
+  { label: "Challenges", href: "/challenges" },
   { label: "Organizers", href: "/organizers" },
   // "Rankings" intentionally omitted — the competitive rating system it
   // would show is Phase 6 scope and doesn't exist yet. Add it back once
