@@ -45,16 +45,18 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  playerProfile    PlayerProfile?
-  organizerProfile OrganizerProfile?
-  clubProfile      ClubProfile?
-  orgApplication   OrganizationApplication?
-  orgMemberships   OrganizationMember[]
-  bans             AccountBan[]             @relation("BannedUser")
-  nameClaims       ClubNameClaim[]          @relation("ClaimantUser")
-  visits           VisitSession[]
-  challenges       Challenge[]              @relation("ChallengePoster")
-  payments         PaymentRecord[]          @relation("Payer")
+  playerProfile         PlayerProfile?
+  organizerProfile      OrganizerProfile?
+  clubProfile           ClubProfile?
+  orgApplication        OrganizationApplication?
+  orgMemberships        OrganizationMember[]
+  bans                  AccountBan[]             @relation("BannedUser")
+  nameClaims            ClubNameClaim[]          @relation("ClaimantUser")
+  visits                VisitSession[]
+  challenges            Challenge[]              @relation("ChallengePoster")
+  challengeApplications ChallengeApplication[]   @relation("ChallengeApplicant")
+  notifications         Notification[]
+  payments              PaymentRecord[]          @relation("Payer")
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
   planRequests    PlanRequest[]
@@ -522,9 +524,10 @@ model ClubTeam {
   // meaningfully carry a rating rather than each member's individual one.
   rating Int @default(1000)
 
-  members ClubRoster[]
-  invites ClubInvite[]
-  entries TeamEntry[]
+  members               ClubRoster[]
+  invites               ClubInvite[]
+  entries               TeamEntry[]
+  challengeApplications ChallengeApplication[]
 
   createdAt DateTime @default(now())
 
@@ -1044,7 +1047,12 @@ model Challenge {
   // How the poster will pay/deliver (e.g. "JazzCash or bank transfer, PKR").
   payoutMethod     String
 
-  status       ChallengeStatus @default(open)
+  status       ChallengeStatus        @default(open)
+  // Set when the poster confirms their pick: the chosen challenger(s) must
+  // finish by completeBy (selectedAt + completeWithinDays).
+  selectedAt   DateTime?
+  completeBy   DateTime?
+  applications ChallengeApplication[]
   reviewNote   String?
   reviewedById String?
   reviewedAt   DateTime?
@@ -1187,4 +1195,63 @@ model FeaturedTournament {
   tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   position     Int        @default(0)
   createdAt    DateTime   @default(now())
+}
+
+enum ChallengeApplicationStatus {
+  applied
+  selected
+  not_selected // another challenger was picked, or the challenge was cancelled
+  withdrawn
+}
+
+enum ChallengeEntrantKind {
+  player
+  team
+}
+
+// One application per account per challenge. A club owner applies with one of
+// the club's teams; a player applies as themselves. Rating is a snapshot so
+// the poster sees what the applicant had when they applied.
+model ChallengeApplication {
+  id          String    @id @default(uuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  applicantUserId String
+  applicant       User   @relation("ChallengeApplicant", fields: [applicantUserId], references: [id])
+
+  kind        ChallengeEntrantKind
+  clubTeamId  String?
+  clubTeam    ClubTeam?            @relation(fields: [clubTeamId], references: [id])
+  entrantName String // player display name, or "Team name (Club name)"
+  rating      Int
+  message     String?
+
+  status    ChallengeApplicationStatus @default(applied)
+  decidedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([challengeId, applicantUserId])
+  @@index([challengeId, status])
+  @@index([applicantUserId])
+}
+
+// In-app notifications (the project sends no email): applications, picks,
+// and — in the next parts — proof, payment and dispute deadlines.
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type  String
+  title String
+  body  String?
+  href  String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt, createdAt])
 }

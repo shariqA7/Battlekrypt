@@ -11,6 +11,8 @@ import { resolvePlan, type EffectivePlan } from "@/lib/plans";
 import { tryToUsd } from "@/lib/currency-fx";
 import { startOfMonthUtc } from "@/lib/services/plan-gates";
 import type { ChallengeInput, ChallengeFieldErrors, PosterType } from "@/lib/validation/challenge";
+import { PICK_GRACE_DAYS } from "@/lib/challenge-rules";
+import { notifyMany } from "@/lib/services/notifications";
 
 const DAY = 86_400_000;
 
@@ -212,22 +214,61 @@ export async function createChallenge(userId: string, input: ChallengeInput): Pr
 // Reading
 // ------------------------------------------------------------
 
-// Challenges nobody was chosen for before their deadline are closed. Done on
-// read, so no scheduled job is needed for this one.
+// Open challenges whose applications have closed expire when nobody applied,
+// or when the poster hasn't picked within PICK_GRACE_DAYS. Done on read, so
+// no scheduled job is needed for this one.
 export async function expireStaleChallenges() {
-  await prisma.challenge.updateMany({
-    where: { status: "open", applicationsCloseAt: { lt: new Date() } },
-    data: { status: "expired" },
+  const now = new Date();
+  const stale = await prisma.challenge.findMany({
+    where: {
+      status: "open",
+      OR: [
+        { applicationsCloseAt: { lt: now }, applications: { none: { status: "applied" } } },
+        { applicationsCloseAt: { lt: new Date(now.getTime() - PICK_GRACE_DAYS * DAY) } },
+      ],
+    },
+    select: { id: true, title: true, applications: { where: { status: "applied" }, select: { applicantUserId: true } } },
   });
+  if (stale.length === 0) return;
+
+  const ids = stale.map((c) => c.id);
+  // Only the rows we just read are touched, and only if still open, so a poster
+  // confirming a pick at the same moment can't be overwritten.
+  const expired = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.challenge.updateMany({ where: { id: { in: ids }, status: "open" }, data: { status: "expired" } });
+    if (count === 0) return [] as string[];
+    const done = await tx.challenge.findMany({ where: { id: { in: ids }, status: "expired" }, select: { id: true } });
+    const doneIds = done.map((d) => d.id);
+    // Applicants nobody picked in time are turned down, not left waiting.
+    await tx.challengeApplication.updateMany({
+      where: { challengeId: { in: doneIds }, status: "applied" },
+      data: { status: "not_selected", decidedAt: now },
+    });
+    return doneIds;
+  });
+
+  for (const c of stale.filter((c) => expired.includes(c.id))) {
+    await notifyMany(c.applications.map((a) => a.applicantUserId), {
+      type: "challenge_expired",
+      title: `Challenge closed: ${c.title}`,
+      body: "The poster didn't pick anyone in time.",
+      href: `/challenges/${c.id}`,
+    });
+  }
 }
 
 export async function listOpenChallenges(opts: { gameId?: string } = {}) {
   await expireStaleChallenges();
   return prisma.challenge.findMany({
-    where: { status: "open", ...(opts.gameId && { gameId: opts.gameId }) },
+    // Only challenges still taking applications are listed; one waiting for
+    // its poster to pick stays reachable from the poster's own pages.
+    where: { status: "open", applicationsCloseAt: { gt: new Date() }, ...(opts.gameId && { gameId: opts.gameId }) },
     orderBy: { createdAt: "desc" },
     take: 60,
-    include: { game: { select: { name: true } } },
+    include: {
+      game: { select: { name: true } },
+      _count: { select: { applications: { where: { status: "applied" } } } },
+    },
   });
 }
 
@@ -236,7 +277,10 @@ export async function listMyChallenges(userId: string) {
   return prisma.challenge.findMany({
     where: { posterUserId: userId },
     orderBy: { createdAt: "desc" },
-    include: { game: { select: { name: true } } },
+    include: {
+      game: { select: { name: true } },
+      _count: { select: { applications: { where: { status: "applied" } } } },
+    },
   });
 }
 
@@ -256,10 +300,26 @@ export async function getChallengeForViewer(id: string, viewer: { id: string; is
 export async function cancelChallenge(userId: string, id: string) {
   const c = await prisma.challenge.findUnique({ where: { id } });
   if (!c || c.posterUserId !== userId) return { error: "not_found" as const };
-  // Part 1 has no applicants yet; once there are, cancelling an in-progress
-  // challenge will go through the dispute rules instead.
+  // Cancelling after challengers were picked goes through the dispute rules
+  // instead (next part), so only open / held challenges can be cancelled here.
   if (c.status !== "open" && c.status !== "pending_review") return { error: "not_cancellable" as const };
-  await prisma.challenge.update({ where: { id }, data: { status: "cancelled" } });
+
+  const waiting = await prisma.challengeApplication.findMany({
+    where: { challengeId: id, status: "applied" },
+    select: { applicantUserId: true },
+  });
+  await prisma.$transaction([
+    prisma.challenge.update({ where: { id }, data: { status: "cancelled" } }),
+    prisma.challengeApplication.updateMany({
+      where: { challengeId: id, status: "applied" },
+      data: { status: "not_selected", decidedAt: new Date() },
+    }),
+  ]);
+  await notifyMany(waiting.map((w) => w.applicantUserId), {
+    type: "challenge_cancelled",
+    title: `Challenge cancelled: ${c.title}`,
+    href: `/challenges/${id}`,
+  });
   return { data: { id } };
 }
 

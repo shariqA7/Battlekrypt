@@ -24,6 +24,9 @@ export default async function ChallengesPage({
           </p>
         </div>
         <div className="flex gap-3 shrink-0">
+          <Link href="/challenges/applied" className="font-sans text-[12px] text-bk-muted underline self-center">
+            My applications
+          </Link>
           <Link href="/challenges/mine" className="font-sans text-[12px] text-bk-muted underline self-center">
             My challenges
           </Link>
@@ -64,6 +67,7 @@ export default async function ChallengesPage({
                   {c.minRating ? ` · rating ${c.minRating}+` : ""}
                   {" · "}
                   {ENTRANT_LABEL[c.entrantType]}
+                  {" · "}{c._count.applications}/{c.maxApplicants} applied
                   {" · "}closes {c.applicationsCloseAt.toLocaleDateString()}
                 </p>
               </Link>

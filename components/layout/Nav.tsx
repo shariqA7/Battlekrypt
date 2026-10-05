@@ -24,6 +24,7 @@ export default async function Nav() {
   let isClub = false;
   let isAdmin = false;
   let orgApplicationStatus: "pending" | "rejected" | null = null;
+  let unreadNotifications = 0;
   let displayName: string | null = null;
   let avatarUrl: string | null = null;
   let email = "";
@@ -38,6 +39,7 @@ export default async function Nav() {
         select: { status: true },
       }),
     ]);
+    unreadNotifications = await prisma.notification.count({ where: { userId: user.id, readAt: null } });
     if (orgApplication && orgApplication.status !== "approved") {
       orgApplicationStatus = orgApplication.status;
     }
@@ -101,6 +103,17 @@ export default async function Nav() {
             </Link>
           </>
         ) : (
+          <>
+          <Link href="/notifications" aria-label="Notifications" className="relative text-bk-body hover:text-bk-heading">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6zM10 19a2 2 0 004 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-bk-live text-white text-[9px] font-bold rounded-full px-1 min-w-[15px] text-center">
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
+              </span>
+            )}
+          </Link>
           <UserMenu
             displayName={displayName ?? "Player"}
             email={email}
@@ -110,6 +123,7 @@ export default async function Nav() {
             isClub={isClub}
             orgApplicationStatus={orgApplicationStatus}
           />
+          </>
         )}
       </div>
     </nav>
