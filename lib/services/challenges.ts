@@ -13,6 +13,7 @@ import { startOfMonthUtc } from "@/lib/services/plan-gates";
 import type { ChallengeInput, ChallengeFieldErrors, PosterType } from "@/lib/validation/challenge";
 import { PICK_GRACE_DAYS } from "@/lib/challenge-rules";
 import { notifyMany } from "@/lib/services/notifications";
+import { frozenPosterIds, isPosterFrozen, sweepFulfillment } from "@/lib/services/challenge-fulfillment";
 
 const DAY = 86_400_000;
 
@@ -140,13 +141,16 @@ export async function setChallengeReviewUsd(adminId: string, usd: number) {
 
 export type CreateResult =
   | { data: { id: string; status: "open" | "pending_review" } }
-  | { error: "role_unavailable" | "challenge_limit" | "prize_cap" | "fx_unavailable" | "game_not_found"; message: string }
+  | { error: "role_unavailable" | "challenge_limit" | "prize_cap" | "fx_unavailable" | "game_not_found" | "poster_frozen"; message: string }
   | { error: "validation_error"; message: string; fields: ChallengeFieldErrors };
 
 export async function createChallenge(userId: string, input: ChallengeInput): Promise<CreateResult> {
   const role = await roleFor(userId, input.postAs);
   if (!role) {
     return { error: "role_unavailable", message: "You can't post as that account type." };
+  }
+  if (await isPosterFrozen(userId)) {
+    return { error: "poster_frozen", message: "You can't post challenges while a payment dispute against you is unresolved." };
   }
 
   // 1. Monthly count, from the plan.
@@ -218,6 +222,13 @@ export async function createChallenge(userId: string, input: ChallengeInput): Pr
 // or when the poster hasn't picked within PICK_GRACE_DAYS. Done on read, so
 // no scheduled job is needed for this one.
 export async function expireStaleChallenges() {
+  // Also moves proof / payment / dispute deadlines along. A failure here must
+  // never break the page being read.
+  try {
+    await sweepFulfillment();
+  } catch (e) {
+    console.error("fulfillment sweep failed", e);
+  }
   const now = new Date();
   const stale = await prisma.challenge.findMany({
     where: {
@@ -259,10 +270,17 @@ export async function expireStaleChallenges() {
 
 export async function listOpenChallenges(opts: { gameId?: string } = {}) {
   await expireStaleChallenges();
+  // Posters with an unsettled payment dispute are paused: hidden until it's settled.
+  const frozen = await frozenPosterIds();
   return prisma.challenge.findMany({
     // Only challenges still taking applications are listed; one waiting for
     // its poster to pick stays reachable from the poster's own pages.
-    where: { status: "open", applicationsCloseAt: { gt: new Date() }, ...(opts.gameId && { gameId: opts.gameId }) },
+    where: {
+      status: "open",
+      applicationsCloseAt: { gt: new Date() },
+      ...(frozen.length > 0 && { posterUserId: { notIn: frozen } }),
+      ...(opts.gameId && { gameId: opts.gameId }),
+    },
     orderBy: { createdAt: "desc" },
     take: 60,
     include: {

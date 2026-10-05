@@ -12,6 +12,7 @@ const STATUS: Record<string, number> = {
   closed: 409,
   full: 409,
   already_applied: 409,
+  poster_frozen: 403,
 };
 
 export async function POST(

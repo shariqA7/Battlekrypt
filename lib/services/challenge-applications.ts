@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/prisma";
 import { getJoinAccess } from "@/lib/services/challenges";
 import { notify, notifyMany } from "@/lib/services/notifications";
+import { isPosterFrozen } from "@/lib/services/challenge-fulfillment";
 import { applyBlocker, selectionBlocker, type EntrantKind } from "@/lib/challenge-rules";
 
 const DAY = 86_400_000;
@@ -105,6 +106,10 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
     await tx.$queryRaw`SELECT id FROM "Challenge" WHERE id = ${challengeId} FOR UPDATE`;
     const c = await tx.challenge.findUnique({ where: { id: challengeId } });
     if (!c) return { error: "not_found", message: "Challenge not found." };
+    // A poster with an unsettled payment dispute can't take on more challengers.
+    if (await isPosterFrozen(c.posterUserId)) {
+      return { error: "poster_frozen", message: "This poster's challenges are paused while a payment dispute is settled." };
+    }
 
     const access = await getJoinAccess(userId);
     const existing = await tx.challengeApplication.findUnique({
@@ -229,9 +234,11 @@ export async function selectApplicants(
     if (blocker) return { error: blocker.code, message: blocker.message };
 
     const now = new Date();
+    const completeBy = new Date(now.getTime() + c.completeWithinDays * DAY);
+    // Picked entries start at "playing": proof is due by the challenge deadline.
     await tx.challengeApplication.updateMany({
       where: { id: { in: chosenIds } },
-      data: { status: "selected", decidedAt: now },
+      data: { status: "selected", decidedAt: now, stage: "playing", stageDeadline: completeBy },
     });
     // Everyone else who applied is turned down automatically.
     await tx.challengeApplication.updateMany({
@@ -240,7 +247,7 @@ export async function selectApplicants(
     });
     await tx.challenge.update({
       where: { id: challengeId },
-      data: { status: "in_progress", selectedAt: now, completeBy: new Date(now.getTime() + c.completeWithinDays * DAY) },
+      data: { status: "in_progress", selectedAt: now, completeBy },
     });
 
     const chosen = new Set(chosenIds);
@@ -248,7 +255,7 @@ export async function selectApplicants(
       data: {
         id: challengeId,
         title: c.title,
-        completeBy: new Date(now.getTime() + c.completeWithinDays * DAY),
+        completeBy,
         selectedUserIds: applied.filter((a) => chosen.has(a.id)).map((a) => a.applicantUserId),
         rejectedUserIds: applied.filter((a) => !chosen.has(a.id)).map((a) => a.applicantUserId),
       },

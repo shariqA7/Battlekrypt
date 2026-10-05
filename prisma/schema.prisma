@@ -1204,6 +1204,34 @@ enum ChallengeApplicationStatus {
   withdrawn
 }
 
+enum ChallengeStage {
+  playing // picked; must submit proof before the challenge deadline
+  proof_review // proof sent; poster has 48h to confirm or dispute (silence = confirmed)
+  proof_disputed // poster disputed the proof; an admin decides
+  awaiting_payout_details // win confirmed; challenger adds where to send the prize
+  awaiting_payment // poster has 72h to pay/deliver and upload the receipt
+  payment_sent // poster says paid; challenger confirms (silence for 5 days = received)
+  payment_disputed // "not received" / "never paid"; poster has 24h to show proof
+  completed
+  failed // no proof in time, proof rejected, or no payout details
+}
+
+enum ChallengeDisputeKind {
+  proof // poster disputes the challenger's proof of winning
+  payment // challenger says the prize was not paid / not received
+}
+
+enum ChallengeDisputeStatus {
+  awaiting_response // the other side has 24h to answer
+  awaiting_admin // answered, or the 24h passed: an admin decides
+  resolved
+}
+
+enum ChallengeDisputeOutcome {
+  for_challenger
+  for_poster
+}
+
 enum ChallengeEntrantKind {
   player
   team
@@ -1230,6 +1258,29 @@ model ChallengeApplication {
   status    ChallengeApplicationStatus @default(applied)
   decidedAt DateTime?
 
+  // ---- Once picked (status = selected): proof -> payment -> done. `stage`
+  // says where the entry is and `stageDeadline` when the current step lapses.
+  stage              ChallengeStage     @default(playing)
+  stageDeadline      DateTime?
+  // The win: a match/game ID and screenshots (result + match history).
+  matchId            String?
+  proofUrls          String[]
+  proofNote          String?
+  proofSubmittedAt   DateTime?
+  // Where to send the prize. Shown only to the poster, and erased once the
+  // entry completes or fails.
+  payoutDetails      String?
+  // The poster's receipt (cash) or delivery screenshot (in-game / reward).
+  paymentReceiptUrls String[]
+  paymentNote        String?
+  paymentSentAt      DateTime?
+  // An admin ruled the poster owes the prize: keeps their account frozen
+  // until it's paid.
+  paymentOwed        Boolean            @default(false)
+  completedAt        DateTime?
+  failedReason       String?
+  disputes           ChallengeDispute[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1254,4 +1305,40 @@ model Notification {
   createdAt DateTime  @default(now())
 
   @@index([userId, readAt, createdAt])
+}
+
+// A disagreement over one entry: either the poster doubts the proof, or the
+// challenger says the prize never arrived. The side being accused gets 24h to
+// answer with evidence; then an admin decides. For payment disputes the poster
+// is frozen (can't post or take applications) until it is settled.
+model ChallengeDispute {
+  id            String               @id @default(uuid())
+  applicationId String
+  application   ChallengeApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  challengeId   String
+
+  kind               ChallengeDisputeKind
+  openedById         String
+  reason             String
+  openerEvidenceUrls String[]
+
+  responderNote         String?
+  responderEvidenceUrls String[]
+  respondedAt           DateTime?
+  responseDueAt         DateTime
+
+  status         ChallengeDisputeStatus   @default(awaiting_response)
+  // The accused side didn't answer in time.
+  missedDeadline Boolean                  @default(false)
+  outcome        ChallengeDisputeOutcome?
+  adminNote      String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([applicationId])
+  @@index([challengeId])
 }
