@@ -428,3 +428,13 @@ Pick **Hybrid** as the venue when creating a tournament, then on the tournament 
 - **LAN stages** are always restricted, have their own venue and check-in code, and no room credentials. Players who advanced check in with the code; the organizer can check in / mark no-shows / undo per entry.
 - **Online stages** can optionally be restricted ("only entries I advance can see its room").
 - Venue type of a stage is locked once someone has checked in to it. Switching the tournament away from Hybrid is only possible before anyone registers and resets all stages to plain online.
+
+## Phase 8.5 — More currencies and regions
+
+Run `npx prisma migrate dev` to apply `20261006050000_phase8_5_currencies_regions`. No new Supabase setup.
+
+**Currencies.** The platform now knows 26 currencies (the original five plus BDT, LKR, NPR, QAR, KWD, BHD, OMR, EGP, TRY, MYR, IDR, PHP, THB, VND, SGD, EUR, GBP, CAD, AUD, ZAR, NGN). Only the original five are switched on after the migration. Turn more on or off at **/admin/currencies**; organizers' currency pickers and the API follow it. A tournament keeps its currency if it is switched off later; USD can't be switched off (tier floors are measured in it). Adding a brand-new currency to the platform is one line in `lib/money.ts` plus switching it on.
+
+**Exchange rates — bug fix.** `lib/currency-fx.ts` used `api.frankfurter.app`, which only carried the ECB's 31 currencies, so PKR, SAR and AED lookups could not have worked and any tournament with a competitive tier in those currencies would have been stuck on "try again shortly". It now uses Frankfurter v2 (`api.frankfurter.dev`), which carries them. If the lookup is down, SAR and AED (hard-pegged to the dollar) fall back to the peg; every other currency still fails open rather than guessing. Please check one PKR tier tournament on your deployed site: my sandbox couldn't reach the live API, so this was tested against a mock of its documented response.
+
+**Regions.** Tournaments have an optional `country` (ISO code; empty = worldwide), set in the create/edit forms and defaulting to the organizer's own country when it is recognisable. Existing tournaments were backfilled for Pakistan, India, Saudi Arabia and the UAE only; the rest stay worldwide. The browse page has an "Everywhere / region / country" filter. Filtering by a country or region also shows worldwide tournaments, since those are open to everyone. Regions are derived from the country in `lib/geo-data.ts` (not stored).

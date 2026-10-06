@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import CountryPicker from "@/components/tournaments/CountryPicker";
 import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
@@ -24,6 +25,7 @@ interface TournamentForEdit {
   audienceScope: AudienceScopeValue;
   requireFreshInstitutionProof: boolean;
   venueType: "online" | "lan" | "hybrid";
+  country: string | null;
   venueName: string | null;
   venueAddress: string | null;
   venueCity: string | null;
@@ -53,6 +55,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
     tournament.competitiveTier
   );
+  const [country, setCountry] = useState(tournament.country ?? "");
   const [venue, setVenue] = useState<VenueValue>({
     venueType: tournament.venueType,
     venueName: tournament.venueName ?? "",
@@ -93,6 +96,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         }),
         competitiveTier,
         ...venueToBody(venue),
+        country: country || null,
         audienceScope,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
       }),
@@ -192,6 +196,8 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
       </div>
+
+      <CountryPicker value={country} onChange={setCountry} />
 
       <VenuePicker value={venue} onChange={setVenue} />
 

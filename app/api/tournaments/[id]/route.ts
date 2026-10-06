@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 import { getTournamentById, updateTournament } from "@/lib/services/tournaments";
 import { requireOrganizer } from "@/lib/auth-helpers";
 import { parseOptionalMoney } from "@/lib/money";
+import { prisma } from "@/lib/prisma";
 import { parseVenue } from "@/lib/venue-input";
+import { currenciesNotEnabled } from "@/lib/services/currencies";
+import { isCountryCode } from "@/lib/geo-data";
 import { toPublicTournament } from "@/lib/services/venue";
 
 function moneyError(message: string) {
@@ -46,6 +49,23 @@ export async function PATCH(
   if (!fee.ok) return moneyError(fee.message);
   const prize = parseOptionalMoney(body.prizePool, "Prize pool");
   if (!prize.ok) return moneyError(prize.message);
+  // Only a CHANGE of currency needs to be enabled: a draft that already uses a
+  // since-disabled currency can still be edited and saved as it is.
+  if (fee.value || prize.value) {
+    const current = await prisma.tournament.findUnique({
+      where: { id },
+      select: { entryFeeCurrency: true, prizePoolCurrency: true },
+    });
+    const disabled = await currenciesNotEnabled([
+      fee.value && fee.value.currency !== current?.entryFeeCurrency ? fee.value.currency : undefined,
+      prize.value && prize.value.currency !== current?.prizePoolCurrency ? prize.value.currency : undefined,
+    ]);
+    if (disabled) return moneyError(disabled);
+  }
+
+  if (body.country !== undefined && body.country !== null && body.country !== "" && !isCountryCode(body.country)) {
+    return moneyError("country must be a supported country code, or empty for worldwide.");
+  }
 
   const VALID_TIERS = ["none", "D", "C", "B", "A", "S", "National"];
   if (body.competitiveTier !== undefined && !VALID_TIERS.includes(body.competitiveTier)) {
@@ -75,6 +95,7 @@ export async function PATCH(
     requireFreshInstitutionProof:
       typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
     ...venue.value,
+    country: body.country === undefined ? undefined : body.country || null,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
 

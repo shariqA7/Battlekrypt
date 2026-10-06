@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/admin/approvals", label: "Approvals", badgeKey: "approvals" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/institutions", label: "Institutions" },
+  { href: "/admin/currencies", label: "Currencies" },
   { href: "/admin/organizations", label: "Organizations" },
   { href: "/admin/clubs", label: "Clubs" },
   { href: "/admin/plans", label: "Plans" },

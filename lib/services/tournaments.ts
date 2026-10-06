@@ -13,6 +13,7 @@ import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
 import { checkInstitutionGate } from "@/lib/services/institutions";
+import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { hybridStagesError } from "@/lib/services/stages";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
@@ -37,6 +38,10 @@ export interface TournamentListFilters {
   entryType?: EntryType;
   audienceScope?: AudienceScope;
   venueType?: VenueType;
+  // Country (ISO) or broader region key. Worldwide tournaments (no country)
+  // always match, since they're open to anyone anywhere.
+  country?: string;
+  region?: RegionKey;
   status?: TournamentStatus;
   search?: string;
   page?: number;
@@ -69,6 +74,20 @@ export async function listTournaments(filters: TournamentListFilters) {
     ...(filters.entryType && { entryType: filters.entryType }),
     ...(filters.audienceScope && { audienceScope: filters.audienceScope }),
     ...(filters.venueType && { venueType: filters.venueType }),
+    ...((filters.country || filters.region) && {
+      AND: [
+        {
+          OR: [
+            { country: null },
+            {
+              country: filters.country
+                ? filters.country
+                : { in: countriesInRegion(filters.region as RegionKey) },
+            },
+          ],
+        },
+      ],
+    }),
     ...(filters.organizerId && { organizerId: filters.organizerId }),
     ...(filters.game && { game: { name: { equals: filters.game, mode: "insensitive" } } }),
     ...(filters.search && {
@@ -141,6 +160,7 @@ export interface CreateTournamentInput {
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
   venueType?: VenueType;
+  country?: string | null;
   venueName?: string;
   venueAddress?: string;
   venueCity?: string;
@@ -183,6 +203,7 @@ export async function createTournament(input: CreateTournamentInput) {
       competitiveTier: input.competitiveTier ?? "none",
       audienceScope: input.audienceScope ?? "open",
       venueType: input.venueType ?? "online",
+      country: input.country ?? null,
       // Venue details only mean something for LAN.
       ...(input.venueType === "lan"
         ? {
@@ -748,6 +769,7 @@ export interface UpdateTournamentInput {
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
   venueType?: VenueType;
+  country?: string | null;
   venueName?: string;
   venueAddress?: string;
   venueCity?: string;

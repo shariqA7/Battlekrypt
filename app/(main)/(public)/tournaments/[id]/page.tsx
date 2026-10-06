@@ -1,4 +1,5 @@
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
+import { countryName } from "@/lib/geo-data";
 import { toPublicTournament } from "@/lib/services/venue";
 import CheckInPanel from "./CheckInPanel";
 import { formatMoney } from "@/lib/money";
@@ -50,6 +51,11 @@ export default async function TournamentDetailPage({
             <h1 className="font-sans font-bold text-xl text-bk-heading mb-1">
               {tournament.name}
             </h1>
+            {tournament.country && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-muted mb-1">
+                {countryName(tournament.country)}
+              </p>
+            )}
             {tournament.venueType === "hybrid" && (
               <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
                 Hybrid · online + LAN stages

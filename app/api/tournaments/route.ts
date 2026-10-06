@@ -1,6 +1,8 @@
 // GET  /api/tournaments  — public browse/search/filter
 // POST /api/tournaments  — organizer creates a draft tournament
 import { parseVenue } from "@/lib/venue-input";
+import { currenciesNotEnabled } from "@/lib/services/currencies";
+import { isCountryCode, isRegionKey, countryFromText } from "@/lib/geo-data";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +30,8 @@ export async function GET(request: Request) {
     entryType: (searchParams.get("entryType") as never) ?? undefined,
     audienceScope: (searchParams.get("audienceScope") as never) ?? undefined,
     venueType: (searchParams.get("venueType") as never) ?? undefined,
+    country: isCountryCode(searchParams.get("country")) ? (searchParams.get("country") as string) : undefined,
+    region: isRegionKey(searchParams.get("region")) ? (searchParams.get("region") as never) : undefined,
     search: searchParams.get("search") ?? undefined,
     page: Number(searchParams.get("page")) || undefined,
     limit: Number(searchParams.get("limit")) || undefined,
@@ -88,6 +92,19 @@ export async function POST(request: Request) {
     prizePool: body.prizePool,
   });
   if (!money.ok) return moneyError(money.message);
+  // A valid currency can still be switched off by an admin (/admin/currencies).
+  const disabled = await currenciesNotEnabled([money.entryFee?.currency, money.prizePool?.currency]);
+  if (disabled) return moneyError(disabled);
+
+  // Country: ISO code, or null/absent = worldwide. If the organizer didn't
+  // choose, default to their own country when it's recognisable.
+  if (body.country !== undefined && body.country !== null && body.country !== "" && !isCountryCode(body.country)) {
+    return moneyError("country must be a supported country code, or empty for worldwide.");
+  }
+  const country: string | null =
+    body.country === undefined
+      ? countryFromText(organizerProfile.country)
+      : body.country || null;
 
   // Rules: structured objects, or plain strings from older clients.
   const rules = parseRuleList(body.rules);
@@ -130,6 +147,7 @@ export async function POST(request: Request) {
     audienceScope: body.audienceScope,
     requireFreshInstitutionProof: body.requireFreshInstitutionProof === true,
     ...venue.value,
+    country,
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,

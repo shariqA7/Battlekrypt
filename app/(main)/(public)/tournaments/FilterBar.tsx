@@ -5,6 +5,7 @@
 // in page.tsx (no client-side data fetching duplicated here).
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { COUNTRIES, REGIONS } from "@/lib/geo-data";
 
 interface Game {
   id: string;
@@ -21,6 +22,9 @@ export default function FilterBar() {
   const [entryType, setEntryType] = useState(searchParams.get("entryType") ?? "");
   const [type, setType] = useState(searchParams.get("type") ?? "");
   const [mode, setMode] = useState(searchParams.get("mode") ?? "");
+  const [place, setPlace] = useState(
+    searchParams.get("country") ? `c:${searchParams.get("country")}` : searchParams.get("region") ? `r:${searchParams.get("region")}` : ""
+  );
   const [venueType, setVenueType] = useState(searchParams.get("venueType") ?? "");
   const [audienceScope, setAudienceScope] = useState(searchParams.get("audienceScope") ?? "");
 
@@ -31,11 +35,16 @@ export default function FilterBar() {
   }, []);
 
   function applyFilters(overrides: Record<string, string> = {}) {
-    const next = { search, game, entryType, type, mode, audienceScope, venueType, ...overrides };
+    const { place: placeOverride, ...rest } = overrides;
+    const next = { search, game, entryType, type, mode, audienceScope, venueType, ...rest };
     const query = new URLSearchParams();
     Object.entries(next).forEach(([key, value]) => {
       if (value) query.set(key, value);
     });
+    // "c:PK" = one country, "r:south-asia" = a whole region.
+    const p = placeOverride ?? place;
+    if (p.startsWith("c:")) query.set("country", p.slice(2));
+    if (p.startsWith("r:")) query.set("region", p.slice(2));
     router.push(`/tournaments${query.toString() ? `?${query.toString()}` : ""}`);
   }
 
@@ -67,6 +76,30 @@ export default function FilterBar() {
             <option key={g.id} value={g.name}>
               {g.name}
             </option>
+          ))}
+        </select>
+        <select
+          value={place}
+          onChange={(e) => {
+            setPlace(e.target.value);
+            applyFilters({ place: e.target.value });
+          }}
+          aria-label="Region or country"
+          className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[36px] max-w-[130px] sm:max-w-none"
+        >
+          <option value="">Everywhere</option>
+          {REGIONS.map((r) => (
+            <optgroup key={r.key} label={r.label}>
+              <option value={`r:${r.key}`}>All of {r.label}</option>
+              {Object.entries(COUNTRIES)
+                .filter(([, c]) => c.region === r.key)
+                .sort((a, b) => a[1].name.localeCompare(b[1].name))
+                .map(([code, c]) => (
+                  <option key={code} value={`c:${code}`}>
+                    {c.name}
+                  </option>
+                ))}
+            </optgroup>
           ))}
         </select>
         <button

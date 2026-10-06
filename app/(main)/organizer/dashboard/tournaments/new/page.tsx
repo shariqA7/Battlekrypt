@@ -6,6 +6,7 @@ import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import CountryPicker from "@/components/tournaments/CountryPicker";
 import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
@@ -45,6 +46,8 @@ export default function NewTournamentPage() {
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>("none");
   const [venue, setVenue] = useState<VenueValue>(emptyVenue);
+  // "__default" = leave it to the server (the organizer's own country).
+  const [country, setCountry] = useState("__default");
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>("open");
   const [freshProof, setFreshProof] = useState(false);
   const [rules, setRules] = useState<EditableRule[]>([]);
@@ -151,6 +154,7 @@ export default function NewTournamentPage() {
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
         competitiveTier,
         ...venueToBody(venue),
+        country: country === "__default" ? undefined : country,
         audienceScope,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
         customFields: customFields.length > 0 ? customFields : undefined,
@@ -468,6 +472,8 @@ export default function NewTournamentPage() {
           <div className="mt-4">
             <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
           </div>
+
+          <CountryPicker value={country} onChange={setCountry} defaultLabel="My organization's country" />
 
           <VenuePicker value={venue} onChange={setVenue} />
 

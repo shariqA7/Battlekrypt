@@ -212,6 +212,16 @@ model StageEntry {
   @@index([registrationId])
 }
 
+// Which catalog currencies (lib/money.ts) organizers may pick for entry fees
+// and prize pools. Admin-managed on /admin/currencies. Existing tournaments
+// keep their currency even if it is switched off later.
+model CurrencySetting {
+  code      String   @id
+  enabled   Boolean  @default(false)
+  sortOrder Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 model OrganizerProfile {
   id     String @id @default(uuid())
   userId String @unique
@@ -835,6 +845,10 @@ model Tournament {
 
   competitiveTier CompetitiveTier @default(none)
 
+  // ISO-3166 alpha-2 (see lib/geo-data.ts). Null = worldwide / open to anyone.
+  // The broader region (South Asia, ...) is derived from this, never stored.
+  country String?
+
   venueType       VenueType @default(online)
   venueName       String?
   venueAddress    String?
@@ -884,6 +898,7 @@ model Tournament {
 
   @@index([audienceScope])
   @@index([venueType])
+  @@index([country])
 }
 
 // One like/dislike per player per tournament, and only if they actually
