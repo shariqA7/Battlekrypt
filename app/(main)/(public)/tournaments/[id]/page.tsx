@@ -50,6 +50,11 @@ export default async function TournamentDetailPage({
             <h1 className="font-sans font-bold text-xl text-bk-heading mb-1">
               {tournament.name}
             </h1>
+            {tournament.venueType === "hybrid" && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
+                Hybrid · online + LAN stages
+              </p>
+            )}
             {tournament.venueType === "lan" && (
               <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
                 LAN · {tournament.venueCity}
@@ -116,6 +121,29 @@ export default async function TournamentDetailPage({
               </p>
             </div>
             <CheckInPanel tournamentId={tournament.id} />
+          </>
+        ) : tournament.venueType === "hybrid" ? (
+          <>
+            {tournament.stages
+              .filter((s) => s.venueType === "lan")
+              .map((s) => (
+                <div key={s.id}>
+                  <div className="mb-3 border border-bk-border bg-bk-surface p-4">
+                    <p className="font-sans font-medium text-bk-heading text-sm mb-1">
+                      {s.name} · LAN
+                    </p>
+                    <p className="font-sans text-[13px] text-bk-heading break-words">{s.venueName}</p>
+                    <p className="font-sans text-[12px] text-bk-muted break-words">
+                      {[s.venueAddress, s.venueCity].filter(Boolean).join(", ")}
+                    </p>
+                    <p className="font-sans text-[11px] text-bk-muted mt-2">
+                      Only entries that advance to this stage play it, in person.
+                    </p>
+                  </div>
+                  <CheckInPanel tournamentId={tournament.id} stageId={s.id} title={`${s.name} check-in`} />
+                </div>
+              ))}
+            <RoomReveal stages={tournament.stages.filter((s) => s.venueType !== "lan")} />
           </>
         ) : (
           <RoomReveal stages={tournament.stages} />

@@ -13,6 +13,7 @@ import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
 import { checkInstitutionGate } from "@/lib/services/institutions";
+import { hybridStagesError } from "@/lib/services/stages";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
 import { awardTournamentRatings } from "@/lib/services/ratings";
@@ -226,6 +227,13 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   });
   if (organizerUser?.kycStatus !== "approved") {
     return { error: "organizer_not_approved" as const };
+  }
+
+  // A hybrid tournament needs its online AND LAN stages set up.
+  if (tournament.venueType === "hybrid") {
+    const stages = await prisma.stage.findMany({ where: { tournamentId } });
+    const hybridError = hybridStagesError(stages);
+    if (hybridError) return { error: "venue_incomplete" as const, message: hybridError };
   }
 
   // A LAN tournament needs a venue before it goes public.
@@ -548,8 +556,21 @@ export async function getRoomForPlayer(stageId: string, playerId: string) {
   });
   if (!registration) return { error: "not_registered" as const };
 
-  // LAN tournaments have no room credentials — players check in on site.
+  // LAN tournaments (and LAN stages of a hybrid one) have no room
+  // credentials — players check in on site.
   if (stage.tournament.venueType === "lan") return { error: "lan_no_room" as const };
+  if (stage.tournament.venueType === "hybrid" && stage.venueType === "lan") {
+    return { error: "lan_no_room" as const };
+  }
+
+  // Restricted stages (e.g. semis/finals) are only for advanced entries.
+  if (stage.restricted) {
+    const advanced = await prisma.stageEntry.findFirst({
+      where: { stageId: stage.id, registrationId: registration.id },
+      select: { id: true },
+    });
+    if (!advanced) return { error: "not_advanced" as const };
+  }
 
   if (!stage.roomId || !stage.roomRevealAt) {
     return { error: "room_not_set" as const };
@@ -800,6 +821,18 @@ export async function updateTournament(
     return { error: "venue_locked" as const };
   }
   const effectiveVenue = data.venueType ?? tournament.venueType;
+  // Leaving hybrid: stages go back to plain online stages (they follow the
+  // tournament's venue again), and any advancement restriction is dropped.
+  if (venueTypeChanged && tournament.venueType === "hybrid") {
+    await prisma.stage.updateMany({
+      where: { tournamentId },
+      data: {
+        venueType: "online", venueName: null, venueAddress: null, venueCity: null,
+        checkInOpensAt: null, checkInClosesAt: null, checkInCode: null, restricted: false,
+      },
+    });
+    await prisma.stageEntry.deleteMany({ where: { stage: { tournamentId } } });
+  }
   if (effectiveVenue === "lan") {
     const windowError = checkInWindowError(
       data.checkInOpensAt !== undefined ? data.checkInOpensAt : tournament.checkInOpensAt,

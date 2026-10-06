@@ -30,13 +30,16 @@ export async function PATCH(
 
   const body = await request.json();
 
-  // LAN tournaments don't use room credentials.
+  // LAN tournaments (and LAN stages of a hybrid one) don't use room credentials.
+  const lanStage =
+    stage.tournament.venueType === "lan" ||
+    (stage.tournament.venueType === "hybrid" && stage.venueType === "lan");
   if (
-    stage.tournament.venueType === "lan" &&
+    lanStage &&
     (body.roomId !== undefined || body.roomPassword !== undefined || body.roomRevealAt !== undefined)
   ) {
     return NextResponse.json(
-      { error: { code: "lan_no_room", message: "LAN tournaments don't use room credentials." } },
+      { error: { code: "lan_no_room", message: "LAN stages don't use room credentials." } },
       { status: 409 }
     );
   }

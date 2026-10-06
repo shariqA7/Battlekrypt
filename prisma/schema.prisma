@@ -156,6 +156,9 @@ enum AudienceScope {
 enum VenueType {
   online
   lan
+  // Venue is decided per stage (online qualifiers -> LAN finals). Stages only
+  // ever use online or lan.
+  hybrid
 }
 
 enum CheckInStatus {
@@ -188,6 +191,25 @@ model PlayerInstitution {
   updatedAt DateTime @updatedAt
 
   @@index([status])
+}
+
+// An entry the organizer advanced into a stage (e.g. qualifiers -> finals).
+// Carries that stage's own LAN check-in state.
+model StageEntry {
+  id             String       @id @default(uuid())
+  stageId        String
+  stage          Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  checkInStatus   CheckInStatus @default(pending)
+  checkedInAt     DateTime?
+  checkInAttempts Int           @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([stageId, registrationId])
+  @@index([registrationId])
 }
 
 model OrganizerProfile {
@@ -900,6 +922,21 @@ model Stage {
 
   status String @default("upcoming")
 
+  // Venue per stage (Phase 8.4). Only meaningful when the tournament is
+  // hybrid; otherwise stages follow the tournament's own venue.
+  venueType       VenueType @default(online)
+  venueName       String?
+  venueAddress    String?
+  venueCity       String?
+  checkInOpensAt  DateTime?
+  checkInClosesAt DateTime?
+  checkInCode     String? // organizer-only, LAN stages
+  // true = only entries the organizer advanced into this stage may use its
+  // room / check in. LAN stages of a hybrid tournament are always restricted.
+  restricted      Boolean   @default(false)
+
+  entries StageEntry[]
+
   rules TournamentRule[]
 }
 
@@ -1027,6 +1064,7 @@ model Registration {
   checkInStatus   CheckInStatus @default(pending)
   checkedInAt     DateTime?
   checkInAttempts Int           @default(0) // wrong-code tries; locks self check-in at 5
+  stageEntries    StageEntry[]
   addedBy         AddedBy       @default(self)
 
   disqualifiedRuleId String?

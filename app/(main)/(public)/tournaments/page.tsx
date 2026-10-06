@@ -55,6 +55,9 @@ export default async function TournamentsPage({
                   </p>
                   <p className="font-sans text-bk-muted text-xs mt-1">
                     {t.game.name} · {t.type} · {t.mode}
+                    {t.venueType === "hybrid" && (
+                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">Hybrid</span>
+                    )}
                     {t.venueType === "lan" && (
                       <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
                         LAN{t.venueCity ? ` · ${t.venueCity}` : ""}

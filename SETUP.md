@@ -417,3 +417,14 @@ Run `npx prisma migrate dev` to apply `20261006030000_phase8_3_venue_checkin`. N
 Organizers pick **Online / LAN** when creating or editing a draft. LAN needs a venue name, address and city before it can be published, has no Room ID/password, and gets a 6-character check-in code that only the organizer sees. Players with an approved entry check in by typing the code in the check-in window; the organizer can also check people in, mark no-shows, or undo, at any time before the event ends. Five wrong codes lock a player's self check-in (the organizer can still check them in). Online ↔ LAN can't be switched once anyone has registered; venue details can still be corrected.
 
 Security fix included: public tournament pages and `GET /api/tournaments/:id` used to return each stage's room ID and password to anyone, bypassing the timed reveal. They are now stripped from every public response (`toPublicTournament`) and only come from `/api/stages/:id/room` after the reveal time.
+
+## Phase 8.4 — Hybrid tournaments (online qualifiers → LAN finals)
+
+Run `npx prisma migrate dev` to apply `20261006040000_phase8_4_hybrid_stages`. No new Supabase setup.
+
+Pick **Hybrid** as the venue when creating a tournament, then on the tournament page set each stage to **Online** or **LAN**. A hybrid tournament needs at least one online and one complete LAN stage to publish.
+
+- **Advancing:** each stage lists the approved entries with a checkbox, plus "Advance the top N by points". Only advanced entries can use a *restricted* stage.
+- **LAN stages** are always restricted, have their own venue and check-in code, and no room credentials. Players who advanced check in with the code; the organizer can check in / mark no-shows / undo per entry.
+- **Online stages** can optionally be restricted ("only entries I advance can see its room").
+- Venue type of a stage is locked once someone has checked in to it. Switching the tournament away from Hybrid is only possible before anyone registers and resets all stages to plain online.

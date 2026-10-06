@@ -23,7 +23,7 @@ interface TournamentForEdit {
   competitiveTier: CompetitiveTierValue;
   audienceScope: AudienceScopeValue;
   requireFreshInstitutionProof: boolean;
-  venueType: "online" | "lan";
+  venueType: "online" | "lan" | "hybrid";
   venueName: string | null;
   venueAddress: string | null;
   venueCity: string | null;

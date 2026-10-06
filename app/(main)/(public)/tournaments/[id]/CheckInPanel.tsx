@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 interface State {
+  advanced?: boolean; // stage check-in only: false = approved but not advanced
   status: "pending" | "checked_in" | "no_show";
   opensAt: string | null;
   closesAt: string | null;
@@ -11,7 +12,17 @@ interface State {
 
 // Shown on LAN tournaments, only to a signed-in player with an approved entry.
 // Everyone else (signed out, not registered, online events) sees nothing.
-export default function CheckInPanel({ tournamentId }: { tournamentId: string }) {
+export default function CheckInPanel({
+  tournamentId,
+  stageId,
+  title = "Check-in",
+}: {
+  tournamentId: string;
+  // Hybrid tournaments check in per LAN stage.
+  stageId?: string;
+  title?: string;
+}) {
+  const endpoint = stageId ? `/api/stages/${stageId}/check-in` : `/api/tournaments/${tournamentId}/check-in`;
   const [state, setState] = useState<(State & { loadedAt: number }) | null>(null);
   const [reload, setReload] = useState(0);
   const [code, setCode] = useState("");
@@ -20,7 +31,7 @@ export default function CheckInPanel({ tournamentId }: { tournamentId: string })
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/tournaments/${tournamentId}/check-in`)
+    fetch(endpoint)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled) setState(data ? { ...data, loadedAt: Date.now() } : null);
@@ -31,7 +42,7 @@ export default function CheckInPanel({ tournamentId }: { tournamentId: string })
     return () => {
       cancelled = true;
     };
-  }, [tournamentId, reload]);
+  }, [endpoint, reload]);
 
   if (!state) return null;
 
@@ -39,7 +50,7 @@ export default function CheckInPanel({ tournamentId }: { tournamentId: string })
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/tournaments/${tournamentId}/check-in`, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
@@ -55,12 +66,23 @@ export default function CheckInPanel({ tournamentId }: { tournamentId: string })
   }
 
   const now = state.loadedAt;
+
+  if (state.advanced === false) {
+    return (
+      <div className="mb-6 border border-bk-border bg-bk-surface p-4">
+        <p className="font-sans font-medium text-bk-heading text-sm mb-1">{title}</p>
+        <p className="font-sans text-[12px] text-bk-muted">
+          Only entries that advance to this stage can check in. The organizer decides who advances.
+        </p>
+      </div>
+    );
+  }
   const notOpen = state.opensAt && now < new Date(state.opensAt).getTime();
   const closed = state.closesAt && now > new Date(state.closesAt).getTime();
 
   return (
     <div className="mb-6 border border-bk-border bg-bk-surface p-4">
-      <p className="font-sans font-medium text-bk-heading text-sm mb-1">Check-in</p>
+      <p className="font-sans font-medium text-bk-heading text-sm mb-1">{title}</p>
       {state.status === "checked_in" ? (
         <p className="font-sans text-[13px] text-bk-live font-bold">You&apos;re checked in.</p>
       ) : state.status === "no_show" ? (

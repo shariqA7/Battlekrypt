@@ -2,7 +2,7 @@
 
 // Online vs LAN, plus venue details and the self check-in window (spec §8).
 // Shared by the create and edit forms. Times are datetime-local strings.
-export type VenueTypeValue = "online" | "lan";
+export type VenueTypeValue = "online" | "lan" | "hybrid";
 
 export interface VenueValue {
   venueType: VenueTypeValue;
@@ -43,7 +43,18 @@ export default function VenuePicker({
         <button type="button" disabled={typeLocked} onClick={() => set({ venueType: "lan" })} className={btn(value.venueType === "lan")}>
           LAN / on-site
         </button>
+        <button type="button" disabled={typeLocked} onClick={() => set({ venueType: "hybrid" })} className={btn(value.venueType === "hybrid")}>
+          Hybrid
+        </button>
       </div>
+
+      {value.venueType === "hybrid" && (
+        <p className="font-sans text-[11px] text-bk-muted mt-2">
+          Hybrid: each stage has its own venue — for example online qualifiers and a LAN
+          final. After you create it, set each stage&apos;s venue on the tournament page and
+          choose which entries advance.
+        </p>
+      )}
 
       {value.venueType === "lan" && (
         <>
@@ -84,6 +95,7 @@ export const emptyVenue: VenueValue = {
 // What the forms send to the API.
 export function venueToBody(v: VenueValue) {
   const lan = v.venueType === "lan";
+  // Hybrid keeps its venue on the stages, not on the tournament.
   return {
     venueType: v.venueType,
     venueName: lan ? v.venueName : undefined,

@@ -5,6 +5,8 @@ import { listRegistrations, getTournamentById, getTournamentCapacity } from "@/l
 import { redirect, notFound } from "next/navigation";
 import RegistrationQueue from "./RegistrationQueue";
 import StageManager from "./StageManager";
+import HybridStageManager from "./HybridStageManager";
+import { listStageEntries } from "@/lib/services/stages";
 import RulesManager from "./RulesManager";
 import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
@@ -42,7 +44,17 @@ export default async function ManageTournamentPage({
   const registrations = result.data;
   const capacity = await getTournamentCapacity(id);
   const isLan = tournament.venueType === "lan";
+  const isHybrid = tournament.venueType === "hybrid";
   const counts = isLan ? await checkInCounts(id) : null;
+  const stageEntries = isHybrid ? await listStageEntries(id) : [];
+  const entrants = registrations
+    .filter((r) => r.status === "approved")
+    .map((r) => ({
+      id: r.id,
+      status: r.status,
+      points: r.points,
+      name: r.teamEntry?.name ?? r.player?.user.displayName ?? "Unknown",
+    }));
 
   return (
     <>
@@ -97,7 +109,14 @@ export default async function ManageTournamentPage({
           </div>
         )}
 
-        {isLan ? (
+        {isHybrid ? (
+          <HybridStageManager
+            tournamentId={id}
+            stages={tournament.stages}
+            entrants={entrants}
+            entries={stageEntries}
+          />
+        ) : isLan ? (
           <p className="font-sans text-[12px] text-bk-muted mb-2">
             LAN event: no room credentials. Use the check-in buttons below once players arrive.
           </p>

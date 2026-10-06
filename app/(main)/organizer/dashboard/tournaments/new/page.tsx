@@ -108,7 +108,7 @@ export default function NewTournamentPage() {
     }
     // Only the kind of venue comes from a template; the address and check-in
     // times belong to one specific event.
-    setVenue({ ...emptyVenue, venueType: t.venueType === "lan" ? "lan" : "online" });
+    setVenue({ ...emptyVenue, venueType: t.venueType === "lan" || t.venueType === "hybrid" ? t.venueType : "online" });
     if (Array.isArray(t.customFields)) setCustomFields(t.customFields);
     setRules(
       t.rules.map((r: EditableRule) => ({

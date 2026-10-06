@@ -102,7 +102,7 @@ export default function FilterBar() {
             {val === "" ? "Any type" : val}
           </button>
         ))}
-        {["", "online", "lan"].map((val) => (
+        {["", "online", "lan", "hybrid"].map((val) => (
           <button
             key={val || "all-venues"}
             onClick={() => {
@@ -111,7 +111,7 @@ export default function FilterBar() {
             }}
             className={pillClass(venueType === val)}
           >
-            {val === "" ? "Any venue" : val === "lan" ? "LAN" : "Online"}
+            {val === "" ? "Any venue" : val === "lan" ? "LAN" : val === "hybrid" ? "Hybrid" : "Online"}
           </button>
         ))}
         {["", "institution"].map((val) => (

@@ -45,7 +45,7 @@ export function generateCheckInCode(length = 6) {
 export function toPublicTournament<
   T extends {
     checkInCode?: string | null;
-    stages?: { roomId: string | null; roomPassword: string | null; roomRevealAt: Date | null }[];
+    stages?: { roomId: string | null; roomPassword: string | null; roomRevealAt: Date | null; checkInCode?: string | null }[];
   },
 >(t: T) {
   const { checkInCode: _code, ...rest } = t;
@@ -53,13 +53,14 @@ export function toPublicTournament<
   return {
     ...rest,
     stages: (t.stages ?? []).map((s) => {
-      const { roomId, roomPassword: _pw, roomRevealAt: _at, ...stage } = s as typeof s & Record<string, unknown>;
+      const { roomId, roomPassword: _pw, roomRevealAt: _at, checkInCode: _sc, ...stage } = s as typeof s & Record<string, unknown>;
       void _pw;
       void _at;
+      void _sc;
       return { ...stage, hasRoom: !!roomId };
     }),
   } as Omit<T, "checkInCode" | "stages"> & {
-    stages: (Omit<NonNullable<T["stages"]>[number], "roomId" | "roomPassword" | "roomRevealAt"> & {
+    stages: (Omit<NonNullable<T["stages"]>[number], "roomId" | "roomPassword" | "roomRevealAt" | "checkInCode"> & {
       hasRoom: boolean;
     })[];
   };
