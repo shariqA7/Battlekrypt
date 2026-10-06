@@ -75,6 +75,12 @@ export async function POST(
       { status: 409 }
     );
   }
+  if (result.error === "venue_incomplete") {
+    return NextResponse.json(
+      { error: { code: "venue_incomplete", message: result.message } },
+      { status: 409 }
+    );
+  }
   if (result.error === "fx_unavailable") {
     return NextResponse.json(
       { error: { code: "fx_unavailable", message: result.message } },

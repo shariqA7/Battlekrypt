@@ -5,7 +5,7 @@ import { useState } from "react";
 interface Stage {
   id: string;
   name: string;
-  roomId: string | null;
+  hasRoom: boolean;
 }
 
 export default function RoomReveal({ stages }: { stages: Stage[] }) {
@@ -30,7 +30,7 @@ export default function RoomReveal({ stages }: { stages: Stage[] }) {
     setRooms((prev) => ({ ...prev, [stageId]: body }));
   }
 
-  const stagesWithRooms = stages.filter((s) => s.roomId);
+  const stagesWithRooms = stages.filter((s) => s.hasRoom);
   if (stagesWithRooms.length === 0) return null;
 
   return (

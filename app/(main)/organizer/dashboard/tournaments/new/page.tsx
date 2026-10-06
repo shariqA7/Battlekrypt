@@ -6,6 +6,9 @@ import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import CountryPicker from "@/components/tournaments/CountryPicker";
+import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
+import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
 interface Game {
   id: string;
@@ -42,6 +45,11 @@ export default function NewTournamentPage() {
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>("none");
+  const [venue, setVenue] = useState<VenueValue>(emptyVenue);
+  // "__default" = leave it to the server (the organizer's own country).
+  const [country, setCountry] = useState("__default");
+  const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>("open");
+  const [freshProof, setFreshProof] = useState(false);
   const [rules, setRules] = useState<EditableRule[]>([]);
   const [customFields, setCustomFields] = useState<
     { key: string; label: string; type: string; required: boolean }[]
@@ -94,6 +102,16 @@ export default function NewTournamentPage() {
       setPrizePoolAmount(t.prizePool.amount);
       setPrizePoolCurrency(t.prizePool.currency);
     }
+    if (t.audienceScope === "institution") {
+      setAudienceScope("institution");
+      setFreshProof(!!t.requireFreshInstitutionProof);
+    } else {
+      setAudienceScope("open");
+      setFreshProof(false);
+    }
+    // Only the kind of venue comes from a template; the address and check-in
+    // times belong to one specific event.
+    setVenue({ ...emptyVenue, venueType: t.venueType === "lan" || t.venueType === "hybrid" ? t.venueType : "online" });
     if (Array.isArray(t.customFields)) setCustomFields(t.customFields);
     setRules(
       t.rules.map((r: EditableRule) => ({
@@ -135,6 +153,10 @@ export default function NewTournamentPage() {
         paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
         competitiveTier,
+        ...venueToBody(venue),
+        country: country === "__default" ? undefined : country,
+        audienceScope,
+        requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
         customFields: customFields.length > 0 ? customFields : undefined,
         rules: rules.map((r) => ({
           title: r.title,
@@ -450,6 +472,19 @@ export default function NewTournamentPage() {
           <div className="mt-4">
             <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
           </div>
+
+          <CountryPicker value={country} onChange={setCountry} defaultLabel="My organization's country" />
+
+          <VenuePicker value={venue} onChange={setVenue} />
+
+          <AudiencePicker
+            scope={audienceScope}
+            freshProof={freshProof}
+            onChange={(s, f) => {
+              setAudienceScope(s);
+              setFreshProof(f);
+            }}
+          />
 
           <label className={labelClass}>Rules</label>
           <RulesEditor gameId={gameId} rules={rules} onChange={setRules} />

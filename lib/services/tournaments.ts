@@ -12,6 +12,10 @@ import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
+import { checkInstitutionGate } from "@/lib/services/institutions";
+import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
+import { hybridStagesError } from "@/lib/services/stages";
+import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
 import { awardTournamentRatings } from "@/lib/services/ratings";
 import type { RuleFields } from "@/lib/rules";
@@ -22,6 +26,8 @@ import type {
   TournamentMode,
   EntryType,
   CompetitiveTier,
+  AudienceScope,
+  VenueType,
 } from "@prisma/client";
 
 export interface TournamentListFilters {
@@ -30,6 +36,12 @@ export interface TournamentListFilters {
   type?: TournamentType;
   mode?: TournamentMode;
   entryType?: EntryType;
+  audienceScope?: AudienceScope;
+  venueType?: VenueType;
+  // Country (ISO) or broader region key. Worldwide tournaments (no country)
+  // always match, since they're open to anyone anywhere.
+  country?: string;
+  region?: RegionKey;
   status?: TournamentStatus;
   search?: string;
   page?: number;
@@ -60,6 +72,22 @@ export async function listTournaments(filters: TournamentListFilters) {
     ...(filters.type && { type: filters.type }),
     ...(filters.mode && { mode: filters.mode }),
     ...(filters.entryType && { entryType: filters.entryType }),
+    ...(filters.audienceScope && { audienceScope: filters.audienceScope }),
+    ...(filters.venueType && { venueType: filters.venueType }),
+    ...((filters.country || filters.region) && {
+      AND: [
+        {
+          OR: [
+            { country: null },
+            {
+              country: filters.country
+                ? filters.country
+                : { in: countriesInRegion(filters.region as RegionKey) },
+            },
+          ],
+        },
+      ],
+    }),
     ...(filters.organizerId && { organizerId: filters.organizerId }),
     ...(filters.game && { game: { name: { equals: filters.game, mode: "insensitive" } } }),
     ...(filters.search && {
@@ -129,6 +157,15 @@ export interface CreateTournamentInput {
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   competitiveTier?: CompetitiveTier;
+  audienceScope?: AudienceScope;
+  requireFreshInstitutionProof?: boolean;
+  venueType?: VenueType;
+  country?: string | null;
+  venueName?: string;
+  venueAddress?: string;
+  venueCity?: string;
+  checkInOpensAt?: Date | null;
+  checkInClosesAt?: Date | null;
   customFields?: unknown;
   // Already validated by parseRuleList (see lib/rules.ts). Plain-text rules
   // arrive here as custom warning rules.
@@ -164,6 +201,23 @@ export async function createTournament(input: CreateTournamentInput) {
       prizePoolAmount: input.prizePoolAmount,
       prizePoolCurrency: input.prizePoolCurrency,
       competitiveTier: input.competitiveTier ?? "none",
+      audienceScope: input.audienceScope ?? "open",
+      venueType: input.venueType ?? "online",
+      country: input.country ?? null,
+      // Venue details only mean something for LAN.
+      ...(input.venueType === "lan"
+        ? {
+            venueName: input.venueName?.trim(),
+            venueAddress: input.venueAddress?.trim(),
+            venueCity: input.venueCity?.trim(),
+            checkInOpensAt: input.checkInOpensAt,
+            checkInClosesAt: input.checkInClosesAt,
+            checkInCode: generateCheckInCode(),
+          }
+        : {}),
+      // The extra proof only means something on institution-only tournaments.
+      requireFreshInstitutionProof:
+        input.audienceScope === "institution" && !!input.requireFreshInstitutionProof,
       customFields: input.customFields as Prisma.InputJsonValue,
       startAt: input.startAt,
       status: "draft",
@@ -194,6 +248,21 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   });
   if (organizerUser?.kycStatus !== "approved") {
     return { error: "organizer_not_approved" as const };
+  }
+
+  // A hybrid tournament needs its online AND LAN stages set up.
+  if (tournament.venueType === "hybrid") {
+    const stages = await prisma.stage.findMany({ where: { tournamentId } });
+    const hybridError = hybridStagesError(stages);
+    if (hybridError) return { error: "venue_incomplete" as const, message: hybridError };
+  }
+
+  // A LAN tournament needs a venue before it goes public.
+  if (!venueIsComplete(tournament)) {
+    return {
+      error: "venue_incomplete" as const,
+      message: "Add the venue name, address and city before publishing a LAN tournament.",
+    };
   }
 
   // Competitive-tier prize-pool floor (spec §9) — checked in USD-equivalent
@@ -286,6 +355,11 @@ export interface RegisterInput {
   // club team (not any one member) is what carries a rating across
   // tournaments (see ClubTeam.rating).
   clubTeamId?: string;
+  // Private-bucket path of the per-tournament ID photo (institution-only
+  // tournaments that ask for fresh proof).
+  institutionProofPath?: string;
+  // Club entries skip the per-tournament ID photo (members are verified).
+  skipInstitutionProof?: boolean;
 }
 
 export async function registerForTournament(input: RegisterInput) {
@@ -346,6 +420,19 @@ export async function registerForTournament(input: RegisterInput) {
     return { error: "tier_gate" as const, message: gate.message };
   }
 
+  // Institution-only gate (spec §8): every player on this entry must hold an
+  // approved institution verification, and the registering player may need
+  // to attach fresh proof. Applies to club entries too, since they register
+  // through this function.
+  const institutionGate = await checkInstitutionGate(input.tournamentId, allPlayerIds, {
+    proofPath: input.institutionProofPath,
+    skipProof: input.skipInstitutionProof,
+    selfPlayerId: input.playerId,
+  });
+  if ("error" in institutionGate) {
+    return { error: institutionGate.error, message: institutionGate.message };
+  }
+
   const paymentStatus =
     tournament.entryType === "free"
       ? ("waived" as const)
@@ -377,6 +464,7 @@ export async function registerForTournament(input: RegisterInput) {
         teamEntryId: teamEntry.id,
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
+        institutionProofPath: input.institutionProofPath,
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
       },
     });
@@ -389,6 +477,7 @@ export async function registerForTournament(input: RegisterInput) {
       playerId: input.playerId,
       paymentStatus: paymentStatus ?? "unpaid",
       paymentProofUrl: input.paymentProofUrl,
+      institutionProofPath: input.institutionProofPath,
       customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
     },
   });
@@ -487,6 +576,22 @@ export async function getRoomForPlayer(stageId: string, playerId: string) {
     },
   });
   if (!registration) return { error: "not_registered" as const };
+
+  // LAN tournaments (and LAN stages of a hybrid one) have no room
+  // credentials — players check in on site.
+  if (stage.tournament.venueType === "lan") return { error: "lan_no_room" as const };
+  if (stage.tournament.venueType === "hybrid" && stage.venueType === "lan") {
+    return { error: "lan_no_room" as const };
+  }
+
+  // Restricted stages (e.g. semis/finals) are only for advanced entries.
+  if (stage.restricted) {
+    const advanced = await prisma.stageEntry.findFirst({
+      where: { stageId: stage.id, registrationId: registration.id },
+      select: { id: true },
+    });
+    if (!advanced) return { error: "not_advanced" as const };
+  }
 
   if (!stage.roomId || !stage.roomRevealAt) {
     return { error: "room_not_set" as const };
@@ -661,6 +766,15 @@ export interface UpdateTournamentInput {
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   competitiveTier?: CompetitiveTier;
+  audienceScope?: AudienceScope;
+  requireFreshInstitutionProof?: boolean;
+  venueType?: VenueType;
+  country?: string | null;
+  venueName?: string;
+  venueAddress?: string;
+  venueCity?: string;
+  checkInOpensAt?: Date | null;
+  checkInClosesAt?: Date | null;
   startAt?: Date;
 }
 
@@ -704,6 +818,62 @@ export async function updateTournament(
     if ((await getActiveRegistrationCount(tournamentId)) > 0) {
       return { error: feeChanged ? ("fee_locked" as const) : ("currency_locked" as const) };
     }
+  }
+
+  // Who may enter is a promise made to everyone who already registered:
+  // narrowing to students could strand them, and dropping the extra-proof
+  // requirement would be unfair to those who already supplied it. Only a
+  // real CHANGE is blocked (the edit form resends current values), and only
+  // while active registrations exist.
+  const effectiveScope = data.audienceScope ?? tournament.audienceScope;
+  if (effectiveScope !== "institution") data.requireFreshInstitutionProof = false;
+  const scopeChanged =
+    (data.audienceScope !== undefined && data.audienceScope !== tournament.audienceScope) ||
+    (data.requireFreshInstitutionProof !== undefined &&
+      data.requireFreshInstitutionProof !== tournament.requireFreshInstitutionProof);
+  if (scopeChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
+    return { error: "audience_locked" as const };
+  }
+
+  // Online <-> LAN changes what players are promised (room credentials vs.
+  // showing up somewhere), so it locks once anyone has registered. The venue
+  // DETAILS can still be corrected afterwards (a typo in the address).
+  const venueTypeChanged = data.venueType !== undefined && data.venueType !== tournament.venueType;
+  if (venueTypeChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
+    return { error: "venue_locked" as const };
+  }
+  const effectiveVenue = data.venueType ?? tournament.venueType;
+  // Leaving hybrid: stages go back to plain online stages (they follow the
+  // tournament's venue again), and any advancement restriction is dropped.
+  if (venueTypeChanged && tournament.venueType === "hybrid") {
+    await prisma.stage.updateMany({
+      where: { tournamentId },
+      data: {
+        venueType: "online", venueName: null, venueAddress: null, venueCity: null,
+        checkInOpensAt: null, checkInClosesAt: null, checkInCode: null, restricted: false,
+      },
+    });
+    await prisma.stageEntry.deleteMany({ where: { stage: { tournamentId } } });
+  }
+  if (effectiveVenue === "lan") {
+    const windowError = checkInWindowError(
+      data.checkInOpensAt !== undefined ? data.checkInOpensAt : tournament.checkInOpensAt,
+      data.checkInClosesAt !== undefined ? data.checkInClosesAt : tournament.checkInClosesAt
+    );
+    if (windowError) return { error: "invalid_check_in_window" as const, message: windowError };
+    // Switching to LAN needs a check-in code; switching away clears the venue.
+    if (!tournament.checkInCode) {
+      (data as Prisma.TournamentUpdateInput).checkInCode = generateCheckInCode();
+    }
+  } else {
+    // Going (or staying) online: wipe any venue details and the check-in code.
+    const clear = data as Prisma.TournamentUpdateInput;
+    clear.venueName = null;
+    clear.venueAddress = null;
+    clear.venueCity = null;
+    clear.checkInOpensAt = null;
+    clear.checkInClosesAt = null;
+    clear.checkInCode = null;
   }
 
   // A competitive tier is what the prize-pool floor and the registration
@@ -1248,6 +1418,17 @@ export async function manualAddRegistration(
   const gate = await checkTierEntryGate(tournamentId, { playerId: playerProfile.id });
   if ("error" in gate && gate.error === "tier_gate") {
     return { error: "tier_gate" as const, message: gate.message };
+  }
+
+  // Institution-only tournaments: the player still needs a verified
+  // institution (the organizer can't vouch around it), but the extra
+  // per-tournament proof is skipped — adding them IS the organizer's check.
+  const institutionGate = await checkInstitutionGate(tournamentId, [playerProfile.id], {
+    skipProof: true,
+    selfPlayerId: playerProfile.id,
+  });
+  if ("error" in institutionGate) {
+    return { error: institutionGate.error, message: institutionGate.message };
   }
 
   // Organizer-added registrations skip the pending queue — the organizer

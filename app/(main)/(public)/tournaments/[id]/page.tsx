@@ -1,4 +1,7 @@
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
+import { countryName } from "@/lib/geo-data";
+import { toPublicTournament } from "@/lib/services/venue";
+import CheckInPanel from "./CheckInPanel";
 import { formatMoney } from "@/lib/money";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import RoomReveal from "./RoomReveal";
@@ -15,12 +18,15 @@ export default async function TournamentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [tournament, standings] = await Promise.all([
+  const [full, standings] = await Promise.all([
     getTournamentById(id),
     getStandings(id),
   ]);
 
-  if (!tournament) notFound();
+  if (!full) notFound();
+  // Room credentials and the check-in code never reach the page: they are
+  // served only through their own access-checked endpoints.
+  const tournament = toPublicTournament(full);
 
   return (
     <>
@@ -45,6 +51,26 @@ export default async function TournamentDetailPage({
             <h1 className="font-sans font-bold text-xl text-bk-heading mb-1">
               {tournament.name}
             </h1>
+            {tournament.country && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-muted mb-1">
+                {countryName(tournament.country)}
+              </p>
+            )}
+            {tournament.venueType === "hybrid" && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
+                Hybrid · online + LAN stages
+              </p>
+            )}
+            {tournament.venueType === "lan" && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
+                LAN · {tournament.venueCity}
+              </p>
+            )}
+            {tournament.audienceScope === "institution" && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
+                Students only · institution verification required
+              </p>
+            )}
             <p className="font-sans text-bk-muted text-sm flex items-center gap-1.5">
               Hosted by{" "}
               <a href={`/organizers/${tournament.organizer.id}`} className="underline">
@@ -88,7 +114,46 @@ export default async function TournamentDetailPage({
           </div>
         </div>
 
-        <RoomReveal stages={tournament.stages} />
+        {tournament.venueType === "lan" ? (
+          <>
+            <div className="mb-6 border border-bk-border bg-bk-surface p-4">
+              <p className="font-sans font-medium text-bk-heading text-sm mb-1">Venue (LAN)</p>
+              <p className="font-sans text-[13px] text-bk-heading break-words">{tournament.venueName}</p>
+              <p className="font-sans text-[12px] text-bk-muted break-words">
+                {[tournament.venueAddress, tournament.venueCity].filter(Boolean).join(", ")}
+              </p>
+              <p className="font-sans text-[11px] text-bk-muted mt-2">
+                No room code for this event: show up and check in at the venue.
+              </p>
+            </div>
+            <CheckInPanel tournamentId={tournament.id} />
+          </>
+        ) : tournament.venueType === "hybrid" ? (
+          <>
+            {tournament.stages
+              .filter((s) => s.venueType === "lan")
+              .map((s) => (
+                <div key={s.id}>
+                  <div className="mb-3 border border-bk-border bg-bk-surface p-4">
+                    <p className="font-sans font-medium text-bk-heading text-sm mb-1">
+                      {s.name} · LAN
+                    </p>
+                    <p className="font-sans text-[13px] text-bk-heading break-words">{s.venueName}</p>
+                    <p className="font-sans text-[12px] text-bk-muted break-words">
+                      {[s.venueAddress, s.venueCity].filter(Boolean).join(", ")}
+                    </p>
+                    <p className="font-sans text-[11px] text-bk-muted mt-2">
+                      Only entries that advance to this stage play it, in person.
+                    </p>
+                  </div>
+                  <CheckInPanel tournamentId={tournament.id} stageId={s.id} title={`${s.name} check-in`} />
+                </div>
+              ))}
+            <RoomReveal stages={tournament.stages.filter((s) => s.venueType !== "lan")} />
+          </>
+        ) : (
+          <RoomReveal stages={tournament.stages} />
+        )}
 
         {tournament.rules.length > 0 && (
           <>

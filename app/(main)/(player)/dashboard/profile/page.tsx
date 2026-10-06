@@ -2,8 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlayerProfileByUserId } from "@/lib/services/tournaments";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
+import InstitutionVerification from "./InstitutionVerification";
+import { getInstitutionForUser } from "@/lib/services/institutions";
 
-export default async function PlayerProfileSettingsPage() {
+export default async function PlayerProfileSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  // Only same-site paths — never an open redirect.
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
   const supabase = await createClient();
   const {
     data: { user },
@@ -11,6 +20,7 @@ export default async function PlayerProfileSettingsPage() {
   if (!user) redirect("/login?redirectTo=/dashboard/profile");
 
   const profile = await getPlayerProfileByUserId(user.id);
+  const institution = profile ? await getInstitutionForUser(user.id) : null;
 
   return (
     <main className="flex-1 px-6 py-10 max-w-md mx-auto w-full">
@@ -31,6 +41,22 @@ export default async function PlayerProfileSettingsPage() {
         initialHobbies={profile?.hobbies ?? ""}
         initialFavoriteGames={profile?.favoriteGames ?? []}
       />
+      {profile && (
+        <InstitutionVerification
+          userId={user.id}
+          next={safeNext}
+          initial={
+            institution
+              ? {
+                  institutionName: institution.institutionName,
+                  studentId: institution.studentId,
+                  status: institution.status,
+                  adminNote: institution.adminNote,
+                }
+              : null
+          }
+        />
+      )}
     </main>
   );
 }
