@@ -61,6 +61,8 @@ export async function POST(
     player_not_found: { status: 404, message: "No player found with that email." },
     already_registered: { status: 409, message: "This player is already registered." },
     tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
+    institution_required: { status: 403, message: "This tournament is for verified students only." },
+    institution_proof_required: { status: 400, message: "A fresh photo of your student ID is required." },
   };
 
   if (result.error) {

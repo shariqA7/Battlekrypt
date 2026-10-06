@@ -12,6 +12,7 @@ import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
+import { checkInstitutionGate } from "@/lib/services/institutions";
 import { tryToUsd } from "@/lib/currency-fx";
 import { awardTournamentRatings } from "@/lib/services/ratings";
 import type { RuleFields } from "@/lib/rules";
@@ -22,6 +23,7 @@ import type {
   TournamentMode,
   EntryType,
   CompetitiveTier,
+  AudienceScope,
 } from "@prisma/client";
 
 export interface TournamentListFilters {
@@ -30,6 +32,7 @@ export interface TournamentListFilters {
   type?: TournamentType;
   mode?: TournamentMode;
   entryType?: EntryType;
+  audienceScope?: AudienceScope;
   status?: TournamentStatus;
   search?: string;
   page?: number;
@@ -60,6 +63,7 @@ export async function listTournaments(filters: TournamentListFilters) {
     ...(filters.type && { type: filters.type }),
     ...(filters.mode && { mode: filters.mode }),
     ...(filters.entryType && { entryType: filters.entryType }),
+    ...(filters.audienceScope && { audienceScope: filters.audienceScope }),
     ...(filters.organizerId && { organizerId: filters.organizerId }),
     ...(filters.game && { game: { name: { equals: filters.game, mode: "insensitive" } } }),
     ...(filters.search && {
@@ -129,6 +133,8 @@ export interface CreateTournamentInput {
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   competitiveTier?: CompetitiveTier;
+  audienceScope?: AudienceScope;
+  requireFreshInstitutionProof?: boolean;
   customFields?: unknown;
   // Already validated by parseRuleList (see lib/rules.ts). Plain-text rules
   // arrive here as custom warning rules.
@@ -164,6 +170,10 @@ export async function createTournament(input: CreateTournamentInput) {
       prizePoolAmount: input.prizePoolAmount,
       prizePoolCurrency: input.prizePoolCurrency,
       competitiveTier: input.competitiveTier ?? "none",
+      audienceScope: input.audienceScope ?? "open",
+      // The extra proof only means something on institution-only tournaments.
+      requireFreshInstitutionProof:
+        input.audienceScope === "institution" && !!input.requireFreshInstitutionProof,
       customFields: input.customFields as Prisma.InputJsonValue,
       startAt: input.startAt,
       status: "draft",
@@ -286,6 +296,11 @@ export interface RegisterInput {
   // club team (not any one member) is what carries a rating across
   // tournaments (see ClubTeam.rating).
   clubTeamId?: string;
+  // Private-bucket path of the per-tournament ID photo (institution-only
+  // tournaments that ask for fresh proof).
+  institutionProofPath?: string;
+  // Club entries skip the per-tournament ID photo (members are verified).
+  skipInstitutionProof?: boolean;
 }
 
 export async function registerForTournament(input: RegisterInput) {
@@ -346,6 +361,19 @@ export async function registerForTournament(input: RegisterInput) {
     return { error: "tier_gate" as const, message: gate.message };
   }
 
+  // Institution-only gate (spec §8): every player on this entry must hold an
+  // approved institution verification, and the registering player may need
+  // to attach fresh proof. Applies to club entries too, since they register
+  // through this function.
+  const institutionGate = await checkInstitutionGate(input.tournamentId, allPlayerIds, {
+    proofPath: input.institutionProofPath,
+    skipProof: input.skipInstitutionProof,
+    selfPlayerId: input.playerId,
+  });
+  if ("error" in institutionGate) {
+    return { error: institutionGate.error, message: institutionGate.message };
+  }
+
   const paymentStatus =
     tournament.entryType === "free"
       ? ("waived" as const)
@@ -377,6 +405,7 @@ export async function registerForTournament(input: RegisterInput) {
         teamEntryId: teamEntry.id,
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
+        institutionProofPath: input.institutionProofPath,
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
       },
     });
@@ -389,6 +418,7 @@ export async function registerForTournament(input: RegisterInput) {
       playerId: input.playerId,
       paymentStatus: paymentStatus ?? "unpaid",
       paymentProofUrl: input.paymentProofUrl,
+      institutionProofPath: input.institutionProofPath,
       customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
     },
   });
@@ -661,6 +691,8 @@ export interface UpdateTournamentInput {
   prizePoolAmount?: number;
   prizePoolCurrency?: string;
   competitiveTier?: CompetitiveTier;
+  audienceScope?: AudienceScope;
+  requireFreshInstitutionProof?: boolean;
   startAt?: Date;
 }
 
@@ -704,6 +736,21 @@ export async function updateTournament(
     if ((await getActiveRegistrationCount(tournamentId)) > 0) {
       return { error: feeChanged ? ("fee_locked" as const) : ("currency_locked" as const) };
     }
+  }
+
+  // Who may enter is a promise made to everyone who already registered:
+  // narrowing to students could strand them, and dropping the extra-proof
+  // requirement would be unfair to those who already supplied it. Only a
+  // real CHANGE is blocked (the edit form resends current values), and only
+  // while active registrations exist.
+  const effectiveScope = data.audienceScope ?? tournament.audienceScope;
+  if (effectiveScope !== "institution") data.requireFreshInstitutionProof = false;
+  const scopeChanged =
+    (data.audienceScope !== undefined && data.audienceScope !== tournament.audienceScope) ||
+    (data.requireFreshInstitutionProof !== undefined &&
+      data.requireFreshInstitutionProof !== tournament.requireFreshInstitutionProof);
+  if (scopeChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
+    return { error: "audience_locked" as const };
   }
 
   // A competitive tier is what the prize-pool floor and the registration
@@ -1248,6 +1295,17 @@ export async function manualAddRegistration(
   const gate = await checkTierEntryGate(tournamentId, { playerId: playerProfile.id });
   if ("error" in gate && gate.error === "tier_gate") {
     return { error: "tier_gate" as const, message: gate.message };
+  }
+
+  // Institution-only tournaments: the player still needs a verified
+  // institution (the organizer can't vouch around it), but the extra
+  // per-tournament proof is skipped — adding them IS the organizer's check.
+  const institutionGate = await checkInstitutionGate(tournamentId, [playerProfile.id], {
+    skipProof: true,
+    selfPlayerId: playerProfile.id,
+  });
+  if ("error" in institutionGate) {
+    return { error: institutionGate.error, message: institutionGate.message };
   }
 
   // Organizer-added registrations skip the pending queue — the organizer

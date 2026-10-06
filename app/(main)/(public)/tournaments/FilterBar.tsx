@@ -21,6 +21,7 @@ export default function FilterBar() {
   const [entryType, setEntryType] = useState(searchParams.get("entryType") ?? "");
   const [type, setType] = useState(searchParams.get("type") ?? "");
   const [mode, setMode] = useState(searchParams.get("mode") ?? "");
+  const [audienceScope, setAudienceScope] = useState(searchParams.get("audienceScope") ?? "");
 
   useEffect(() => {
     fetch("/api/games")
@@ -29,7 +30,7 @@ export default function FilterBar() {
   }, []);
 
   function applyFilters(overrides: Record<string, string> = {}) {
-    const next = { search, game, entryType, type, mode, ...overrides };
+    const next = { search, game, entryType, type, mode, audienceScope, ...overrides };
     const query = new URLSearchParams();
     Object.entries(next).forEach(([key, value]) => {
       if (value) query.set(key, value);
@@ -98,6 +99,18 @@ export default function FilterBar() {
             className={pillClass(type === val)}
           >
             {val === "" ? "Any type" : val}
+          </button>
+        ))}
+        {["", "institution"].map((val) => (
+          <button
+            key={val || "all-audience"}
+            onClick={() => {
+              setAudienceScope(val);
+              applyFilters({ audienceScope: val });
+            }}
+            className={pillClass(audienceScope === val)}
+          >
+            {val === "" ? "Any audience" : "Students only"}
           </button>
         ))}
         {["", "solo", "duo", "squad"].map((val) => (

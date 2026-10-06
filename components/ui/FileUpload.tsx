@@ -12,6 +12,10 @@ interface FileUploadProps {
   onUploaded: (publicUrl: string) => void;
   label: string;
   accept?: string;
+  // Private buckets have no public URL: the component then returns the
+  // storage PATH instead (used for ID documents, which only admins may view
+  // through short-lived signed URLs).
+  isPrivate?: boolean;
 }
 
 export default function FileUpload({
@@ -20,6 +24,7 @@ export default function FileUpload({
   onUploaded,
   label,
   accept = "image/*",
+  isPrivate = false,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +39,12 @@ export default function FileUpload({
     setError(null);
     setFileName(file.name);
 
-    const path = `${pathPrefix}/${crypto.randomUUID()}-${file.name}`;
+    // Private uploads keep only a safe extension — the original file name
+    // (which may contain a person's name) never lands in storage.
+    const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "").slice(0, 5) || "jpg";
+    const path = isPrivate
+      ? `${pathPrefix}/${crypto.randomUUID()}.${ext}`
+      : `${pathPrefix}/${crypto.randomUUID()}-${file.name}`;
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
@@ -46,8 +56,12 @@ export default function FileUpload({
       return;
     }
 
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    onUploaded(data.publicUrl);
+    if (isPrivate) {
+      onUploaded(path);
+    } else {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      onUploaded(data.publicUrl);
+    }
     setUploading(false);
   }
 

@@ -49,6 +49,10 @@ export async function PATCH(
     return moneyError("competitiveTier must be one of none/D/C/B/A/S/National.");
   }
 
+  if (body.audienceScope !== undefined && !["open", "institution"].includes(body.audienceScope)) {
+    return moneyError("audienceScope must be open or institution.");
+  }
+
   const result = await updateTournament(id, auth.organizerProfile.id, {
     name: body.name,
     description: body.description,
@@ -61,6 +65,9 @@ export async function PATCH(
     prizePoolAmount: prize.value?.amount,
     prizePoolCurrency: prize.value?.currency,
     competitiveTier: body.competitiveTier,
+    audienceScope: body.audienceScope,
+    requireFreshInstitutionProof:
+      typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
 
@@ -93,6 +100,17 @@ export async function PATCH(
   }
   if (result.error === "invalid_fee") {
     return moneyError("A paid tournament needs an entry fee greater than zero.");
+  }
+  if (result.error === "audience_locked") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "audience_locked",
+          message: "Players have already registered, so who can enter can no longer be changed.",
+        },
+      },
+      { status: 409 }
+    );
   }
   if (result.error === "tier_locked") {
     return NextResponse.json(

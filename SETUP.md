@@ -349,3 +349,63 @@ organizers.
 Added `app/api/players/me/registrations/route.ts`. Re-ran the same
 verification script afterward: **all 35 custom endpoints from the contract
 now exist**, and the duplicate-function check remains clean at 30 functions.
+
+
+## Phase 8.1 — Institution verification
+
+Players verify their institution once on **Dashboard → Profile settings**; admins review on **/admin/institutions**. Run `npx prisma migrate dev` to apply `20261002200000_phase8_1_institution_verification`.
+
+**Required Supabase setup** (SQL editor) — the ID photos go in a PRIVATE bucket, unlike `tournament-assets`:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('institution-ids', 'institution-ids', false)
+on conflict (id) do nothing;
+
+-- a player may only upload into their own folder: <userId>/<file>
+create policy "players upload own institution id"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'institution-ids' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- only admins can read ID photos (the admin page uses 5-minute signed links)
+create policy "admins read institution ids"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'institution-ids'
+  and exists (select 1 from public."User" u where u.id = auth.uid()::text and u."isAdmin")
+);
+```
+
+`FileUpload` has a new `isPrivate` prop: it returns the storage path instead of a public URL.
+
+## Phase 8.2 — Students-only tournaments
+
+Run `npx prisma migrate dev` to apply `20261002210000_phase8_2_audience_scope`.
+
+Organizers choose **Everyone / Students only** when creating or editing a draft (and optionally ask for a fresh ID photo per registration). It's saved in templates too. Once active registrations exist, the setting can't change.
+
+**Required Supabase setup** (only if you use the "fresh ID photo" option) — a second PRIVATE bucket whose photos only the tournament's organizer can read:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('institution-proofs', 'institution-proofs', false)
+on conflict (id) do nothing;
+
+create policy "players upload own institution proof"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'institution-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "organizers read proofs for their tournaments"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'institution-proofs'
+  and exists (
+    select 1
+    from public."Registration" r
+    join public."Tournament" t on t.id = r."tournamentId"
+    join public."OrganizerProfile" o on o.id = t."organizerId"
+    where r."institutionProofPath" = storage.objects.name
+      and o."userId" = auth.uid()::text
+  )
+);
+```

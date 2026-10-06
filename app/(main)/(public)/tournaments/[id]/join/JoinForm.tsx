@@ -16,17 +16,21 @@ interface TournamentForJoin {
   mode: string;
   customFields: unknown;
   paymentInstructions: string | null;
+  requireFreshInstitutionProof: boolean;
 }
 
 export default function JoinForm({
   tournamentId,
   tournament,
+  userId,
 }: {
   tournamentId: string;
   tournament: TournamentForJoin;
+  userId: string;
 }) {
   const router = useRouter();
   const [paymentProofUrl, setPaymentProofUrl] = useState("");
+  const [institutionProofPath, setInstitutionProofPath] = useState("");
   const [teamName, setTeamName] = useState("");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +48,11 @@ export default function JoinForm({
       return;
     }
 
+    if (tournament.requireFreshInstitutionProof && !institutionProofPath) {
+      setError("Please upload a photo of your student ID before submitting.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -53,6 +62,7 @@ export default function JoinForm({
       body: JSON.stringify({
         customFieldResponses: fieldValues,
         paymentProofUrl: paymentProofUrl || undefined,
+        institutionProofPath: institutionProofPath || undefined,
         teamName: tournament.mode !== "solo" ? teamName : undefined,
       }),
     });
@@ -120,6 +130,22 @@ export default function JoinForm({
             label="Upload payment screenshot"
             onUploaded={setPaymentProofUrl}
           />
+        </>
+      )}
+
+      {tournament.requireFreshInstitutionProof && (
+        <>
+          <label className={labelClass}>Student ID photo (for this tournament)</label>
+          <FileUpload
+            bucket="institution-proofs"
+            pathPrefix={userId}
+            isPrivate
+            label={institutionProofPath ? "Photo uploaded — tap to replace" : "Upload student ID photo"}
+            onUploaded={setInstitutionProofPath}
+          />
+          <p className="font-sans text-[11px] text-bk-muted mt-1">
+            Only the organizer of this tournament can see this photo.
+          </p>
         </>
       )}
 

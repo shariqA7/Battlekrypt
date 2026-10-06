@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
 
 type ClubCandidate = ClubTeamCandidate | ClubSoloCandidate;
@@ -10,6 +11,7 @@ interface Registration {
   status: string;
   paymentStatus: string;
   paymentProofUrl: string | null;
+  institutionProofPath: string | null;
   placement: number | null;
   points: number | null;
   player: { user: { displayName: string } } | null;
@@ -20,6 +22,29 @@ interface TournamentRuleOption {
   id: string;
   title: string | null;
   description: string;
+}
+
+// The ID photo lives in a private bucket: only the tournament's organizer can
+// create a signed link (storage policy in SETUP.md), valid for 5 minutes.
+function InstitutionProofLink({ path }: { path: string }) {
+  const [busy, setBusy] = useState(false);
+  async function open() {
+    setBusy(true);
+    const { data } = await createClient().storage.from("institution-proofs").createSignedUrl(path, 300);
+    setBusy(false);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    else alert("Couldn't open the ID photo.");
+  }
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="text-bk-gold-light text-[11px] font-sans underline"
+    >
+      {busy ? "Opening..." : "View student ID"}
+    </button>
+  );
 }
 
 function ResultInput({
@@ -367,6 +392,7 @@ export default function RegistrationQueue({
                     View payment proof
                   </a>
                 )}
+                {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}
               </div>
             </div>
             {r.status === "pending" && (

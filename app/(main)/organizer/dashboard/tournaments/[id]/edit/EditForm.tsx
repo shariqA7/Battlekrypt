@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
 interface TournamentForEdit {
   id: string;
@@ -19,6 +20,8 @@ interface TournamentForEdit {
   prizePoolAmount: unknown;
   prizePoolCurrency: string | null;
   competitiveTier: CompetitiveTierValue;
+  audienceScope: AudienceScopeValue;
+  requireFreshInstitutionProof: boolean;
   startAt: Date | null;
 }
 
@@ -43,6 +46,8 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
     tournament.competitiveTier
   );
+  const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>(tournament.audienceScope);
+  const [freshProof, setFreshProof] = useState(tournament.requireFreshInstitutionProof);
   const [startAt, setStartAt] = useState(
     tournament.startAt ? new Date(tournament.startAt).toISOString().slice(0, 16) : ""
   );
@@ -72,6 +77,8 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
         }),
         competitiveTier,
+        audienceScope,
+        requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
       }),
     });
 
@@ -169,6 +176,15 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
       </div>
+
+      <AudiencePicker
+        scope={audienceScope}
+        freshProof={freshProof}
+        onChange={(s, f) => {
+          setAudienceScope(s);
+          setFreshProof(f);
+        }}
+      />
 
       {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
 

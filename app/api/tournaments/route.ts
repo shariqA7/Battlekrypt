@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     type: (searchParams.get("type") as never) ?? undefined,
     mode: (searchParams.get("mode") as never) ?? undefined,
     entryType: (searchParams.get("entryType") as never) ?? undefined,
+    audienceScope: (searchParams.get("audienceScope") as never) ?? undefined,
     search: searchParams.get("search") ?? undefined,
     page: Number(searchParams.get("page")) || undefined,
     limit: Number(searchParams.get("limit")) || undefined,
@@ -98,6 +99,10 @@ export async function POST(request: Request) {
     );
   }
 
+  if (body.audienceScope !== undefined && !["open", "institution"].includes(body.audienceScope)) {
+    return moneyError("audienceScope must be open or institution.");
+  }
+
   const tournament = await createTournament({
     organizerId: organizerProfile.id,
     gameId: body.gameId,
@@ -117,6 +122,8 @@ export async function POST(request: Request) {
     prizePoolAmount: money.prizePool?.amount,
     prizePoolCurrency: money.prizePool?.currency,
     competitiveTier: body.competitiveTier,
+    audienceScope: body.audienceScope,
+    requireFreshInstitutionProof: body.requireFreshInstitutionProof === true,
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,

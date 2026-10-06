@@ -127,6 +127,7 @@ model PlayerProfile {
   clubInvites     ClubInvite[]
   tournamentVotes TournamentVote[]
   gameRatings     PlayerGameRating[]
+  institution     PlayerInstitution?
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
   // is treated as free at read time (lib/plans.ts), no cron needed.
@@ -134,6 +135,45 @@ model PlayerProfile {
   planExpiresAt DateTime?
 
   createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------
+// INSTITUTION VERIFICATION (Phase 8.1, spec §8)
+// Done once per player and reused by every institution-only tournament.
+// The ID image lives in a PRIVATE storage bucket; only its path is stored.
+// ------------------------------------------------------------
+
+// Who may register for a tournament (spec §8). Institution-only tournaments
+// need an approved PlayerInstitution (Phase 8.1) for every player on the entry.
+enum AudienceScope {
+  open
+  institution
+}
+
+enum InstitutionStatus {
+  pending
+  approved
+  rejected
+}
+
+model PlayerInstitution {
+  id       String        @id @default(uuid())
+  playerId String        @unique
+  player   PlayerProfile @relation(fields: [playerId], references: [id])
+
+  institutionName String
+  studentId       String? // the number printed on the ID, if the player wants to add it
+  idImagePath     String // path inside the private "institution-ids" bucket
+
+  status       InstitutionStatus @default(pending)
+  adminNote    String? // shown to the player when rejected
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 model OrganizerProfile {
@@ -401,6 +441,9 @@ model TournamentTemplate {
   paymentInstructions String?
   prizePoolAmount     Decimal?  @db.Decimal(14, 2)
   prizePoolCurrency   String?
+
+  audienceScope                AudienceScope @default(open)
+  requireFreshInstitutionProof Boolean       @default(false)
 
   // Same shape as Tournament.customFields — an array of {key, label, type,
   // required}. Copied as-is into a new tournament.
@@ -755,6 +798,11 @@ model Tournament {
 
   competitiveTier CompetitiveTier @default(none)
 
+  audienceScope                AudienceScope @default(open)
+  // Institution-only tournaments only: also ask the registering player for a
+  // fresh ID photo with THIS registration, on top of their verified profile.
+  requireFreshInstitutionProof Boolean       @default(false)
+
   customFields Json?
 
   status             TournamentStatus @default(draft)
@@ -784,6 +832,8 @@ model Tournament {
   teamEntries   TeamEntry[]
   votes         TournamentVote[]
   featured      FeaturedTournament?
+
+  @@index([audienceScope])
 }
 
 // One like/dislike per player per tournament, and only if they actually
@@ -938,10 +988,13 @@ model Registration {
   teamEntryId String?        @unique
   teamEntry   TeamEntry?     @relation(fields: [teamEntryId], references: [id])
 
-  status          RegistrationStatus @default(pending)
-  paymentStatus   PaymentStatus      @default(unpaid)
-  paymentProofUrl String?
-  addedBy         AddedBy            @default(self)
+  status               RegistrationStatus @default(pending)
+  paymentStatus        PaymentStatus      @default(unpaid)
+  paymentProofUrl      String?
+  // Private-bucket path of the per-tournament ID photo (see
+  // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
+  institutionProofPath String?
+  addedBy              AddedBy            @default(self)
 
   disqualifiedRuleId String?
   disqualifiedRule   TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])

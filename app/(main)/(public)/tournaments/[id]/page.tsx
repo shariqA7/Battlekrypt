@@ -45,6 +45,11 @@ export default async function TournamentDetailPage({
             <h1 className="font-sans font-bold text-xl text-bk-heading mb-1">
               {tournament.name}
             </h1>
+            {tournament.audienceScope === "institution" && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
+                Students only · institution verification required
+              </p>
+            )}
             <p className="font-sans text-bk-muted text-sm flex items-center gap-1.5">
               Hosted by{" "}
               <a href={`/organizers/${tournament.organizer.id}`} className="underline">
