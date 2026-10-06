@@ -87,7 +87,7 @@ export default function AuthForm({
   }
 
   return (
-    <div className="w-[380px]">
+    <div className="w-full max-w-[380px]">
       <p className="font-sans font-extrabold text-[32px] leading-[1.15] text-bk-heading mb-2">
         {title}
       </p>
@@ -121,7 +121,7 @@ export default function AuthForm({
 
         <form onSubmit={handleSubmit}>
           {mode === "signup" && (
-            <div className="grid grid-cols-2 gap-2.5 mb-3">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-2.5 mb-3">
               <input
                 type="text"
                 required

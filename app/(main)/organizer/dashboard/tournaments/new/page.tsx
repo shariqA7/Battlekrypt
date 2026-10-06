@@ -282,7 +282,7 @@ export default function NewTournamentPage() {
             placeholder="What players should know before joining"
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Type</label>
               <select value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
@@ -301,7 +301,7 @@ export default function NewTournamentPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Max teams</label>
               <input
@@ -337,7 +337,7 @@ export default function NewTournamentPage() {
             </>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Format</label>
               <select value={format} onChange={(e) => setFormat(e.target.value)} className={inputClass}>

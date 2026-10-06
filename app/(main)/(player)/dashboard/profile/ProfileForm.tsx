@@ -128,7 +128,7 @@ export default function ProfileForm({
       <p className={labelClass}>Email</p>
       <input value={email} disabled className={inputClass + " opacity-60"} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>First name *</label>
           <input
@@ -152,7 +152,7 @@ export default function ProfileForm({
       <label className={labelClass}>Mobile number</label>
       <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} className={inputClass} />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClass}>Country</label>
           <input value={country} onChange={(e) => setCountry(e.target.value)} className={inputClass} />
@@ -167,7 +167,7 @@ export default function ProfileForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Age</label>
           <input

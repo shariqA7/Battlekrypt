@@ -165,7 +165,7 @@ export default function RosterManager({
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">Teams</p>
 
-        <div className="bg-bk-surface border border-bk-border p-3 mb-3 grid grid-cols-2 gap-3">
+        <div className="bg-bk-surface border border-bk-border p-3 mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Game</label>
             <select
@@ -384,7 +384,7 @@ export default function RosterManager({
           team, remove them first and invite them again.
         </p>
 
-        <div className="bg-bk-surface border border-bk-border p-3 grid grid-cols-2 gap-3">
+        <div className="bg-bk-surface border border-bk-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Game</label>
             <select

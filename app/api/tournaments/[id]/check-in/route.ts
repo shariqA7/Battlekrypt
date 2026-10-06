@@ -36,7 +36,9 @@ async function authedPlayer() {
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await authedPlayer();
-  if ("response" in auth) return auth.response;
+  // Signed-out visitors and non-entrants just get "nothing to show" (200 null)
+  // rather than a 401 that the browser logs as an error on every page view.
+  if ("response" in auth) return NextResponse.json(null);
   return NextResponse.json(await getMyCheckIn(id, auth.player.id));
 }
 
