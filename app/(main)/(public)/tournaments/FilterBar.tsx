@@ -21,6 +21,7 @@ export default function FilterBar() {
   const [entryType, setEntryType] = useState(searchParams.get("entryType") ?? "");
   const [type, setType] = useState(searchParams.get("type") ?? "");
   const [mode, setMode] = useState(searchParams.get("mode") ?? "");
+  const [venueType, setVenueType] = useState(searchParams.get("venueType") ?? "");
   const [audienceScope, setAudienceScope] = useState(searchParams.get("audienceScope") ?? "");
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export default function FilterBar() {
   }, []);
 
   function applyFilters(overrides: Record<string, string> = {}) {
-    const next = { search, game, entryType, type, mode, audienceScope, ...overrides };
+    const next = { search, game, entryType, type, mode, audienceScope, venueType, ...overrides };
     const query = new URLSearchParams();
     Object.entries(next).forEach(([key, value]) => {
       if (value) query.set(key, value);
@@ -99,6 +100,18 @@ export default function FilterBar() {
             className={pillClass(type === val)}
           >
             {val === "" ? "Any type" : val}
+          </button>
+        ))}
+        {["", "online", "lan"].map((val) => (
+          <button
+            key={val || "all-venues"}
+            onClick={() => {
+              setVenueType(val);
+              applyFilters({ venueType: val });
+            }}
+            className={pillClass(venueType === val)}
+          >
+            {val === "" ? "Any venue" : val === "lan" ? "LAN" : "Online"}
           </button>
         ))}
         {["", "institution"].map((val) => (

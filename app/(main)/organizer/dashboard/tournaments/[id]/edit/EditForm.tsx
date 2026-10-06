@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
 interface TournamentForEdit {
@@ -22,6 +23,12 @@ interface TournamentForEdit {
   competitiveTier: CompetitiveTierValue;
   audienceScope: AudienceScopeValue;
   requireFreshInstitutionProof: boolean;
+  venueType: "online" | "lan";
+  venueName: string | null;
+  venueAddress: string | null;
+  venueCity: string | null;
+  checkInOpensAt: Date | null;
+  checkInClosesAt: Date | null;
   startAt: Date | null;
 }
 
@@ -46,6 +53,14 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
     tournament.competitiveTier
   );
+  const [venue, setVenue] = useState<VenueValue>({
+    venueType: tournament.venueType,
+    venueName: tournament.venueName ?? "",
+    venueAddress: tournament.venueAddress ?? "",
+    venueCity: tournament.venueCity ?? "",
+    checkInOpensAt: toLocalInput(tournament.checkInOpensAt),
+    checkInClosesAt: toLocalInput(tournament.checkInClosesAt),
+  });
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>(tournament.audienceScope);
   const [freshProof, setFreshProof] = useState(tournament.requireFreshInstitutionProof);
   const [startAt, setStartAt] = useState(
@@ -77,6 +92,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
         }),
         competitiveTier,
+        ...venueToBody(venue),
         audienceScope,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
       }),
@@ -176,6 +192,8 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
       </div>
+
+      <VenuePicker value={venue} onChange={setVenue} />
 
       <AudiencePicker
         scope={audienceScope}

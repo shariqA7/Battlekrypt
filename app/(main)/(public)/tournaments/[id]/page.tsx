@@ -1,4 +1,6 @@
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
+import { toPublicTournament } from "@/lib/services/venue";
+import CheckInPanel from "./CheckInPanel";
 import { formatMoney } from "@/lib/money";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import RoomReveal from "./RoomReveal";
@@ -15,12 +17,15 @@ export default async function TournamentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [tournament, standings] = await Promise.all([
+  const [full, standings] = await Promise.all([
     getTournamentById(id),
     getStandings(id),
   ]);
 
-  if (!tournament) notFound();
+  if (!full) notFound();
+  // Room credentials and the check-in code never reach the page: they are
+  // served only through their own access-checked endpoints.
+  const tournament = toPublicTournament(full);
 
   return (
     <>
@@ -45,6 +50,11 @@ export default async function TournamentDetailPage({
             <h1 className="font-sans font-bold text-xl text-bk-heading mb-1">
               {tournament.name}
             </h1>
+            {tournament.venueType === "lan" && (
+              <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
+                LAN · {tournament.venueCity}
+              </p>
+            )}
             {tournament.audienceScope === "institution" && (
               <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-1">
                 Students only · institution verification required
@@ -93,7 +103,23 @@ export default async function TournamentDetailPage({
           </div>
         </div>
 
-        <RoomReveal stages={tournament.stages} />
+        {tournament.venueType === "lan" ? (
+          <>
+            <div className="mb-6 border border-bk-border bg-bk-surface p-4">
+              <p className="font-sans font-medium text-bk-heading text-sm mb-1">Venue (LAN)</p>
+              <p className="font-sans text-[13px] text-bk-heading break-words">{tournament.venueName}</p>
+              <p className="font-sans text-[12px] text-bk-muted break-words">
+                {[tournament.venueAddress, tournament.venueCity].filter(Boolean).join(", ")}
+              </p>
+              <p className="font-sans text-[11px] text-bk-muted mt-2">
+                No room code for this event: show up and check in at the venue.
+              </p>
+            </div>
+            <CheckInPanel tournamentId={tournament.id} />
+          </>
+        ) : (
+          <RoomReveal stages={tournament.stages} />
+        )}
 
         {tournament.rules.length > 0 && (
           <>

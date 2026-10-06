@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getTournamentById, updateTournament } from "@/lib/services/tournaments";
 import { requireOrganizer } from "@/lib/auth-helpers";
 import { parseOptionalMoney } from "@/lib/money";
+import { parseVenue } from "@/lib/venue-input";
+import { toPublicTournament } from "@/lib/services/venue";
 
 function moneyError(message: string) {
   return NextResponse.json(
@@ -26,7 +28,8 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(tournament);
+  // Never expose the on-site check-in code or room credentials publicly.
+  return NextResponse.json(toPublicTournament(tournament));
 }
 
 export async function PATCH(
@@ -53,6 +56,9 @@ export async function PATCH(
     return moneyError("audienceScope must be open or institution.");
   }
 
+  const venue = parseVenue(body, { partial: true });
+  if (!venue.ok) return moneyError(venue.message);
+
   const result = await updateTournament(id, auth.organizerProfile.id, {
     name: body.name,
     description: body.description,
@@ -68,6 +74,7 @@ export async function PATCH(
     audienceScope: body.audienceScope,
     requireFreshInstitutionProof:
       typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
+    ...venue.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
 
@@ -100,6 +107,20 @@ export async function PATCH(
   }
   if (result.error === "invalid_fee") {
     return moneyError("A paid tournament needs an entry fee greater than zero.");
+  }
+  if (result.error === "venue_locked") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "venue_locked",
+          message: "Players have already registered, so this can no longer switch between Online and LAN.",
+        },
+      },
+      { status: 409 }
+    );
+  }
+  if (result.error === "invalid_check_in_window") {
+    return moneyError(result.message);
   }
   if (result.error === "audience_locked") {
     return NextResponse.json(

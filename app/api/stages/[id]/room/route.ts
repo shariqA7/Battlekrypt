@@ -51,6 +51,12 @@ export async function GET(
       { status: 403 }
     );
   }
+  if (result.error === "lan_no_room") {
+    return NextResponse.json(
+      { error: { code: "lan_no_room", message: "This is a LAN event — check in at the venue instead of using a room." } },
+      { status: 409 }
+    );
+  }
   if (result.error === "room_not_set") {
     return NextResponse.json(
       { error: { code: "room_not_set", message: "The organizer hasn't set the room yet." } },

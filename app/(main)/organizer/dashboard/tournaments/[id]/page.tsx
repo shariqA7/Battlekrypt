@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { checkInCounts } from "@/lib/services/venue";
 import { listRegistrations, getTournamentById, getTournamentCapacity } from "@/lib/services/tournaments";
 import { redirect, notFound } from "next/navigation";
 import RegistrationQueue from "./RegistrationQueue";
@@ -40,6 +41,8 @@ export default async function ManageTournamentPage({
   }
   const registrations = result.data;
   const capacity = await getTournamentCapacity(id);
+  const isLan = tournament.venueType === "lan";
+  const counts = isLan ? await checkInCounts(id) : null;
 
   return (
     <>
@@ -76,7 +79,31 @@ export default async function ManageTournamentPage({
           />
         </div>
 
-        <StageManager tournamentId={id} initialStages={tournament.stages} />
+        {isLan && counts && (
+          <div className="mb-8 border border-bk-border bg-bk-surface p-4">
+            <p className="font-sans font-medium text-bk-heading text-sm mb-1">LAN check-in</p>
+            <p className="font-sans text-[12px] text-bk-muted mb-3 break-words">
+              {tournament.venueName} · {tournament.venueAddress}, {tournament.venueCity}
+            </p>
+            <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-muted">
+              Check-in code (show it at the venue desk — don&apos;t post it online)
+            </p>
+            <p className="font-mono text-bk-gold-light text-3xl tracking-[4px] my-1">
+              {tournament.checkInCode}
+            </p>
+            <p className="font-sans text-[12px] text-bk-body">
+              {counts.checkedIn} checked in · {counts.noShow} no-show · {counts.pending} waiting
+            </p>
+          </div>
+        )}
+
+        {isLan ? (
+          <p className="font-sans text-[12px] text-bk-muted mb-2">
+            LAN event: no room credentials. Use the check-in buttons below once players arrive.
+          </p>
+        ) : (
+          <StageManager tournamentId={id} initialStages={tournament.stages} />
+        )}
 
         <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Rules</p>
         <RulesManager
@@ -101,6 +128,7 @@ export default async function ManageTournamentPage({
           tournamentId={id}
           initialRegistrations={registrations}
           mode={tournament.mode}
+          isLan={isLan}
           rules={tournament.rules.map((r) => ({ id: r.id, title: r.title, description: r.description }))}
         />
       </main>

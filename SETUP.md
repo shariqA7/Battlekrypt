@@ -409,3 +409,11 @@ using (
   )
 );
 ```
+
+## Phase 8.3 — LAN venues and check-in
+
+Run `npx prisma migrate dev` to apply `20261006030000_phase8_3_venue_checkin`. No new Supabase setup.
+
+Organizers pick **Online / LAN** when creating or editing a draft. LAN needs a venue name, address and city before it can be published, has no Room ID/password, and gets a 6-character check-in code that only the organizer sees. Players with an approved entry check in by typing the code in the check-in window; the organizer can also check people in, mark no-shows, or undo, at any time before the event ends. Five wrong codes lock a player's self check-in (the organizer can still check them in). Online ↔ LAN can't be switched once anyone has registered; venue details can still be corrected.
+
+Security fix included: public tournament pages and `GET /api/tournaments/:id` used to return each stage's room ID and password to anyone, bypassing the timed reveal. They are now stripped from every public response (`toPublicTournament`) and only come from `/api/stages/:id/room` after the reveal time.

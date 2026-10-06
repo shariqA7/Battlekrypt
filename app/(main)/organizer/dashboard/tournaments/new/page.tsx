@@ -6,6 +6,7 @@ import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
 interface Game {
@@ -43,6 +44,7 @@ export default function NewTournamentPage() {
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>("none");
+  const [venue, setVenue] = useState<VenueValue>(emptyVenue);
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>("open");
   const [freshProof, setFreshProof] = useState(false);
   const [rules, setRules] = useState<EditableRule[]>([]);
@@ -104,6 +106,9 @@ export default function NewTournamentPage() {
       setAudienceScope("open");
       setFreshProof(false);
     }
+    // Only the kind of venue comes from a template; the address and check-in
+    // times belong to one specific event.
+    setVenue({ ...emptyVenue, venueType: t.venueType === "lan" ? "lan" : "online" });
     if (Array.isArray(t.customFields)) setCustomFields(t.customFields);
     setRules(
       t.rules.map((r: EditableRule) => ({
@@ -145,6 +150,7 @@ export default function NewTournamentPage() {
         paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
         competitiveTier,
+        ...venueToBody(venue),
         audienceScope,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
         customFields: customFields.length > 0 ? customFields : undefined,
@@ -462,6 +468,8 @@ export default function NewTournamentPage() {
           <div className="mt-4">
             <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
           </div>
+
+          <VenuePicker value={venue} onChange={setVenue} />
 
           <AudiencePicker
             scope={audienceScope}

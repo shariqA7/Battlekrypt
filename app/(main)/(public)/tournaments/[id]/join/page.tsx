@@ -6,6 +6,7 @@ import JoinForm from "./JoinForm";
 import ClubEntryPanel from "./ClubEntryPanel";
 import { prisma } from "@/lib/prisma";
 import { isPlayerInstitutionVerified } from "@/lib/services/institutions";
+import { toPublicTournament } from "@/lib/services/venue";
 
 export default async function JoinTournamentPage({
   params,
@@ -20,8 +21,10 @@ export default async function JoinTournamentPage({
 
   if (!user) redirect(`/login?redirectTo=/tournaments/${id}/join`);
 
-  const tournament = await getTournamentById(id);
-  if (!tournament) notFound();
+  const full = await getTournamentById(id);
+  if (!full) notFound();
+  // This object is passed into a client component, so strip secrets first.
+  const tournament = toPublicTournament(full);
 
   // Institution-only: self-registration needs an approved verification. The
   // block links to the profile page and brings the player straight back.

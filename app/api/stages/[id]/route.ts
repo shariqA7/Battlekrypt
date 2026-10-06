@@ -30,6 +30,17 @@ export async function PATCH(
 
   const body = await request.json();
 
+  // LAN tournaments don't use room credentials.
+  if (
+    stage.tournament.venueType === "lan" &&
+    (body.roomId !== undefined || body.roomPassword !== undefined || body.roomRevealAt !== undefined)
+  ) {
+    return NextResponse.json(
+      { error: { code: "lan_no_room", message: "LAN tournaments don't use room credentials." } },
+      { status: 409 }
+    );
+  }
+
   const updated = await prisma.stage.update({
     where: { id },
     data: {

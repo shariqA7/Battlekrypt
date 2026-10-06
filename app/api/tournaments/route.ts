@@ -1,5 +1,6 @@
 // GET  /api/tournaments  — public browse/search/filter
 // POST /api/tournaments  — organizer creates a draft tournament
+import { parseVenue } from "@/lib/venue-input";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
     mode: (searchParams.get("mode") as never) ?? undefined,
     entryType: (searchParams.get("entryType") as never) ?? undefined,
     audienceScope: (searchParams.get("audienceScope") as never) ?? undefined,
+    venueType: (searchParams.get("venueType") as never) ?? undefined,
     search: searchParams.get("search") ?? undefined,
     page: Number(searchParams.get("page")) || undefined,
     limit: Number(searchParams.get("limit")) || undefined,
@@ -103,6 +105,9 @@ export async function POST(request: Request) {
     return moneyError("audienceScope must be open or institution.");
   }
 
+  const venue = parseVenue(body);
+  if (!venue.ok) return moneyError(venue.message);
+
   const tournament = await createTournament({
     organizerId: organizerProfile.id,
     gameId: body.gameId,
@@ -124,6 +129,7 @@ export async function POST(request: Request) {
     competitiveTier: body.competitiveTier,
     audienceScope: body.audienceScope,
     requireFreshInstitutionProof: body.requireFreshInstitutionProof === true,
+    ...venue.value,
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,

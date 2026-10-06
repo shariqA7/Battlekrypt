@@ -13,6 +13,7 @@ import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
 import { checkInstitutionGate } from "@/lib/services/institutions";
+import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
 import { awardTournamentRatings } from "@/lib/services/ratings";
 import type { RuleFields } from "@/lib/rules";
@@ -24,6 +25,7 @@ import type {
   EntryType,
   CompetitiveTier,
   AudienceScope,
+  VenueType,
 } from "@prisma/client";
 
 export interface TournamentListFilters {
@@ -33,6 +35,7 @@ export interface TournamentListFilters {
   mode?: TournamentMode;
   entryType?: EntryType;
   audienceScope?: AudienceScope;
+  venueType?: VenueType;
   status?: TournamentStatus;
   search?: string;
   page?: number;
@@ -64,6 +67,7 @@ export async function listTournaments(filters: TournamentListFilters) {
     ...(filters.mode && { mode: filters.mode }),
     ...(filters.entryType && { entryType: filters.entryType }),
     ...(filters.audienceScope && { audienceScope: filters.audienceScope }),
+    ...(filters.venueType && { venueType: filters.venueType }),
     ...(filters.organizerId && { organizerId: filters.organizerId }),
     ...(filters.game && { game: { name: { equals: filters.game, mode: "insensitive" } } }),
     ...(filters.search && {
@@ -135,6 +139,12 @@ export interface CreateTournamentInput {
   competitiveTier?: CompetitiveTier;
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
+  venueType?: VenueType;
+  venueName?: string;
+  venueAddress?: string;
+  venueCity?: string;
+  checkInOpensAt?: Date | null;
+  checkInClosesAt?: Date | null;
   customFields?: unknown;
   // Already validated by parseRuleList (see lib/rules.ts). Plain-text rules
   // arrive here as custom warning rules.
@@ -171,6 +181,18 @@ export async function createTournament(input: CreateTournamentInput) {
       prizePoolCurrency: input.prizePoolCurrency,
       competitiveTier: input.competitiveTier ?? "none",
       audienceScope: input.audienceScope ?? "open",
+      venueType: input.venueType ?? "online",
+      // Venue details only mean something for LAN.
+      ...(input.venueType === "lan"
+        ? {
+            venueName: input.venueName?.trim(),
+            venueAddress: input.venueAddress?.trim(),
+            venueCity: input.venueCity?.trim(),
+            checkInOpensAt: input.checkInOpensAt,
+            checkInClosesAt: input.checkInClosesAt,
+            checkInCode: generateCheckInCode(),
+          }
+        : {}),
       // The extra proof only means something on institution-only tournaments.
       requireFreshInstitutionProof:
         input.audienceScope === "institution" && !!input.requireFreshInstitutionProof,
@@ -204,6 +226,14 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   });
   if (organizerUser?.kycStatus !== "approved") {
     return { error: "organizer_not_approved" as const };
+  }
+
+  // A LAN tournament needs a venue before it goes public.
+  if (!venueIsComplete(tournament)) {
+    return {
+      error: "venue_incomplete" as const,
+      message: "Add the venue name, address and city before publishing a LAN tournament.",
+    };
   }
 
   // Competitive-tier prize-pool floor (spec §9) — checked in USD-equivalent
@@ -518,6 +548,9 @@ export async function getRoomForPlayer(stageId: string, playerId: string) {
   });
   if (!registration) return { error: "not_registered" as const };
 
+  // LAN tournaments have no room credentials — players check in on site.
+  if (stage.tournament.venueType === "lan") return { error: "lan_no_room" as const };
+
   if (!stage.roomId || !stage.roomRevealAt) {
     return { error: "room_not_set" as const };
   }
@@ -693,6 +726,12 @@ export interface UpdateTournamentInput {
   competitiveTier?: CompetitiveTier;
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
+  venueType?: VenueType;
+  venueName?: string;
+  venueAddress?: string;
+  venueCity?: string;
+  checkInOpensAt?: Date | null;
+  checkInClosesAt?: Date | null;
   startAt?: Date;
 }
 
@@ -751,6 +790,35 @@ export async function updateTournament(
       data.requireFreshInstitutionProof !== tournament.requireFreshInstitutionProof);
   if (scopeChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
     return { error: "audience_locked" as const };
+  }
+
+  // Online <-> LAN changes what players are promised (room credentials vs.
+  // showing up somewhere), so it locks once anyone has registered. The venue
+  // DETAILS can still be corrected afterwards (a typo in the address).
+  const venueTypeChanged = data.venueType !== undefined && data.venueType !== tournament.venueType;
+  if (venueTypeChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
+    return { error: "venue_locked" as const };
+  }
+  const effectiveVenue = data.venueType ?? tournament.venueType;
+  if (effectiveVenue === "lan") {
+    const windowError = checkInWindowError(
+      data.checkInOpensAt !== undefined ? data.checkInOpensAt : tournament.checkInOpensAt,
+      data.checkInClosesAt !== undefined ? data.checkInClosesAt : tournament.checkInClosesAt
+    );
+    if (windowError) return { error: "invalid_check_in_window" as const, message: windowError };
+    // Switching to LAN needs a check-in code; switching away clears the venue.
+    if (!tournament.checkInCode) {
+      (data as Prisma.TournamentUpdateInput).checkInCode = generateCheckInCode();
+    }
+  } else {
+    // Going (or staying) online: wipe any venue details and the check-in code.
+    const clear = data as Prisma.TournamentUpdateInput;
+    clear.venueName = null;
+    clear.venueAddress = null;
+    clear.venueCity = null;
+    clear.checkInOpensAt = null;
+    clear.checkInClosesAt = null;
+    clear.checkInCode = null;
   }
 
   // A competitive tier is what the prize-pool floor and the registration

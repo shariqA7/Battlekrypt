@@ -18,6 +18,7 @@ export default async function TournamentsPage({
     mode: (params.mode || undefined) as never,
     entryType: (params.entryType || undefined) as never,
     audienceScope: (params.audienceScope || undefined) as never,
+    venueType: (params.venueType || undefined) as never,
     page: params.page ? Number(params.page) : undefined,
   });
 
@@ -54,6 +55,11 @@ export default async function TournamentsPage({
                   </p>
                   <p className="font-sans text-bk-muted text-xs mt-1">
                     {t.game.name} · {t.type} · {t.mode}
+                    {t.venueType === "lan" && (
+                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
+                        LAN{t.venueCity ? ` · ${t.venueCity}` : ""}
+                      </span>
+                    )}
                     {t.audienceScope === "institution" && (
                       <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
                         Students only

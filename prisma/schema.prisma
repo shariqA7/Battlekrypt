@@ -150,6 +150,20 @@ enum AudienceScope {
   institution
 }
 
+// Where a tournament is played (spec §8). Online uses the Room ID/Password
+// flow; LAN uses a venue address and on-site check-in instead of room
+// credentials. Hybrid (per-stage venue) comes in 8.4.
+enum VenueType {
+  online
+  lan
+}
+
+enum CheckInStatus {
+  pending
+  checked_in
+  no_show
+}
+
 enum InstitutionStatus {
   pending
   approved
@@ -444,6 +458,7 @@ model TournamentTemplate {
 
   audienceScope                AudienceScope @default(open)
   requireFreshInstitutionProof Boolean       @default(false)
+  venueType                    VenueType     @default(online)
 
   // Same shape as Tournament.customFields — an array of {key, label, type,
   // required}. Copied as-is into a new tournament.
@@ -798,6 +813,18 @@ model Tournament {
 
   competitiveTier CompetitiveTier @default(none)
 
+  venueType       VenueType @default(online)
+  venueName       String?
+  venueAddress    String?
+  venueCity       String?
+  // LAN only. Players can self check-in inside this window by typing the code
+  // the organizer shows at the venue desk; the organizer can always check
+  // people in or mark no-shows by hand. checkInCode is organizer-only: it is
+  // stripped from every public response.
+  checkInOpensAt  DateTime?
+  checkInClosesAt DateTime?
+  checkInCode     String?
+
   audienceScope                AudienceScope @default(open)
   // Institution-only tournaments only: also ask the registering player for a
   // fresh ID photo with THIS registration, on top of their verified profile.
@@ -834,6 +861,7 @@ model Tournament {
   featured      FeaturedTournament?
 
   @@index([audienceScope])
+  @@index([venueType])
 }
 
 // One like/dislike per player per tournament, and only if they actually
@@ -994,7 +1022,12 @@ model Registration {
   // Private-bucket path of the per-tournament ID photo (see
   // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
   institutionProofPath String?
-  addedBy              AddedBy            @default(self)
+
+  // LAN check-in (a team entry checks in as one unit).
+  checkInStatus   CheckInStatus @default(pending)
+  checkedInAt     DateTime?
+  checkInAttempts Int           @default(0) // wrong-code tries; locks self check-in at 5
+  addedBy         AddedBy       @default(self)
 
   disqualifiedRuleId String?
   disqualifiedRule   TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
