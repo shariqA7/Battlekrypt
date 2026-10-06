@@ -54,6 +54,7 @@ model User {
   nameClaims            ClubNameClaim[]          @relation("ClaimantUser")
   visits                VisitSession[]
   challenges            Challenge[]              @relation("ChallengePoster")
+  challengeReports      ChallengeReport[]
   challengeApplications ChallengeApplication[]   @relation("ChallengeApplicant")
   notifications         Notification[]
   payments              PaymentRecord[]          @relation("Payer")
@@ -1007,6 +1008,7 @@ enum ChallengeStatus {
   expired // nobody was chosen before the deadline
   cancelled
   rejected // admin declined it
+  removed // taken down by an admin after reports
 }
 
 // A poster (organization, club or player on a plan that allows it) offers a
@@ -1057,8 +1059,13 @@ model Challenge {
   reviewedById String?
   reviewedAt   DateTime?
 
+  // When the poster ticked "I understand" on the prize / payment terms.
+  termsAcceptedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  reports ChallengeReport[]
 
   @@index([status, createdAt])
   @@index([posterUserId, posterType, createdAt])
@@ -1341,4 +1348,73 @@ model ChallengeDispute {
   @@index([status, createdAt])
   @@index([applicationId])
   @@index([challengeId])
+}
+
+enum ChallengeReportReason {
+  scam
+  inappropriate
+  misleading
+  spam
+  other
+}
+
+enum ChallengeReportStatus {
+  open
+  actioned // the challenge was removed
+  dismissed
+}
+
+// "This challenge looks wrong." Several open reports hide a challenge from the
+// list until an admin looks; an admin can then remove it or dismiss the reports.
+model ChallengeReport {
+  id           String                @id @default(uuid())
+  challengeId  String
+  challenge    Challenge             @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  reporterId   String
+  reporter     User                  @relation(fields: [reporterId], references: [id])
+  reason       ChallengeReportReason
+  details      String?
+  status       ChallengeReportStatus @default(open)
+  adminNote    String?
+  resolvedById String?
+  resolvedAt   DateTime?
+  createdAt    DateTime              @default(now())
+
+  // One report per person per challenge.
+  @@unique([challengeId, reporterId])
+  @@index([status, createdAt])
+}
+
+enum ChallengeFlagKind {
+  same_device // poster and challenger used the same network AND browser
+  same_network // the same IP address (can be a shared household / café)
+  repeat_pair // the same two accounts keep being paired
+}
+
+enum ChallengeFlagStatus {
+  open
+  dismissed
+  actioned
+}
+
+// A signal that a poster and the challenger they picked may be the same
+// person or working together. Only ever shown to admins, never acted on
+// automatically: shared IPs are common (families, internet cafés, mobile
+// carriers), so it is a prompt to look, not proof.
+model ChallengeFlag {
+  id               String              @id @default(uuid())
+  challengeId      String
+  applicationId    String
+  posterUserId     String
+  challengerUserId String
+  kind             ChallengeFlagKind
+  details          String
+  status           ChallengeFlagStatus @default(open)
+  adminNote        String?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime            @default(now())
+
+  @@unique([applicationId, kind])
+  @@index([status, createdAt])
 }

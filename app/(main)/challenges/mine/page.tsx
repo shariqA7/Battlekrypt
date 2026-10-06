@@ -12,6 +12,7 @@ const STATUS_LABEL: Record<string, string> = {
   expired: "Expired",
   cancelled: "Cancelled",
   rejected: "Rejected",
+  removed: "Removed by an admin",
 };
 
 export default async function MyChallengesPage() {

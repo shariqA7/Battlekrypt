@@ -19,6 +19,9 @@ import PlanRequestsQueue from "../PlanRequestsQueue";
 import { listPendingPlanRequests } from "@/lib/services/plan-requests";
 import ChallengeReview from "../ChallengeReview";
 import ChallengeDisputes from "../ChallengeDisputes";
+import ChallengeIntegrity from "../ChallengeIntegrity";
+import { listReportedChallenges } from "@/lib/services/challenge-moderation";
+import { listOpenFlags } from "@/lib/services/challenge-integrity";
 import { listDisputesForAdmin } from "@/lib/services/challenge-fulfillment";
 import { getChallengeReviewUsd, listChallengesAwaitingReview } from "@/lib/services/challenges";
 import { prizeLabel } from "@/lib/challenge-format";
@@ -38,6 +41,8 @@ export default async function AdminApprovalsPage() {
     planRequests,
     heldChallenges,
     disputes,
+    reportedChallenges,
+    openFlags,
     challengeReviewUsd,
     pendingTierReviews,
   ] = await Promise.all([
@@ -52,6 +57,8 @@ export default async function AdminApprovalsPage() {
     listPendingPlanRequests(),
     listChallengesAwaitingReview(),
     listDisputesForAdmin(),
+    listReportedChallenges(),
+    listOpenFlags(),
     getChallengeReviewUsd(),
     listPendingTierReviewTournaments(),
   ]);
@@ -116,6 +123,37 @@ export default async function AdminApprovalsPage() {
             paymentNote: a.paymentNote,
           };
         })}
+      />
+      <ChallengeIntegrity
+        reported={reportedChallenges.map((c) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description,
+          status: c.status,
+          gameName: c.game.name,
+          posterName: c.posterName,
+          posterEmail: c.poster.email,
+          prizeLabel: prizeLabel(c),
+          reports: c.reports.map((r) => ({
+            id: r.id,
+            reason: r.reason,
+            details: r.details,
+            reporterEmail: r.reporter.email,
+            createdAt: r.createdAt.toISOString(),
+          })),
+        }))}
+        flags={openFlags.map((f) => ({
+          id: f.id,
+          kind: f.kind,
+          details: f.details,
+          createdAt: f.createdAt.toISOString(),
+          challengeId: f.challengeId,
+          challengeTitle: f.challenge?.title ?? "(deleted)",
+          entryName: f.entry?.entrantName ?? "",
+          entryStage: f.entry?.stage ?? "",
+          posterEmail: f.posterEmail,
+          challengerEmail: f.challengerEmail,
+        }))}
       />
       <ChallengeReview
         thresholdUsd={challengeReviewUsd}
