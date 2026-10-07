@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SUPPORTED_CURRENCIES } from "@/lib/money";
+import { POSTER_TERMS } from "@/lib/challenge-terms";
 
 interface Role {
   type: "player" | "club" | "organizer";
@@ -43,6 +44,7 @@ export default function ChallengeForm({
     prizeType: "cash", prizeDescription: "", cashAmount: "", cashCurrency: "PKR",
     prizeEstimatedUsd: "", payoutMethod: "",
   });
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -61,7 +63,7 @@ export default function ChallengeForm({
     const res = await fetch("/api/challenges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(f),
+      body: JSON.stringify({ ...f, acceptTerms }),
     });
     const body = await res.json();
     if (!res.ok) {
@@ -163,6 +165,18 @@ export default function ChallengeForm({
       <Field name="How you'll pay or deliver it" error={errors.payoutMethod}>
         <input value={f.payoutMethod} onChange={set("payoutMethod")} className={field} placeholder="JazzCash or bank transfer in PKR" />
       </Field>
+
+      <div className="mb-4 bg-bk-bg border border-bk-border p-3">
+        <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-muted mb-2">Before you post</p>
+        <ul className="list-disc pl-5 space-y-1 font-sans text-[12px] text-bk-body">
+          {POSTER_TERMS.map((t) => <li key={t}>{t}</li>)}
+        </ul>
+        <label className="mt-3 flex items-start gap-2 font-sans text-[13px] text-bk-heading">
+          <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-1" />
+          I have read and accept these terms
+        </label>
+        {errors.acceptTerms && <p className="mt-1 font-sans text-[12px] text-bk-live">{errors.acceptTerms}</p>}
+      </div>
 
       {message && <p className="font-sans text-[12px] text-bk-live mb-3">{message}</p>}
       <button disabled={busy} className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50">

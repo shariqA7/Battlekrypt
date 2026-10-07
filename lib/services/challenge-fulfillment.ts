@@ -501,6 +501,29 @@ export async function resolveDispute(
   return { data: { id: disputeId } };
 }
 
+// An admin ends an entry that looks fraudulent (e.g. a collusion flag). Only
+// before money has been disputed — an open dispute is settled on its own.
+export async function adminFailEntry(
+  adminId: string,
+  entryId: string,
+  note: string
+): Promise<{ data: { id: string } } | Failure> {
+  const out = await prisma.$transaction(async (tx): Promise<{ notes: Note[] } | Failure> => {
+    const e = await loadEntry(tx, entryId);
+    if (!e || e.status !== "selected") return fail("not_found", "Entry not found.");
+    if (e.stage === "completed" || e.stage === "failed") return fail("already_finished", "This entry is already finished.");
+    if (e.stage === "proof_disputed" || e.stage === "payment_disputed") {
+      return fail("has_dispute", "This entry has an open dispute — decide that instead.");
+    }
+    const notes = await failEntry(tx, e, "suspected_collusion", "An admin ended this entry after a review.");
+    await tx.adminActionLog.create({ data: { adminId, action: "failed_entry", targetType: "ChallengeApplication", targetId: e.id, notes: note } });
+    return { notes };
+  });
+  if ("error" in out) return out;
+  await send(out.notes);
+  return { data: { id: entryId } };
+}
+
 // ------------------------------------------------------------
 // Deadlines
 // ------------------------------------------------------------
