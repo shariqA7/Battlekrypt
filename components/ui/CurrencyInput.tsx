@@ -4,7 +4,7 @@
 // Money is always {amount, currency} — never a bare number. See schema.prisma.
 
 import { useState } from "react";
-import { SUPPORTED_CURRENCIES } from "@/lib/money";
+import { useEnabledCurrencies } from "@/lib/hooks/useEnabledCurrencies";
 
 
 interface CurrencyInputProps {
@@ -19,6 +19,9 @@ export default function CurrencyInput({
   onChange,
 }: CurrencyInputProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const enabled = useEnabledCurrencies();
+  // A saved currency that was switched off later stays visible and selectable.
+  const options = enabled.includes(currency) ? enabled : [currency, ...enabled];
 
   return (
     <div className="flex w-full max-w-[280px] relative">
@@ -37,8 +40,8 @@ export default function CurrencyInput({
       </button>
 
       {dropdownOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-[#1F2833] border border-[#39342A] z-10 min-w-[80px]">
-          {SUPPORTED_CURRENCIES.map((c) => (
+        <div className="absolute top-full right-0 mt-1 bg-[#1F2833] border border-[#39342A] z-10 min-w-[80px] max-h-[240px] overflow-y-auto">
+          {options.map((c) => (
             <button
               key={c}
               onClick={() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
 
 type ClubCandidate = ClubTeamCandidate | ClubSoloCandidate;
@@ -10,6 +11,8 @@ interface Registration {
   status: string;
   paymentStatus: string;
   paymentProofUrl: string | null;
+  institutionProofPath: string | null;
+  checkInStatus: "pending" | "checked_in" | "no_show";
   placement: number | null;
   points: number | null;
   player: { user: { displayName: string } } | null;
@@ -20,6 +23,29 @@ interface TournamentRuleOption {
   id: string;
   title: string | null;
   description: string;
+}
+
+// The ID photo lives in a private bucket: only the tournament's organizer can
+// create a signed link (storage policy in SETUP.md), valid for 5 minutes.
+function InstitutionProofLink({ path }: { path: string }) {
+  const [busy, setBusy] = useState(false);
+  async function open() {
+    setBusy(true);
+    const { data } = await createClient().storage.from("institution-proofs").createSignedUrl(path, 300);
+    setBusy(false);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    else alert("Couldn't open the ID photo.");
+  }
+  return (
+    <button
+      type="button"
+      onClick={open}
+      disabled={busy}
+      className="text-bk-gold-light text-[11px] font-sans underline"
+    >
+      {busy ? "Opening..." : "View student ID"}
+    </button>
+  );
 }
 
 function ResultInput({
@@ -89,11 +115,13 @@ export default function RegistrationQueue({
   tournamentId,
   initialRegistrations,
   mode,
+  isLan = false,
   rules,
 }: {
   tournamentId: string;
   initialRegistrations: Registration[];
   mode: string;
+  isLan?: boolean;
   rules: TournamentRuleOption[];
 }) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
@@ -204,6 +232,19 @@ export default function RegistrationQueue({
       setRegistrations((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r))
       );
+    }
+  }
+
+  async function setCheckIn(id: string, status: "checked_in" | "no_show" | "pending") {
+    const res = await fetch(`/api/registrations/${id}/check-in`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (res.ok) {
+      setRegistrations((prev) => prev.map((r) => (r.id === id ? { ...r, checkInStatus: status } : r)));
+    } else {
+      alert((await res.json()).error?.message ?? "Couldn't update check-in.");
     }
   }
 
@@ -367,7 +408,50 @@ export default function RegistrationQueue({
                     View payment proof
                   </a>
                 )}
+                {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}
               </div>
+              {isLan && r.status === "approved" && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <span
+                    className={`font-sans text-[10px] uppercase tracking-[0.5px] px-1.5 py-0.5 ${
+                      r.checkInStatus === "checked_in"
+                        ? "bg-bk-live/20 text-bk-live"
+                        : r.checkInStatus === "no_show"
+                          ? "bg-bk-live/10 text-bk-live"
+                          : "bg-bk-surface border border-bk-border text-bk-muted"
+                    }`}
+                  >
+                    {r.checkInStatus === "checked_in" ? "Checked in" : r.checkInStatus === "no_show" ? "No-show" : "Not here yet"}
+                  </span>
+                  {r.checkInStatus !== "checked_in" && (
+                    <button
+                      type="button"
+                      onClick={() => setCheckIn(r.id, "checked_in")}
+                      className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
+                    >
+                      Check in
+                    </button>
+                  )}
+                  {r.checkInStatus === "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => setCheckIn(r.id, "no_show")}
+                      className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
+                    >
+                      No-show
+                    </button>
+                  )}
+                  {r.checkInStatus !== "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => setCheckIn(r.id, "pending")}
+                      className="font-sans text-[11px] underline text-bk-muted"
+                    >
+                      Undo
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             {r.status === "pending" && (
               <div className="flex gap-2">

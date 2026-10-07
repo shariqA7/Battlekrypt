@@ -18,6 +18,7 @@
 import { prisma } from "@/lib/prisma";
 import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
 import { checkTierEntryGate } from "@/lib/services/competitive-tiers";
+import { checkInstitutionGate } from "@/lib/services/institutions";
 
 export const CLUB_ENTRY_ERRORS = {
   validation_error: { status: 400, message: "Invalid input." },
@@ -51,6 +52,11 @@ export const CLUB_ENTRY_ERRORS = {
   not_club_entry: { status: 400, message: "This entry isn't linked to your club." },
   forbidden: { status: 403, message: "You don't own this tournament." },
   tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
+  institution_required: {
+    status: 403,
+    message: "This tournament is for verified students only.",
+  },
+  institution_proof_required: { status: 400, message: "Fresh ID proof is required." },
 } as const;
 
 export type ClubEntryErrorCode = keyof typeof CLUB_ENTRY_ERRORS;
@@ -144,6 +150,9 @@ export async function submitClubTeamEntry(
     teamMemberPlayerIds: ids.slice(1),
     teamName: team.name,
     clubTeamId: teamId,
+    // Club entries rely on every member's verified profile; the per-tournament
+    // ID photo is for individual self-registration only.
+    skipInstitutionProof: true,
     paymentProofUrl: opts.paymentProofUrl,
     customFieldResponses: opts.customFieldResponses,
   });
@@ -185,6 +194,7 @@ export async function submitClubSoloEntry(
   return registerForTournament({
     tournamentId,
     playerId,
+    skipInstitutionProof: true,
     paymentProofUrl: opts.paymentProofUrl,
     customFieldResponses: opts.customFieldResponses,
   });
@@ -389,6 +399,11 @@ export async function manualAddClubTeamEntry(
   const gate = await checkTierEntryGate(tournamentId, { clubTeamId });
   if ("error" in gate && gate.error === "tier_gate") return fail("tier_gate", gate.message);
 
+  // Institution-only: every member must be verified (organizer vouching
+  // skips the per-tournament proof, not the verification itself).
+  const instGate = await checkInstitutionGate(tournamentId, ids, { skipProof: true });
+  if ("error" in instGate) return fail(instGate.error, instGate.message);
+
   const registration = await prisma.$transaction(async (tx) => {
     const teamEntry = await tx.teamEntry.create({
       data: {
@@ -437,6 +452,12 @@ export async function manualAddClubSoloEntry(
 
   const gate = await checkTierEntryGate(tournamentId, { playerId });
   if ("error" in gate && gate.error === "tier_gate") return fail("tier_gate", gate.message);
+
+  const instGate = await checkInstitutionGate(tournamentId, [playerId], {
+    skipProof: true,
+    selfPlayerId: playerId,
+  });
+  if ("error" in instGate) return fail(instGate.error, instGate.message);
 
   const registration = await prisma.registration.create({
     data: {

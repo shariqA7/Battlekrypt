@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SUPPORTED_CURRENCIES } from "@/lib/money";
+import { LAUNCH_CURRENCIES } from "@/lib/money";
 import { PAYMENT_KINDS } from "@/lib/payment-kinds";
 
 const field = "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[36px]";
@@ -42,7 +42,7 @@ export default function RecordPaymentForm() {
       </select>
       <input required type="number" min={1} step="any" value={f.amount} onChange={set("amount")} placeholder="Amount" className={`${field} w-28`} />
       <select value={f.currency} onChange={set("currency")} className={field}>
-        {SUPPORTED_CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+        {LAUNCH_CURRENCIES.map((c) => <option key={c}>{c}</option>)}
       </select>
       <input required value={f.method} onChange={set("method")} placeholder="Paid via (JazzCash, bank…)" className={`${field} w-48`} />
       <input value={f.reference} onChange={set("reference")} placeholder="Reference (optional)" className={`${field} w-44`} />

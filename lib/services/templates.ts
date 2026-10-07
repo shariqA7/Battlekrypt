@@ -102,6 +102,9 @@ export async function createTemplateFromTournament(
       paymentInstructions: tournament.paymentInstructions,
       prizePoolAmount: tournament.prizePoolAmount,
       prizePoolCurrency: tournament.prizePoolCurrency,
+      audienceScope: tournament.audienceScope,
+      requireFreshInstitutionProof: tournament.requireFreshInstitutionProof,
+      venueType: tournament.venueType,
       customFields: tournament.customFields ?? undefined,
       rules: {
         create: tournament.rules.map((r, i) => ({
@@ -165,6 +168,9 @@ export interface TemplatePrefill {
   entryFee: { amount: number; currency: string } | null;
   paymentInstructions: string | null;
   prizePool: { amount: number; currency: string } | null;
+  audienceScope: string;
+  requireFreshInstitutionProof: boolean;
+  venueType: string;
   customFields: unknown;
   rules: {
     title: string | null;
@@ -213,6 +219,9 @@ export async function getTemplatePrefill(
         t.prizePoolAmount !== null && t.prizePoolCurrency
           ? { amount: Number(t.prizePoolAmount), currency: t.prizePoolCurrency }
           : null,
+      audienceScope: t.audienceScope,
+      requireFreshInstitutionProof: t.requireFreshInstitutionProof,
+      venueType: t.venueType,
       customFields: t.customFields,
       rules,
       stageNames: t.stages.map((s) => s.name),

@@ -16,7 +16,7 @@ import {
   validateLimitsInput,
   type EffectivePlan,
 } from "@/lib/plans";
-import { SUPPORTED_CURRENCIES } from "@/lib/money";
+import { LAUNCH_CURRENCIES } from "@/lib/money";
 
 export const PLAN_REQUEST_ERRORS = {
   validation_error: { status: 400, message: "Invalid request." },
@@ -360,7 +360,7 @@ export async function updatePlan(code: string, adminId: string, input: UpdatePla
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) {
       return fail("validation_error", "Enter a valid price.");
     }
-    if (typeof currency !== "string" || !(SUPPORTED_CURRENCIES as readonly string[]).includes(currency)) {
+    if (typeof currency !== "string" || !(LAUNCH_CURRENCIES as readonly string[]).includes(currency)) {
       return fail("validation_error", "Unsupported currency.");
     }
     data.priceAmount = Math.round(amount * 100) / 100;

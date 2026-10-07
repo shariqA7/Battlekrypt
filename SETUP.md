@@ -349,3 +349,92 @@ organizers.
 Added `app/api/players/me/registrations/route.ts`. Re-ran the same
 verification script afterward: **all 35 custom endpoints from the contract
 now exist**, and the duplicate-function check remains clean at 30 functions.
+
+
+## Phase 8.1 — Institution verification
+
+Players verify their institution once on **Dashboard → Profile settings**; admins review on **/admin/institutions**. Run `npx prisma migrate dev` to apply `20261002200000_phase8_1_institution_verification`.
+
+**Required Supabase setup** (SQL editor) — the ID photos go in a PRIVATE bucket, unlike `tournament-assets`:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('institution-ids', 'institution-ids', false)
+on conflict (id) do nothing;
+
+-- a player may only upload into their own folder: <userId>/<file>
+create policy "players upload own institution id"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'institution-ids' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- only admins can read ID photos (the admin page uses 5-minute signed links)
+create policy "admins read institution ids"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'institution-ids'
+  and exists (select 1 from public."User" u where u.id = auth.uid()::text and u."isAdmin")
+);
+```
+
+`FileUpload` has a new `isPrivate` prop: it returns the storage path instead of a public URL.
+
+## Phase 8.2 — Students-only tournaments
+
+Run `npx prisma migrate dev` to apply `20261002210000_phase8_2_audience_scope`.
+
+Organizers choose **Everyone / Students only** when creating or editing a draft (and optionally ask for a fresh ID photo per registration). It's saved in templates too. Once active registrations exist, the setting can't change.
+
+**Required Supabase setup** (only if you use the "fresh ID photo" option) — a second PRIVATE bucket whose photos only the tournament's organizer can read:
+
+```sql
+insert into storage.buckets (id, name, public)
+values ('institution-proofs', 'institution-proofs', false)
+on conflict (id) do nothing;
+
+create policy "players upload own institution proof"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'institution-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "organizers read proofs for their tournaments"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'institution-proofs'
+  and exists (
+    select 1
+    from public."Registration" r
+    join public."Tournament" t on t.id = r."tournamentId"
+    join public."OrganizerProfile" o on o.id = t."organizerId"
+    where r."institutionProofPath" = storage.objects.name
+      and o."userId" = auth.uid()::text
+  )
+);
+```
+
+## Phase 8.3 — LAN venues and check-in
+
+Run `npx prisma migrate dev` to apply `20261006030000_phase8_3_venue_checkin`. No new Supabase setup.
+
+Organizers pick **Online / LAN** when creating or editing a draft. LAN needs a venue name, address and city before it can be published, has no Room ID/password, and gets a 6-character check-in code that only the organizer sees. Players with an approved entry check in by typing the code in the check-in window; the organizer can also check people in, mark no-shows, or undo, at any time before the event ends. Five wrong codes lock a player's self check-in (the organizer can still check them in). Online ↔ LAN can't be switched once anyone has registered; venue details can still be corrected.
+
+Security fix included: public tournament pages and `GET /api/tournaments/:id` used to return each stage's room ID and password to anyone, bypassing the timed reveal. They are now stripped from every public response (`toPublicTournament`) and only come from `/api/stages/:id/room` after the reveal time.
+
+## Phase 8.4 — Hybrid tournaments (online qualifiers → LAN finals)
+
+Run `npx prisma migrate dev` to apply `20261006040000_phase8_4_hybrid_stages`. No new Supabase setup.
+
+Pick **Hybrid** as the venue when creating a tournament, then on the tournament page set each stage to **Online** or **LAN**. A hybrid tournament needs at least one online and one complete LAN stage to publish.
+
+- **Advancing:** each stage lists the approved entries with a checkbox, plus "Advance the top N by points". Only advanced entries can use a *restricted* stage.
+- **LAN stages** are always restricted, have their own venue and check-in code, and no room credentials. Players who advanced check in with the code; the organizer can check in / mark no-shows / undo per entry.
+- **Online stages** can optionally be restricted ("only entries I advance can see its room").
+- Venue type of a stage is locked once someone has checked in to it. Switching the tournament away from Hybrid is only possible before anyone registers and resets all stages to plain online.
+
+## Phase 8.5 — More currencies and regions
+
+Run `npx prisma migrate dev` to apply `20261006050000_phase8_5_currencies_regions`. No new Supabase setup.
+
+**Currencies.** The platform now knows 26 currencies (the original five plus BDT, LKR, NPR, QAR, KWD, BHD, OMR, EGP, TRY, MYR, IDR, PHP, THB, VND, SGD, EUR, GBP, CAD, AUD, ZAR, NGN). Only the original five are switched on after the migration. Turn more on or off at **/admin/currencies**; organizers' currency pickers and the API follow it. A tournament keeps its currency if it is switched off later; USD can't be switched off (tier floors are measured in it). Adding a brand-new currency to the platform is one line in `lib/money.ts` plus switching it on.
+
+**Exchange rates — bug fix.** `lib/currency-fx.ts` used `api.frankfurter.app`, which only carried the ECB's 31 currencies, so PKR, SAR and AED lookups could not have worked and any tournament with a competitive tier in those currencies would have been stuck on "try again shortly". It now uses Frankfurter v2 (`api.frankfurter.dev`), which carries them. If the lookup is down, SAR and AED (hard-pegged to the dollar) fall back to the peg; every other currency still fails open rather than guessing. Please check one PKR tier tournament on your deployed site: my sandbox couldn't reach the live API, so this was tested against a mock of its documented response.
+
+**Regions.** Tournaments have an optional `country` (ISO code; empty = worldwide), set in the create/edit forms and defaulting to the organizer's own country when it is recognisable. Existing tournaments were backfilled for Pakistan, India, Saudi Arabia and the UAE only; the rest stay worldwide. The browse page has an "Everywhere / region / country" filter. Filtering by a country or region also shows worldwide tournaments, since those are open to everyone. Regions are derived from the country in `lib/geo-data.ts` (not stored).

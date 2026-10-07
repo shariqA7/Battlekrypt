@@ -128,6 +128,7 @@ model PlayerProfile {
   clubInvites     ClubInvite[]
   tournamentVotes TournamentVote[]
   gameRatings     PlayerGameRating[]
+  institution     PlayerInstitution?
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
   // is treated as free at read time (lib/plans.ts), no cron needed.
@@ -135,6 +136,91 @@ model PlayerProfile {
   planExpiresAt DateTime?
 
   createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------
+// INSTITUTION VERIFICATION (Phase 8.1, spec §8)
+// Done once per player and reused by every institution-only tournament.
+// The ID image lives in a PRIVATE storage bucket; only its path is stored.
+// ------------------------------------------------------------
+
+// Who may register for a tournament (spec §8). Institution-only tournaments
+// need an approved PlayerInstitution (Phase 8.1) for every player on the entry.
+enum AudienceScope {
+  open
+  institution
+}
+
+// Where a tournament is played (spec §8). Online uses the Room ID/Password
+// flow; LAN uses a venue address and on-site check-in instead of room
+// credentials. Hybrid (per-stage venue) comes in 8.4.
+enum VenueType {
+  online
+  lan
+  // Venue is decided per stage (online qualifiers -> LAN finals). Stages only
+  // ever use online or lan.
+  hybrid
+}
+
+enum CheckInStatus {
+  pending
+  checked_in
+  no_show
+}
+
+enum InstitutionStatus {
+  pending
+  approved
+  rejected
+}
+
+model PlayerInstitution {
+  id       String        @id @default(uuid())
+  playerId String        @unique
+  player   PlayerProfile @relation(fields: [playerId], references: [id])
+
+  institutionName String
+  studentId       String? // the number printed on the ID, if the player wants to add it
+  idImagePath     String // path inside the private "institution-ids" bucket
+
+  status       InstitutionStatus @default(pending)
+  adminNote    String? // shown to the player when rejected
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// An entry the organizer advanced into a stage (e.g. qualifiers -> finals).
+// Carries that stage's own LAN check-in state.
+model StageEntry {
+  id             String       @id @default(uuid())
+  stageId        String
+  stage          Stage        @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  checkInStatus   CheckInStatus @default(pending)
+  checkedInAt     DateTime?
+  checkInAttempts Int           @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([stageId, registrationId])
+  @@index([registrationId])
+}
+
+// Which catalog currencies (lib/money.ts) organizers may pick for entry fees
+// and prize pools. Admin-managed on /admin/currencies. Existing tournaments
+// keep their currency even if it is switched off later.
+model CurrencySetting {
+  code      String   @id
+  enabled   Boolean  @default(false)
+  sortOrder Int      @default(0)
+  updatedAt DateTime @updatedAt
 }
 
 model OrganizerProfile {
@@ -402,6 +488,10 @@ model TournamentTemplate {
   paymentInstructions String?
   prizePoolAmount     Decimal?  @db.Decimal(14, 2)
   prizePoolCurrency   String?
+
+  audienceScope                AudienceScope @default(open)
+  requireFreshInstitutionProof Boolean       @default(false)
+  venueType                    VenueType     @default(online)
 
   // Same shape as Tournament.customFields — an array of {key, label, type,
   // required}. Copied as-is into a new tournament.
@@ -756,6 +846,27 @@ model Tournament {
 
   competitiveTier CompetitiveTier @default(none)
 
+  // ISO-3166 alpha-2 (see lib/geo-data.ts). Null = worldwide / open to anyone.
+  // The broader region (South Asia, ...) is derived from this, never stored.
+  country String?
+
+  venueType       VenueType @default(online)
+  venueName       String?
+  venueAddress    String?
+  venueCity       String?
+  // LAN only. Players can self check-in inside this window by typing the code
+  // the organizer shows at the venue desk; the organizer can always check
+  // people in or mark no-shows by hand. checkInCode is organizer-only: it is
+  // stripped from every public response.
+  checkInOpensAt  DateTime?
+  checkInClosesAt DateTime?
+  checkInCode     String?
+
+  audienceScope                AudienceScope @default(open)
+  // Institution-only tournaments only: also ask the registering player for a
+  // fresh ID photo with THIS registration, on top of their verified profile.
+  requireFreshInstitutionProof Boolean       @default(false)
+
   customFields Json?
 
   status             TournamentStatus @default(draft)
@@ -785,6 +896,10 @@ model Tournament {
   teamEntries   TeamEntry[]
   votes         TournamentVote[]
   featured      FeaturedTournament?
+
+  @@index([audienceScope])
+  @@index([venueType])
+  @@index([country])
 }
 
 // One like/dislike per player per tournament, and only if they actually
@@ -822,6 +937,21 @@ model Stage {
   roomRevealAt DateTime?
 
   status String @default("upcoming")
+
+  // Venue per stage (Phase 8.4). Only meaningful when the tournament is
+  // hybrid; otherwise stages follow the tournament's own venue.
+  venueType       VenueType @default(online)
+  venueName       String?
+  venueAddress    String?
+  venueCity       String?
+  checkInOpensAt  DateTime?
+  checkInClosesAt DateTime?
+  checkInCode     String? // organizer-only, LAN stages
+  // true = only entries the organizer advanced into this stage may use its
+  // room / check in. LAN stages of a hybrid tournament are always restricted.
+  restricted      Boolean   @default(false)
+
+  entries StageEntry[]
 
   rules TournamentRule[]
 }
@@ -939,10 +1069,19 @@ model Registration {
   teamEntryId String?        @unique
   teamEntry   TeamEntry?     @relation(fields: [teamEntryId], references: [id])
 
-  status          RegistrationStatus @default(pending)
-  paymentStatus   PaymentStatus      @default(unpaid)
-  paymentProofUrl String?
-  addedBy         AddedBy            @default(self)
+  status               RegistrationStatus @default(pending)
+  paymentStatus        PaymentStatus      @default(unpaid)
+  paymentProofUrl      String?
+  // Private-bucket path of the per-tournament ID photo (see
+  // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
+  institutionProofPath String?
+
+  // LAN check-in (a team entry checks in as one unit).
+  checkInStatus   CheckInStatus @default(pending)
+  checkedInAt     DateTime?
+  checkInAttempts Int           @default(0) // wrong-code tries; locks self check-in at 5
+  stageEntries    StageEntry[]
+  addedBy         AddedBy       @default(self)
 
   disqualifiedRuleId String?
   disqualifiedRule   TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])

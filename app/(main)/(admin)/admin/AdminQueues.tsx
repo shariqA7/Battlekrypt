@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SUPPORTED_CURRENCIES } from "@/lib/money";
+import { LAUNCH_CURRENCIES } from "@/lib/money";
 
 interface PendingOrganizer {
   id: string;
@@ -206,7 +206,7 @@ export default function AdminQueues({
                     onChange={(e) => setPay({ ...pay, currency: e.target.value })}
                     className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] px-2 h-[32px]"
                   >
-                    {SUPPORTED_CURRENCIES.map((cur) => (
+                    {LAUNCH_CURRENCIES.map((cur) => (
                       <option key={cur}>{cur}</option>
                     ))}
                   </select>

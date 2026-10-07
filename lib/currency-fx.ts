@@ -2,49 +2,72 @@
 // converted live via a currency exchange API at time of input — USD floors
 // are the stored source of truth, not hardcoded local-currency figures").
 //
-// Uses frankfurter.app — free, no API key, backed by the ECB's published
-// rates. Good enough for gating a prize-pool floor; not meant for anything
-// transactional (nobody's actually being charged in USD).
-import { SUPPORTED_CURRENCIES, type CurrencyCode } from "@/lib/money";
+// Uses Frankfurter v2 (api.frankfurter.dev) — free, no API key, blends rates
+// from 50+ central banks, so it carries PKR, SAR, AED and the rest of the
+// platform's catalog. (The old api.frankfurter.app was ECB-only: no PKR/SAR/
+// AED, so floor checks for those currencies could never succeed.) Good enough
+// for gating a prize-pool floor; not meant for anything transactional.
+import { isSupportedCurrency } from "@/lib/money";
 
-const FX_BASE_URL = "https://api.frankfurter.app";
+const FX_BASE_URL = "https://api.frankfurter.dev/v2";
 
-// Short in-memory cache — this is called on every tournament-creation
-// keystroke-ish interaction (organizer picking a tier), and exchange rates
-// don't meaningfully move minute to minute. Process-local only: fine for a
-// single Vercel instance, and worst case just means an extra fetch after a
-// cold start.
+// SAR and AED are hard-pegged to the dollar. If the live lookup is down, the
+// peg is an accurate answer, so those two still work during an outage. Every
+// other currency fails open to "try again shortly" rather than guessing.
+const USD_PEGS: Record<string, number> = {
+  SAR: 1 / 3.75,
+  AED: 1 / 3.6725,
+};
+
+// Short in-memory cache — called whenever an organizer picks a tier, and
+// rates don't move meaningfully minute to minute. Process-local only.
 const cache = new Map<string, { rate: number; expiresAt: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-async function getUsdRate(currency: CurrencyCode): Promise<number> {
+// Exposed so tests can start from a clean slate.
+export function clearFxCache() {
+  cache.clear();
+}
+
+async function fetchUsdRate(currency: string): Promise<number> {
+  // "1 <currency> = X USD" => base=currency, quote=USD.
+  const res = await fetch(`${FX_BASE_URL}/rate/${currency}/USD`, {
+    next: { revalidate: 600 },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) throw new Error(`FX lookup failed for ${currency}: ${res.status}`);
+  const data = await res.json();
+  const rate = data?.rate;
+  if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) {
+    throw new Error(`FX response missing a usable USD rate for ${currency}`);
+  }
+  return rate;
+}
+
+async function getUsdRate(currency: string): Promise<number> {
   if (currency === "USD") return 1;
 
   const cached = cache.get(currency);
   if (cached && cached.expiresAt > Date.now()) return cached.rate;
 
-  // frankfurter quotes "1 <from> = X <to>" — we want "1 <currency> = X USD",
-  // i.e. from=currency, to=USD.
-  const res = await fetch(`${FX_BASE_URL}/latest?from=${currency}&to=USD`, {
-    // Rates barely move; let Next.js cache this at the fetch layer too.
-    next: { revalidate: 600 },
-  });
-  if (!res.ok) throw new Error(`FX lookup failed for ${currency}: ${res.status}`);
-
-  const data = await res.json();
-  const rate = data.rates?.USD;
-  if (typeof rate !== "number") throw new Error(`FX response missing USD rate for ${currency}`);
-
+  let rate: number;
+  try {
+    rate = await fetchUsdRate(currency);
+  } catch (e) {
+    const peg = USD_PEGS[currency];
+    if (peg === undefined) throw e;
+    // Don't cache a fallback: the next call should try the live rate again.
+    return peg;
+  }
   cache.set(currency, { rate, expiresAt: Date.now() + CACHE_TTL_MS });
   return rate;
 }
 
 export async function toUsd(amount: number, currency: string): Promise<number> {
-  if (!(SUPPORTED_CURRENCIES as readonly string[]).includes(currency)) {
+  if (!isSupportedCurrency(currency)) {
     throw new Error(`Unsupported currency: ${currency}`);
   }
-  const rate = await getUsdRate(currency as CurrencyCode);
-  return amount * rate;
+  return amount * (await getUsdRate(currency));
 }
 
 // Used by the tier-floor UI so a fetch failure degrades to "can't verify

@@ -16,13 +16,11 @@
 // varies slightly between ICU versions, which shows up as hydration
 // mismatches), and the lakh/crore style has to be explicit anyway.
 
-export const SUPPORTED_CURRENCIES = ["PKR", "USD", "INR", "SAR", "AED"] as const;
-export type CurrencyCode = (typeof SUPPORTED_CURRENCIES)[number];
-
-export function isSupportedCurrency(value: unknown): value is CurrencyCode {
-  return typeof value === "string" && (SUPPORTED_CURRENCIES as readonly string[]).includes(value);
-}
-
+// Every currency the platform knows how to format and validate. WHICH of
+// them organizers may actually pick is an admin setting (CurrencySetting, see
+// lib/services/currencies.ts) — adding a currency to the platform is one line
+// here plus switching it on in /admin/currencies. Launch currencies come
+// first: they keep their order in breakdowns like "Rs 6L + $2K".
 interface CurrencyStyle {
   symbol: string;
   // Alphabetic symbols ("Rs", "SAR") get a space before the number; glyphs
@@ -30,15 +28,60 @@ interface CurrencyStyle {
   space: boolean;
   // Indian digit grouping (12,34,567) and lakh/crore compact units.
   indian: boolean;
+  name: string;
 }
 
-const STYLES: Record<CurrencyCode, CurrencyStyle> = {
-  PKR: { symbol: "Rs", space: true, indian: true },
-  INR: { symbol: "₹", space: false, indian: true },
-  USD: { symbol: "$", space: false, indian: false },
-  SAR: { symbol: "SAR", space: true, indian: false },
-  AED: { symbol: "AED", space: true, indian: false },
-};
+const CATALOG = {
+  // launch currencies (spec §6)
+  PKR: { symbol: "Rs", space: true, indian: true, name: "Pakistani Rupee" },
+  USD: { symbol: "$", space: false, indian: false, name: "US Dollar" },
+  INR: { symbol: "₹", space: false, indian: true, name: "Indian Rupee" },
+  SAR: { symbol: "SAR", space: true, indian: false, name: "Saudi Riyal" },
+  AED: { symbol: "AED", space: true, indian: false, name: "UAE Dirham" },
+  // South Asia
+  BDT: { symbol: "৳", space: false, indian: true, name: "Bangladeshi Taka" },
+  LKR: { symbol: "LKR", space: true, indian: true, name: "Sri Lankan Rupee" },
+  NPR: { symbol: "NPR", space: true, indian: true, name: "Nepalese Rupee" },
+  // Middle East & North Africa
+  QAR: { symbol: "QAR", space: true, indian: false, name: "Qatari Riyal" },
+  KWD: { symbol: "KWD", space: true, indian: false, name: "Kuwaiti Dinar" },
+  BHD: { symbol: "BHD", space: true, indian: false, name: "Bahraini Dinar" },
+  OMR: { symbol: "OMR", space: true, indian: false, name: "Omani Rial" },
+  EGP: { symbol: "EGP", space: true, indian: false, name: "Egyptian Pound" },
+  TRY: { symbol: "₺", space: false, indian: false, name: "Turkish Lira" },
+  // Southeast Asia
+  MYR: { symbol: "RM", space: true, indian: false, name: "Malaysian Ringgit" },
+  IDR: { symbol: "Rp", space: true, indian: false, name: "Indonesian Rupiah" },
+  PHP: { symbol: "₱", space: false, indian: false, name: "Philippine Peso" },
+  THB: { symbol: "฿", space: false, indian: false, name: "Thai Baht" },
+  VND: { symbol: "₫", space: false, indian: false, name: "Vietnamese Dong" },
+  SGD: { symbol: "S$", space: false, indian: false, name: "Singapore Dollar" },
+  // West
+  EUR: { symbol: "€", space: false, indian: false, name: "Euro" },
+  GBP: { symbol: "£", space: false, indian: false, name: "British Pound" },
+  CAD: { symbol: "CA$", space: false, indian: false, name: "Canadian Dollar" },
+  AUD: { symbol: "A$", space: false, indian: false, name: "Australian Dollar" },
+  // Africa
+  ZAR: { symbol: "R", space: true, indian: false, name: "South African Rand" },
+  NGN: { symbol: "₦", space: false, indian: false, name: "Nigerian Naira" },
+} as const satisfies Record<string, CurrencyStyle>;
+
+export type CurrencyCode = keyof typeof CATALOG;
+export const SUPPORTED_CURRENCIES = Object.keys(CATALOG) as CurrencyCode[];
+
+// What's switched on until an admin changes it (and what a fresh database is
+// seeded with): the five launch currencies.
+export const LAUNCH_CURRENCIES: CurrencyCode[] = ["PKR", "USD", "INR", "SAR", "AED"];
+
+export function isSupportedCurrency(value: unknown): value is CurrencyCode {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(CATALOG, value);
+}
+
+export function currencyName(code: string): string {
+  return isSupportedCurrency(code) ? CATALOG[code].name : code;
+}
+
+const STYLES: Record<CurrencyCode, CurrencyStyle> = CATALOG;
 
 // Prisma returns Decimal columns as Decimal objects; forms hand us numbers.
 export type AmountLike = number | string | { toString(): string };
@@ -51,7 +94,7 @@ function styleFor(currency: string): CurrencyStyle {
   // An unsupported code (e.g. legacy data) still renders sensibly: "XYZ 100".
   return isSupportedCurrency(currency)
     ? STYLES[currency]
-    : { symbol: currency, space: true, indian: false };
+    : { symbol: currency, space: true, indian: false, name: currency };
 }
 
 function withSymbol(style: CurrencyStyle, body: string, negative: boolean): string {

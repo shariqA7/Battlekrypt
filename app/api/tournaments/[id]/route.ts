@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 import { getTournamentById, updateTournament } from "@/lib/services/tournaments";
 import { requireOrganizer } from "@/lib/auth-helpers";
 import { parseOptionalMoney } from "@/lib/money";
+import { prisma } from "@/lib/prisma";
+import { parseVenue } from "@/lib/venue-input";
+import { currenciesNotEnabled } from "@/lib/services/currencies";
+import { isCountryCode } from "@/lib/geo-data";
+import { toPublicTournament } from "@/lib/services/venue";
 
 function moneyError(message: string) {
   return NextResponse.json(
@@ -26,7 +31,8 @@ export async function GET(
     );
   }
 
-  return NextResponse.json(tournament);
+  // Never expose the on-site check-in code or room credentials publicly.
+  return NextResponse.json(toPublicTournament(tournament));
 }
 
 export async function PATCH(
@@ -43,11 +49,35 @@ export async function PATCH(
   if (!fee.ok) return moneyError(fee.message);
   const prize = parseOptionalMoney(body.prizePool, "Prize pool");
   if (!prize.ok) return moneyError(prize.message);
+  // Only a CHANGE of currency needs to be enabled: a draft that already uses a
+  // since-disabled currency can still be edited and saved as it is.
+  if (fee.value || prize.value) {
+    const current = await prisma.tournament.findUnique({
+      where: { id },
+      select: { entryFeeCurrency: true, prizePoolCurrency: true },
+    });
+    const disabled = await currenciesNotEnabled([
+      fee.value && fee.value.currency !== current?.entryFeeCurrency ? fee.value.currency : undefined,
+      prize.value && prize.value.currency !== current?.prizePoolCurrency ? prize.value.currency : undefined,
+    ]);
+    if (disabled) return moneyError(disabled);
+  }
+
+  if (body.country !== undefined && body.country !== null && body.country !== "" && !isCountryCode(body.country)) {
+    return moneyError("country must be a supported country code, or empty for worldwide.");
+  }
 
   const VALID_TIERS = ["none", "D", "C", "B", "A", "S", "National"];
   if (body.competitiveTier !== undefined && !VALID_TIERS.includes(body.competitiveTier)) {
     return moneyError("competitiveTier must be one of none/D/C/B/A/S/National.");
   }
+
+  if (body.audienceScope !== undefined && !["open", "institution"].includes(body.audienceScope)) {
+    return moneyError("audienceScope must be open or institution.");
+  }
+
+  const venue = parseVenue(body, { partial: true });
+  if (!venue.ok) return moneyError(venue.message);
 
   const result = await updateTournament(id, auth.organizerProfile.id, {
     name: body.name,
@@ -61,6 +91,11 @@ export async function PATCH(
     prizePoolAmount: prize.value?.amount,
     prizePoolCurrency: prize.value?.currency,
     competitiveTier: body.competitiveTier,
+    audienceScope: body.audienceScope,
+    requireFreshInstitutionProof:
+      typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
+    ...venue.value,
+    country: body.country === undefined ? undefined : body.country || null,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
 
@@ -93,6 +128,31 @@ export async function PATCH(
   }
   if (result.error === "invalid_fee") {
     return moneyError("A paid tournament needs an entry fee greater than zero.");
+  }
+  if (result.error === "venue_locked") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "venue_locked",
+          message: "Players have already registered, so this can no longer switch between Online and LAN.",
+        },
+      },
+      { status: 409 }
+    );
+  }
+  if (result.error === "invalid_check_in_window") {
+    return moneyError(result.message);
+  }
+  if (result.error === "audience_locked") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "audience_locked",
+          message: "Players have already registered, so who can enter can no longer be changed.",
+        },
+      },
+      { status: 409 }
+    );
   }
   if (result.error === "tier_locked") {
     return NextResponse.json(

@@ -2,6 +2,7 @@ import { listTournaments } from "@/lib/services/tournaments";
 import { formatMoney } from "@/lib/money";
 import Link from "next/link";
 import { Suspense } from "react";
+import { countryName, isCountryCode, isRegionKey } from "@/lib/geo-data";
 import FilterBar from "./FilterBar";
 
 import AdSlot from "@/components/ui/AdSlot";
@@ -17,6 +18,10 @@ export default async function TournamentsPage({
     type: (params.type || undefined) as never,
     mode: (params.mode || undefined) as never,
     entryType: (params.entryType || undefined) as never,
+    audienceScope: (params.audienceScope || undefined) as never,
+    venueType: (params.venueType || undefined) as never,
+    country: isCountryCode(params.country) ? params.country : undefined,
+    region: isRegionKey(params.region) ? params.region : undefined,
     page: params.page ? Number(params.page) : undefined,
   });
 
@@ -53,6 +58,24 @@ export default async function TournamentsPage({
                   </p>
                   <p className="font-sans text-bk-muted text-xs mt-1">
                     {t.game.name} · {t.type} · {t.mode}
+                    {t.country && (
+                      <span className="ml-2 text-bk-muted uppercase tracking-[0.5px] text-[10px]">
+                        {countryName(t.country)}
+                      </span>
+                    )}
+                    {t.venueType === "hybrid" && (
+                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">Hybrid</span>
+                    )}
+                    {t.venueType === "lan" && (
+                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
+                        LAN{t.venueCity ? ` · ${t.venueCity}` : ""}
+                      </span>
+                    )}
+                    {t.audienceScope === "institution" && (
+                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
+                        Students only
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="text-right">

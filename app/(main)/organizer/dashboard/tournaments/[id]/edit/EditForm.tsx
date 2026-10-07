@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
+import CountryPicker from "@/components/tournaments/CountryPicker";
+import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
+import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
 interface TournamentForEdit {
   id: string;
@@ -19,6 +22,15 @@ interface TournamentForEdit {
   prizePoolAmount: unknown;
   prizePoolCurrency: string | null;
   competitiveTier: CompetitiveTierValue;
+  audienceScope: AudienceScopeValue;
+  requireFreshInstitutionProof: boolean;
+  venueType: "online" | "lan" | "hybrid";
+  country: string | null;
+  venueName: string | null;
+  venueAddress: string | null;
+  venueCity: string | null;
+  checkInOpensAt: Date | null;
+  checkInClosesAt: Date | null;
   startAt: Date | null;
 }
 
@@ -43,6 +55,17 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
     tournament.competitiveTier
   );
+  const [country, setCountry] = useState(tournament.country ?? "");
+  const [venue, setVenue] = useState<VenueValue>({
+    venueType: tournament.venueType,
+    venueName: tournament.venueName ?? "",
+    venueAddress: tournament.venueAddress ?? "",
+    venueCity: tournament.venueCity ?? "",
+    checkInOpensAt: toLocalInput(tournament.checkInOpensAt),
+    checkInClosesAt: toLocalInput(tournament.checkInClosesAt),
+  });
+  const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>(tournament.audienceScope);
+  const [freshProof, setFreshProof] = useState(tournament.requireFreshInstitutionProof);
   const [startAt, setStartAt] = useState(
     tournament.startAt ? new Date(tournament.startAt).toISOString().slice(0, 16) : ""
   );
@@ -72,6 +95,10 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
         }),
         competitiveTier,
+        ...venueToBody(venue),
+        country: country || null,
+        audienceScope,
+        requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
       }),
     });
 
@@ -169,6 +196,19 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
       </div>
+
+      <CountryPicker value={country} onChange={setCountry} />
+
+      <VenuePicker value={venue} onChange={setVenue} />
+
+      <AudiencePicker
+        scope={audienceScope}
+        freshProof={freshProof}
+        onChange={(s, f) => {
+          setAudienceScope(s);
+          setFreshProof(f);
+        }}
+      />
 
       {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
 
