@@ -75,6 +75,12 @@ export async function POST(
       { status: 409 }
     );
   }
+  if (result.error === "institution_host_required") {
+    return NextResponse.json(
+      { error: { code: "institution_host_required", message: result.message } },
+      { status: 409 }
+    );
+  }
   if (result.error === "venue_incomplete") {
     return NextResponse.json(
       { error: { code: "venue_incomplete", message: result.message } },

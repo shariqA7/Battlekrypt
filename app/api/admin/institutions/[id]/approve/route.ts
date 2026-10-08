@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-helpers";
-import { reviewInstitution } from "@/lib/services/institutions";
+import { setInstitutionVerified } from "@/lib/services/institutions";
 
-// POST /api/admin/institutions/:id/approve
+// POST /api/admin/institutions/:id/approve — verify an institute.
 // Body: { note?: string }
 export async function POST(
   request: Request,
@@ -13,19 +13,18 @@ export async function POST(
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));
-  const result = await reviewInstitution(
+  const result = await setInstitutionVerified(
     id,
     auth.admin.id,
-    "approve",
+    true,
     typeof body.note === "string" ? body.note : undefined
   );
   if ("error" in result) {
-    const status = result.error === "not_found" ? 404 : result.error === "note_required" ? 400 : 409;
-    const message =
-      result.error === "note_required"
-        ? "Tell the player what to fix."
-        : "Couldn't update this verification.";
-    return NextResponse.json({ error: { code: result.error, message } }, { status });
+    const status = result.error === "not_found" ? 404 : 409;
+    return NextResponse.json(
+      { error: { code: result.error, message: "Couldn't verify this institute." } },
+      { status }
+    );
   }
   return NextResponse.json(result.data);
 }

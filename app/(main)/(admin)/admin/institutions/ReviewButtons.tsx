@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function ReviewButtons({ id }: { id: string }) {
+export default function ReviewButtons({ id, verified }: { id: string; verified: boolean }) {
   const router = useRouter();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,28 +28,33 @@ export default function ReviewButtons({ id }: { id: string }) {
 
   return (
     <div className="mt-3">
-      <input
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        placeholder="Note to the player (required to reject)"
-        className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[38px]"
-      />
+      {verified && (
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Reason (required to remove verification)"
+          className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[38px]"
+        />
+      )}
       {error && <p className="text-bk-live text-[12px] mt-2">{error}</p>}
       <div className="flex gap-2 mt-2">
-        <button
-          disabled={busy}
-          onClick={() => act("approve")}
-          className="flex-1 sm:flex-none bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[40px] disabled:opacity-50"
-        >
-          Approve
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => act("reject")}
-          className="flex-1 sm:flex-none border border-bk-live text-bk-live font-bold text-[12px] px-4 h-[40px] disabled:opacity-50"
-        >
-          Reject
-        </button>
+        {verified ? (
+          <button
+            disabled={busy}
+            onClick={() => act("reject")}
+            className="flex-1 sm:flex-none border border-bk-live text-bk-live font-bold text-[12px] px-4 h-[40px] disabled:opacity-50"
+          >
+            Remove verification
+          </button>
+        ) : (
+          <button
+            disabled={busy}
+            onClick={() => act("approve")}
+            className="flex-1 sm:flex-none bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[40px] disabled:opacity-50"
+          >
+            Verify institute
+          </button>
+        )}
       </div>
     </div>
   );
