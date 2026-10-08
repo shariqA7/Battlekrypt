@@ -10,11 +10,15 @@ import CancelButton from "./CancelButton";
 import ApplyPanel from "./ApplyPanel";
 import ApplicantsPanel from "./ApplicantsPanel";
 import EntryPanel from "./EntryPanel";
+import ReportButton from "./ReportButton";
+import { isUnderReview } from "@/lib/services/challenge-moderation";
+import { CHALLENGE_NOTICE } from "@/lib/challenge-terms";
 
 const STATUS_NOTE: Record<string, { text: string; tone: "gold" | "live" | "muted" }> = {
   pending_review: { text: "Waiting for admin approval — this prize is above the review limit. It goes live once approved.", tone: "gold" },
   rejected: { text: "An admin rejected this challenge.", tone: "live" },
   cancelled: { text: "This challenge was cancelled.", tone: "muted" },
+  removed: { text: "An admin removed this challenge after reports.", tone: "live" },
   expired: { text: "Applications closed before anyone was chosen.", tone: "muted" },
   completed: { text: "This challenge has been completed.", tone: "muted" },
 };
@@ -44,6 +48,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
   const entries = user && (isPoster || myEntry) ? await getEntriesForViewer(c.id, user.id, isPoster) : [];
   const [posterRecord, frozen] = await Promise.all([getPosterRecord(c.posterUserId), isPosterFrozen(c.posterUserId)]);
   const prizeType = c.prizeType as "cash" | "in_game" | "reward";
+  const underReview = c.status === "open" && (await isUnderReview(c.id));
 
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
@@ -64,6 +69,11 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         Poster record: {posterRecord.completed} prize{posterRecord.completed === 1 ? "" : "s"} settled
         {posterRecord.paymentDisputesLost > 0 ? ` · ${posterRecord.paymentDisputesLost} payment dispute${posterRecord.paymentDisputesLost === 1 ? "" : "s"} lost` : ""}
       </p>
+      {underReview && (
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-[rgba(239,159,39,0.12)] text-[#EF9F27]">
+          This challenge is being reviewed after reports. Applications are paused until an admin has looked.
+        </p>
+      )}
       {frozen && (
         <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-[rgba(239,159,39,0.12)] text-[#EF9F27]">
           {isPoster
@@ -80,6 +90,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
       </div>
 
       <p className="font-sans text-[13px] text-bk-body whitespace-pre-wrap mb-5">{c.description}</p>
+      <p className="font-sans text-[11px] text-bk-muted mb-5">{CHALLENGE_NOTICE}</p>
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 font-sans text-[12px] mb-6">
         <dt className="text-bk-muted">Slots</dt><dd className="text-bk-heading">{c.slots}</dd>
@@ -144,6 +155,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
           <ApplyPanel challengeId={c.id} existing={apply.existing} player={apply.player} teams={apply.teams} />
         ) : null
       ) : null}
+      {user && !isPoster && ["open", "in_progress", "completed"].includes(c.status) && <ReportButton challengeId={c.id} />}
     </main>
   );
 }

@@ -13,6 +13,8 @@ const STATUS: Record<string, number> = {
   full: 409,
   already_applied: 409,
   poster_frozen: 403,
+  under_review: 403,
+  age_restricted: 403,
 };
 
 export async function POST(

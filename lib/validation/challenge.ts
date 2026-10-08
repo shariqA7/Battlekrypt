@@ -25,6 +25,7 @@ export interface ChallengeInput {
   cashCurrency: string | null;
   prizeEstimatedUsd: number | null; // in-game prizes only
   payoutMethod: string;
+  acceptTerms: boolean;
 }
 
 export type ChallengeFieldErrors = Partial<Record<keyof ChallengeInput, string>>;
@@ -107,12 +108,16 @@ export function validateChallenge(
     e.payoutMethod = "Say how you'll pay or deliver the prize (e.g. JazzCash or bank transfer, PKR).";
   }
 
+  // The poster must tick the terms box (see lib/challenge-terms.ts).
+  const acceptTerms = b.acceptTerms === true;
+  if (!acceptTerms) e.acceptTerms = "Please read and accept the terms to post.";
+
   if (Object.keys(e).length) return { errors: e };
   return {
     data: {
       postAs, title, description, gameId, entrantType, minRating, slots, maxApplicants,
       openDays, completeWithinDays, prizeType, prizeDescription, cashAmount, cashCurrency,
-      prizeEstimatedUsd, payoutMethod,
+      prizeEstimatedUsd, payoutMethod, acceptTerms,
     },
   };
 }

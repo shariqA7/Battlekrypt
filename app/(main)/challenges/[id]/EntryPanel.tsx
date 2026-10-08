@@ -23,6 +23,7 @@ const FAIL_TEXT: Record<string, string> = {
   no_proof: "No proof was submitted before the deadline.",
   proof_rejected: "An admin ruled the proof didn't show a win.",
   no_payout_details: "No payout details were provided in time.",
+  suspected_collusion: "An admin ended this entry after a review.",
 };
 const field = "w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[36px]";
 const area = "w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2";

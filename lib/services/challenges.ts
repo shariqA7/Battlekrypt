@@ -14,6 +14,8 @@ import type { ChallengeInput, ChallengeFieldErrors, PosterType } from "@/lib/val
 import { PICK_GRACE_DAYS } from "@/lib/challenge-rules";
 import { notifyMany } from "@/lib/services/notifications";
 import { frozenPosterIds, isPosterFrozen, sweepFulfillment } from "@/lib/services/challenge-fulfillment";
+import { hiddenByReportsIds } from "@/lib/services/challenge-moderation";
+import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
 
 const DAY = 86_400_000;
 
@@ -141,7 +143,7 @@ export async function setChallengeReviewUsd(adminId: string, usd: number) {
 
 export type CreateResult =
   | { data: { id: string; status: "open" | "pending_review" } }
-  | { error: "role_unavailable" | "challenge_limit" | "prize_cap" | "fx_unavailable" | "game_not_found" | "poster_frozen"; message: string }
+  | { error: "role_unavailable" | "challenge_limit" | "prize_cap" | "fx_unavailable" | "game_not_found" | "poster_frozen" | "age_restricted"; message: string }
   | { error: "validation_error"; message: string; fields: ChallengeFieldErrors };
 
 export async function createChallenge(userId: string, input: ChallengeInput): Promise<CreateResult> {
@@ -159,6 +161,21 @@ export async function createChallenge(userId: string, input: ChallengeInput): Pr
       error: "challenge_limit",
       message: `Your ${role.planName} plan allows ${role.monthlyLimit} challenge${role.monthlyLimit === 1 ? "" : "s"} per month. Upgrade to post more.`,
     };
+  }
+
+  // Cash prizes are for adults. Organizations are vetted by an admin, so the
+  // check is for players and clubs, run by an individual's profile age.
+  if (input.prizeType === "cash" && input.postAs !== "organizer") {
+    const profile = await prisma.playerProfile.findUnique({ where: { userId }, select: { age: true } });
+    const age = cashAgeCheck(profile?.age);
+    if (age !== "ok") {
+      return {
+        error: "age_restricted",
+        message: age === "age_required"
+          ? "Cash prizes are for players 18 and over. Add your age in your profile first."
+          : "Cash prizes are only for players 18 and over.",
+      };
+    }
   }
 
   const game = await prisma.game.findFirst({ where: { id: input.gameId, isApproved: true } });
@@ -208,6 +225,7 @@ export async function createChallenge(userId: string, input: ChallengeInput): Pr
       cashCurrency: input.cashCurrency,
       prizeUsd: prizeUsd === null ? null : prizeUsd.toFixed(2),
       payoutMethod: input.payoutMethod,
+      termsAcceptedAt: new Date(),
       status: needsReview ? "pending_review" : "open",
     },
   });
@@ -271,7 +289,7 @@ export async function expireStaleChallenges() {
 export async function listOpenChallenges(opts: { gameId?: string } = {}) {
   await expireStaleChallenges();
   // Posters with an unsettled payment dispute are paused: hidden until it's settled.
-  const frozen = await frozenPosterIds();
+  const [frozen, reported] = await Promise.all([frozenPosterIds(), hiddenByReportsIds()]);
   return prisma.challenge.findMany({
     // Only challenges still taking applications are listed; one waiting for
     // its poster to pick stays reachable from the poster's own pages.
@@ -279,6 +297,8 @@ export async function listOpenChallenges(opts: { gameId?: string } = {}) {
       status: "open",
       applicationsCloseAt: { gt: new Date() },
       ...(frozen.length > 0 && { posterUserId: { notIn: frozen } }),
+      // Several open reports hide it until an admin has looked.
+      ...(reported.length > 0 && { id: { notIn: reported } }),
       ...(opts.gameId && { gameId: opts.gameId }),
     },
     orderBy: { createdAt: "desc" },

@@ -9,6 +9,9 @@ import { prisma } from "@/lib/prisma";
 import { getJoinAccess } from "@/lib/services/challenges";
 import { notify, notifyMany } from "@/lib/services/notifications";
 import { isPosterFrozen } from "@/lib/services/challenge-fulfillment";
+import { isUnderReview } from "@/lib/services/challenge-moderation";
+import { detectSelectionFlags } from "@/lib/services/challenge-integrity";
+import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
 import { applyBlocker, selectionBlocker, type EntrantKind } from "@/lib/challenge-rules";
 
 const DAY = 86_400_000;
@@ -109,6 +112,24 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
     // A poster with an unsettled payment dispute can't take on more challengers.
     if (await isPosterFrozen(c.posterUserId)) {
       return { error: "poster_frozen", message: "This poster's challenges are paused while a payment dispute is settled." };
+    }
+
+    // Reported challenges are paused for applications until an admin has looked.
+    if (await isUnderReview(c.id)) {
+      return { error: "under_review", message: "This challenge is being reviewed after reports. Applications are paused." };
+    }
+    // Cash prizes are for adults (self-reported profile age).
+    if (c.prizeType === "cash") {
+      const profile = await prisma.playerProfile.findUnique({ where: { userId }, select: { age: true } });
+      const age = cashAgeCheck(profile?.age);
+      if (age !== "ok") {
+        return {
+          error: "age_restricted",
+          message: age === "age_required"
+            ? "Cash prizes are for players 18 and over. Add your age in your profile to apply."
+            : "Cash prizes are only for players 18 and over.",
+        };
+      }
     }
 
     const access = await getJoinAccess(userId);
@@ -263,6 +284,13 @@ export async function selectApplicants(
   });
 
   if ("data" in result) {
+    // Look for signs the poster and a picked challenger are linked. Best
+    // effort: it must never undo or delay the pick.
+    try {
+      await detectSelectionFlags(challengeId);
+    } catch (e) {
+      console.error("collusion check failed", e);
+    }
     const { title, completeBy, selectedUserIds, rejectedUserIds } = result.data;
     await Promise.all([
       notifyMany(selectedUserIds, {
