@@ -130,7 +130,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Max teams</label>
           <input

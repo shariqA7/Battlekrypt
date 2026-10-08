@@ -89,7 +89,7 @@ export default function StageManager({
             </div>
 
             {editing === stage.id && (
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
                 <input
                   placeholder="Room ID"
                   value={roomId}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -18,6 +18,16 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "BattleKrypt",
   description: "Tournaments, leagues, and daily scrims for competitive gaming.",
+};
+
+// viewport-fit=cover lets the page paint under the notch / home indicator so
+// there are no off-colour bars, and globals.css then keeps content clear of
+// those areas with env(safe-area-inset-*). themeColor tints the browser bar.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#16130B",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

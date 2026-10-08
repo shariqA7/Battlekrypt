@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
   return (
     <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
       <AuthStageRail step={2} />
-      <div className="w-[420px]">
+      <div className="w-full max-w-[420px]">
         <p className="font-sans font-extrabold text-[32px] leading-[1.15] text-bk-heading mb-2">
           Complete your profile
         </p>

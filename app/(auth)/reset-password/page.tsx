@@ -3,7 +3,7 @@ import ResetPasswordForm from "./ResetPasswordForm";
 export default function ResetPasswordPage() {
   return (
     <main className="flex-1 flex items-center justify-center p-6">
-      <div className="w-[380px]">
+      <div className="w-full max-w-[380px]">
         <p className="font-sans font-extrabold text-[32px] leading-[1.15] text-bk-heading mb-2">
           Set a new password
         </p>

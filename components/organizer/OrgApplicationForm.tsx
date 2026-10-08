@@ -285,7 +285,7 @@ export default function OrgApplicationForm({
       </Field>
 
       <Section title="Location & contact" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Country" error={errors.country} feedback={fb("country")}>
           <input value={v.country} onChange={set("country")} className={inputCls} />
         </Field>
@@ -296,7 +296,7 @@ export default function OrgApplicationForm({
       <Field label="Address" error={errors.address} feedback={fb("address")}>
         <input value={v.address} onChange={set("address")} className={inputCls} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Organization email" error={errors.contactEmail} feedback={fb("contactEmail")}>
           <input type="email" value={v.contactEmail} onChange={set("contactEmail")} className={inputCls} />
         </Field>
@@ -309,7 +309,7 @@ export default function OrgApplicationForm({
       <Field label="Full name" error={errors.handlerName} feedback={fb("handlerName")}>
         <input value={v.handlerName} onChange={set("handlerName")} className={inputCls} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Role in the organization" error={errors.handlerRole} feedback={fb("handlerRole")}>
           <input value={v.handlerRole} onChange={set("handlerRole")} className={inputCls} placeholder="Founder, Manager…" />
         </Field>
@@ -319,7 +319,7 @@ export default function OrgApplicationForm({
       </div>
 
       <Section title="Plan" />
-      <div className="grid grid-cols-2 gap-3 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
         {plans.map((plan) => {
           const selected = v.plan === plan.code;
           const perks = [

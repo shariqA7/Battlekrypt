@@ -64,3 +64,65 @@ body {
   background-image: linear-gradient(135deg, var(--bk-gold-from) 0%, var(--bk-gold-to) 100%);
   box-shadow: var(--bk-gold-glow);
 }
+
+
+/* ============================================================
+   Mobile / notch handling (Phase 8.6)
+   viewport-fit=cover (see app/layout.tsx) makes the page extend under the
+   notch, the rounded corners and the home indicator. These insets are 0 on
+   desktop and on phones without a notch, so nothing changes there.
+   ============================================================ */
+
+/* Left/right insets matter in landscape, where the notch sits on a side. */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  /* Safety net: a stray wide element must never make the whole page scroll
+     sideways. "clip" (unlike "hidden") doesn't break position: sticky. */
+  overflow-x: clip;
+}
+
+/* The top bar: grows by the notch height in its own colour (a border, so it
+   can't override the bar's own vertical padding), and breaks out of the
+   body's landscape side padding so it stays edge to edge while its content
+   still sits clear of the notch. All of this is 0 without a notch. */
+.nav-safe {
+  border-top: env(safe-area-inset-top) solid var(--bk-bg-nav);
+  margin-left: calc(-1 * env(safe-area-inset-left));
+  margin-right: calc(-1 * env(safe-area-inset-right));
+  padding-left: calc(1rem + env(safe-area-inset-left));
+  padding-right: calc(1rem + env(safe-area-inset-right));
+}
+@media (min-width: 640px) {
+  .nav-safe {
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
+  }
+}
+
+/* iOS Safari zooms the whole page when you focus a field under 16px, and
+   doesn't zoom back — which reads as the layout being "cut off". Keep every
+   field at 16px on phones. (Unlayered CSS wins over Tailwind's utilities.) */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Long unbroken strings (emails, URLs, room codes) wrap instead of pushing
+   the page wider than the screen. "break-word", not "anywhere": "anywhere"
+   also shrinks an item's minimum width, which let prize amounts and labels
+   get squeezed and split mid-word inside flex rows. */
+p, h1, h2, h3, h4, li, td, th, label {
+  overflow-wrap: break-word;
+}
+
+/* Taller than the visible area on mobile browsers whose address bar collapses. */
+@supports (min-height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
+}

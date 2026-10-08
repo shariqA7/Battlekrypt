@@ -49,7 +49,7 @@ export default function ClubRegisterForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-[340px] bg-bk-surface border border-bk-border p-6"
+      className="w-full max-w-[340px] bg-bk-surface border border-bk-border p-6"
     >
       <p className="font-sans font-bold text-lg text-bk-heading mb-1">Create a club</p>
       <p className="font-sans text-bk-body text-[13px] mb-5">

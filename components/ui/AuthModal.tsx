@@ -33,7 +33,7 @@ export default function AuthModal({
       onClick={onClose}
     >
       <div
-        className="w-[320px] bg-[#1F2833] border border-[#39342A] p-6"
+        className="w-[min(320px,calc(100vw-2rem))] bg-[#1F2833] border border-[#39342A] p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <p className="font-sans font-bold text-[20px] text-[#EAE1D3] mb-1">
