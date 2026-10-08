@@ -40,7 +40,7 @@ export default function ReportButton({ challengeId }: { challengeId: string }) {
           </select>
           <textarea value={details} onChange={(e) => setDetails(e.target.value)} rows={2} placeholder="Details (optional)" className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 py-2" />
           <div className="flex gap-3">
-            <button disabled={busy} onClick={send} className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Send report</button>
+            <button disabled={busy} onClick={send} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Send report</button>
             <button onClick={() => setOpen(false)} className="font-sans text-[12px] text-bk-muted underline">Cancel</button>
           </div>
         </div>

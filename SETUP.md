@@ -448,3 +448,12 @@ No migration, no setup. Checked in a real headless browser at 320, 375, 390, 430
 - **Forms and cards:** two- and three-column form grids stack on phones; fixed-width cards (login, forgot/reset password, onboarding, club register, sign-in popup) now shrink to the screen; the tournament filter bar wraps into one row per filter with 44 px touch targets; the tournament header stacks with a full-width Join button; prize amounts no longer break mid-number.
 - **iOS zoom:** every text field is forced to 16 px on phones. Below that, iOS Safari zooms the page when you tap a field and doesn't zoom back, which looks like the layout being cut off.
 - **Not covered:** signed-in screens (dashboards, organizer tools, admin) could not be opened in my test setup because there is no Supabase login there; they got the same grid/width fixes from a code audit but have not been viewed on a phone.
+
+## Design system (D1) — themes, tokens, shared components
+
+The app has two themes, **dark** (default, matches the design mockup) and **light**, switched by the sun/moon button in the top bar. The choice is stored in the browser (`localStorage` key `bk-theme`) and applied before the page paints, so there is no flash.
+
+- **Colors live in one place:** `app/globals.css`. `:root` is the dark theme and `:root[data-theme="light"]` overrides it. Components use the Tailwind names (`bg-bk-bg`, `bg-bk-surface`, `text-bk-heading`, `text-bk-body`, `text-bk-muted`, `text-bk-gold-light`, `border-bk-border`, `bg-bk-primary text-bk-on-primary`, `text-bk-amber`, `text-bk-teal`, `text-bk-live`, ...). **Never write a raw hex color or `bg-white` in a component:** it will not follow the theme. For a tint use an opacity, e.g. `bg-bk-live/15`.
+- **Contrast:** every text/background pair in both themes was checked against WCAG AA (4.5:1). `text-bk-faint` is deliberately below AA and is only for decorative or "not yet" states.
+- **Shared components:** `components/ui/Button.tsx` (primary / outline / ghost / danger, 44 px touch targets on phones), `Badge.tsx` (tier and status chips), `Panel.tsx` (card, gold-bar section heading, small uppercase label), and `components/layout/ThemeToggle.tsx`.
+- Brand colors (Google, Discord) and the verified-badge gold stay fixed on purpose.

@@ -18,7 +18,7 @@ interface FeaturedRow { tournamentId: string; name: string; status: string }
 interface Featurable { id: string; name: string }
 
 const input = "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[34px] w-full";
-const btn = "bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50";
+const btn = "bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50";
 
 async function call(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {

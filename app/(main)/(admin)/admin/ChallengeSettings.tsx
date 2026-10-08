@@ -31,7 +31,7 @@ export default function ChallengeSettings({ initialUsd }: { initialUsd: number }
         <span className="font-sans text-[13px] text-bk-body">$</span>
         <input type="number" min={1} value={usd} onChange={(e) => setUsd(e.target.value)}
           className="w-32 bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[36px]" />
-        <button disabled={busy} onClick={save} className="bg-white text-bk-bg font-sans font-bold text-[12px] uppercase px-4 h-[36px] disabled:opacity-50">Save</button>
+        <button disabled={busy} onClick={save} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase px-4 h-[36px] disabled:opacity-50">Save</button>
         {msg && <span className={`font-sans text-[12px] ${msg.error ? "text-bk-live" : "text-bk-gold-light"}`}>{msg.text}</span>}
       </div>
     </section>

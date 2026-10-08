@@ -38,7 +38,7 @@ export default async function AdminTrafficPage({
         <Stat label="Unique IPs" value={t.uniqueIps} />
       </div>
 
-      <Panel title="Sessions per day"><ColumnChart data={t.perDay} color="#6BA4E8" /></Panel>
+      <Panel title="Sessions per day"><ColumnChart data={t.perDay} color="var(--bk-teal)" /></Panel>
 
       <div className="grid lg:grid-cols-2 gap-4">
         <Panel title="Countries"><BarList data={t.countries} empty="No location data — it needs a host that sends country headers (Vercel, Cloudflare)." /></Panel>

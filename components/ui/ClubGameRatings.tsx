@@ -23,14 +23,14 @@ export default function ClubGameRatings({
       {ratings.map((r, i) => (
         <div
           key={r.gameId}
-          className="bg-[#1F2833] border border-[#39342A] px-4.5 py-3.5 text-center flex-shrink-0 min-w-[130px]"
+          className="bg-bk-surface border border-bk-border px-4.5 py-3.5 text-center flex-shrink-0 min-w-[130px]"
         >
-          <p className="font-sans text-[10px] tracking-[1px] text-[#D1C5AE] uppercase mb-1.5">
+          <p className="font-sans text-[10px] tracking-[1px] text-bk-body uppercase mb-1.5">
             {r.gameName} rating
           </p>
           <p
             className={`font-mono text-[20px] font-medium ${
-              i === 0 ? "text-[#FFE7AD]" : "text-[#EAE1D3]"
+              i === 0 ? "text-bk-gold-light" : "text-bk-heading"
             }`}
           >
             {r.rating.toLocaleString()}
@@ -41,9 +41,9 @@ export default function ClubGameRatings({
       {onAddGame && (
         <button
           onClick={onAddGame}
-          className="bg-[#1F2833] border border-dashed border-[#39342A] px-4.5 py-3.5 text-center flex-shrink-0 min-w-[130px] opacity-60 hover:opacity-100"
+          className="bg-bk-surface border border-dashed border-bk-border px-4.5 py-3.5 text-center flex-shrink-0 min-w-[130px] opacity-60 hover:opacity-100"
         >
-          <p className="font-sans text-[10px] tracking-[1px] text-[#D1C5AE] uppercase">
+          <p className="font-sans text-[10px] tracking-[1px] text-bk-body uppercase">
             + Add game
           </p>
         </button>

@@ -283,7 +283,7 @@ function SettingRow({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="bg-white text-bk-bg font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1 disabled:opacity-50"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}
           </button>

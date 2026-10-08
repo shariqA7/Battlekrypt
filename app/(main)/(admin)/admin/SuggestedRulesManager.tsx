@@ -213,7 +213,7 @@ export default function SuggestedRulesManager({
           <button
             type="submit"
             disabled={busy}
-            className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase tracking-[0.5px] py-2 disabled:opacity-50"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.5px] py-2 disabled:opacity-50"
           >
             Save suggestion
           </button>

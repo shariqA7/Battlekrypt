@@ -24,7 +24,7 @@ export default async function AdminUsersPage({
         </div>
         <form className="flex gap-2">
           <input name="q" defaultValue={q} placeholder="Search name or email" className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px] w-56" />
-          <button className="bg-white text-bk-bg font-sans font-bold text-[12px] uppercase px-3 h-[36px]">Search</button>
+          <button className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase px-3 h-[36px]">Search</button>
         </form>
       </div>
 

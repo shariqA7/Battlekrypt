@@ -88,7 +88,7 @@ export default function ChallengeReview({
               </div>
             ) : (
               <div className="flex gap-2 mt-3">
-                <button disabled={busy} onClick={() => act(c.id, "approve")} className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50">Approve</button>
+                <button disabled={busy} onClick={() => act(c.id, "approve")} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50">Approve</button>
                 <button onClick={() => setRejecting(c.id)} className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 py-1.5">Reject</button>
               </div>
             )}

@@ -34,13 +34,13 @@ export default async function TournamentDetailPage({
       <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
         <div className="h-[120px] bg-bk-surface mb-6 flex items-end p-3 relative">
           {tournament.status === "in_progress" && (
-            <span className="bg-[rgba(239,68,68,0.15)] text-bk-live text-[11px] font-sans px-2 py-1 flex items-center gap-1.5">
+            <span className="bg-bk-live/15 text-bk-live text-[11px] font-sans px-2 py-1 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-bk-live" />
               Live now
             </span>
           )}
           {tournament.competitiveTier !== "none" && (
-            <span className="absolute top-3 right-3 bg-bk-gold-gradient text-bk-bg text-[10px] font-sans font-bold px-2 py-1">
+            <span className="absolute top-3 right-3 bg-bk-gold-gradient text-bk-on-gold text-[10px] font-sans font-bold px-2 py-1">
               {tournament.competitiveTier.toUpperCase()}-TIER
             </span>
           )}
@@ -81,7 +81,7 @@ export default async function TournamentDetailPage({
           </div>
           <a
             href={`/tournaments/${tournament.slug}/join`}
-            className="bg-white text-bk-bg font-sans font-bold text-[13px] px-5 py-3 sm:py-2.5 block sm:inline-block w-full sm:w-auto text-center shrink-0"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[13px] px-5 py-3 sm:py-2.5 block sm:inline-block w-full sm:w-auto text-center shrink-0"
           >
             Join tournament
           </a>

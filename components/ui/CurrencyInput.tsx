@@ -29,18 +29,18 @@ export default function CurrencyInput({
         type="number"
         value={amount}
         onChange={(e) => onChange(Number(e.target.value), currency)}
-        className="flex-1 bg-[#0B0C10] border border-[#39342A] border-r-0 text-[#EAE1D3] font-mono text-[14px] px-3.5 py-2.5"
+        className="flex-1 bg-bk-bg border border-bk-border border-r-0 text-bk-heading font-mono text-[14px] px-3.5 py-2.5"
       />
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="bg-[#1F2833] border border-[#39342A] text-[#FFE7AD] font-sans font-bold text-[12px] tracking-[0.5px] px-3.5 flex items-center gap-1.5"
+        className="bg-bk-surface border border-bk-border text-bk-gold-light font-sans font-bold text-[12px] tracking-[0.5px] px-3.5 flex items-center gap-1.5"
       >
         {currency}
         <ChevronDown />
       </button>
 
       {dropdownOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-[#1F2833] border border-[#39342A] z-10 min-w-[80px] max-h-[240px] overflow-y-auto">
+        <div className="absolute top-full right-0 mt-1 bg-bk-surface border border-bk-border z-10 min-w-[80px] max-h-[240px] overflow-y-auto">
           {options.map((c) => (
             <button
               key={c}
@@ -48,7 +48,7 @@ export default function CurrencyInput({
                 onChange(amount, c);
                 setDropdownOpen(false);
               }}
-              className="w-full text-left px-3.5 py-2 text-[12px] font-sans text-[#D1C5AE] hover:bg-[#39342A] hover:text-[#EAE1D3]"
+              className="w-full text-left px-3.5 py-2 text-[12px] font-sans text-bk-body hover:bg-bk-border hover:text-bk-heading"
             >
               {c}
             </button>

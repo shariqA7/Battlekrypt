@@ -56,7 +56,7 @@ export default function ClaimForm() {
       {message && (
         <p className={`font-sans text-[12px] mb-3 ${message.error ? "text-bk-live" : "text-bk-gold-light"}`}>{message.text}</p>
       )}
-      <button disabled={busy} className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50">
+      <button disabled={busy} className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50">
         {busy ? "Sending…" : "Send claim"}
       </button>
     </form>

@@ -100,7 +100,7 @@ export default function AuthForm({
         <button
           type="button"
           onClick={onGoogleLogin}
-          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-2.5 transition-all hover:bg-white/[0.04] hover:-translate-y-px active:translate-y-0"
+          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-2.5 transition-all hover:bg-bk-heading/[0.05] hover:-translate-y-px active:translate-y-0"
         >
           <GoogleIcon />
           Continue with Google
@@ -109,7 +109,7 @@ export default function AuthForm({
         <button
           type="button"
           onClick={onDiscordLogin}
-          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-5 transition-all hover:bg-white/[0.04] hover:-translate-y-px active:translate-y-0"
+          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-5 transition-all hover:bg-bk-heading/[0.05] hover:-translate-y-px active:translate-y-0"
         >
           <DiscordIcon />
           Continue with Discord
@@ -189,7 +189,7 @@ export default function AuthForm({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-white text-bk-bg rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
+            className="w-full bg-bk-primary text-bk-on-primary rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
           >
             {submitting ? "Please wait..." : mode === "signup" ? "Create account" : "Sign in"}
           </button>

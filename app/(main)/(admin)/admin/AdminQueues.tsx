@@ -130,7 +130,7 @@ export default function AdminQueues({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOrganizer(o.id, "approve")}
-                    className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                   >
                     Approve
                   </button>
@@ -179,7 +179,7 @@ export default function AdminQueues({
                     onClick={() =>
                       approvingClub === c.id ? handleClub(c.id, "approve") : setApprovingClub(c.id)
                     }
-                    className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                   >
                     {approvingClub === c.id ? "Confirm" : "Approve"}
                   </button>
@@ -258,7 +258,7 @@ export default function AdminQueues({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleGameRequest(g.id, "approve")}
-                    className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                   >
                     Approve
                   </button>

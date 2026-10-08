@@ -72,7 +72,7 @@ export default async function LivePage({
                       Watch stream ↗
                     </a>
                   )}
-                  <span className="bg-[rgba(239,68,68,0.15)] text-bk-live text-[10px] font-sans uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap">
+                  <span className="bg-bk-live/15 text-bk-live text-[10px] font-sans uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap">
                     Live
                   </span>
                 </div>

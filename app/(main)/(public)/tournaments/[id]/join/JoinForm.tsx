@@ -154,7 +154,7 @@ export default function JoinForm({
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
+        className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
       >
         {submitting ? "Submitting..." : "Submit registration"}
       </button>

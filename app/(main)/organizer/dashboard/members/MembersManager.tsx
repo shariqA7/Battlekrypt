@@ -63,7 +63,7 @@ export default function MembersManager({ initialMembers }: { initialMembers: Mem
             <option value="manager">Manager</option>
           </select>
         </div>
-        <button disabled={busy} className="bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-4 h-[38px] disabled:opacity-50">
+        <button disabled={busy} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-4 h-[38px] disabled:opacity-50">
           Add member
         </button>
         {error && <p className="w-full font-sans text-[12px] text-bk-live">{error}</p>}
