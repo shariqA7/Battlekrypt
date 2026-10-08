@@ -37,7 +37,7 @@ export default function MobileMenu({
   }, [open]);
 
   const item =
-    "block px-5 py-4 font-sans font-medium text-[13px] tracking-[1.2px] uppercase text-bk-body border-b border-bk-border-nav active:bg-white/[0.04]";
+    "block px-5 py-4 font-sans font-medium text-[13px] tracking-[1.2px] uppercase text-bk-body border-b border-bk-border-nav active:bg-bk-heading/[0.05]";
 
   return (
     <div className="lg:hidden">
@@ -105,7 +105,7 @@ export default function MobileMenu({
               <div className="p-5 flex flex-col gap-3 border-t border-bk-border-nav shrink-0">
                 <Link
                   href="/signup"
-                  className="bg-white text-bk-bg text-center font-sans font-bold text-[13px] tracking-[0.8px] uppercase py-3.5"
+                  className="bg-bk-primary text-bk-on-primary text-center font-sans font-bold text-[13px] tracking-[0.8px] uppercase py-3.5"
                 >
                   Sign up
                 </Link>

@@ -74,7 +74,7 @@ export default function PublishButton({
     // unpublished.
     if (submittedForReview) {
       return (
-        <span className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light bg-[rgba(244,200,66,0.1)] px-2.5 py-1.5">
+        <span className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light bg-bk-gold-from/10 px-2.5 py-1.5">
           Pending admin review
         </span>
       );
@@ -84,7 +84,7 @@ export default function PublishButton({
         <button
           onClick={handlePublish}
           disabled={submitting}
-          className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 disabled:opacity-50"
+          className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 disabled:opacity-50"
         >
           {submitting ? "Publishing..." : "Publish"}
         </button>
@@ -106,7 +106,7 @@ export default function PublishButton({
   return (
     <div className="text-right">
       <div className="flex items-center gap-2">
-        <span className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light bg-[rgba(244,200,66,0.1)] px-2.5 py-1.5">
+        <span className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light bg-bk-gold-from/10 px-2.5 py-1.5">
           {status.replace("_", " ")}
         </span>
         {options.length > 0 && (
@@ -126,7 +126,7 @@ export default function PublishButton({
             <button
               onClick={handleStatusChange}
               disabled={!nextStatus || submitting}
-              className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50"
+              className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50"
             >
               Go
             </button>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
+import { THEME_INIT_SCRIPT } from "@/components/layout/ThemeToggle";
 
 const hankenGrotesk = Hanken_Grotesk({
   variable: "--font-sans",
@@ -35,7 +36,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      // The theme attribute is set by the inline script below before first paint,
+      // so the server-rendered <html> and the browser's legitimately differ.
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-full flex flex-col bg-bk-bg text-bk-heading">
 
         {children}

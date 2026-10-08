@@ -120,7 +120,7 @@ export default function ChallengeIntegrity({
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setOpen(c.id); setError(null); }} className="mt-3 bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 py-1.5">Review</button>
+                <button onClick={() => { setOpen(c.id); setError(null); }} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5">Review</button>
               )}
             </div>
           ))}
@@ -137,7 +137,7 @@ export default function ChallengeIntegrity({
         <div className="space-y-3">
           {flagList.map((f) => (
             <div key={f.id} className="bg-bk-surface border border-bk-border p-4">
-              <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-[#EF9F27]">{KIND_LABEL[f.kind]}</p>
+              <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-amber">{KIND_LABEL[f.kind]}</p>
               <p className="font-sans font-bold text-bk-heading mt-1">{f.challengeTitle}</p>
               <p className="font-sans text-[12px] text-bk-muted">
                 Poster {f.posterEmail} · challenger {f.entryName} ({f.challengerEmail}) · entry {f.entryStage.replace(/_/g, " ")}
@@ -148,13 +148,13 @@ export default function ChallengeIntegrity({
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className={area} placeholder="Your note" />
                   {error && <p className="font-sans text-[12px] text-bk-live">{error}</p>}
                   <div className="flex flex-wrap gap-3">
-                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "dismiss", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Looks fine</button>
+                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "dismiss", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Looks fine</button>
                     <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "fail_entry", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">End this entry</button>
                     <button onClick={() => setOpen(null)} className="font-sans text-[12px] text-bk-muted underline">Cancel</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setOpen(f.id); setError(null); }} className="mt-3 bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 py-1.5">Review</button>
+                <button onClick={() => { setOpen(f.id); setError(null); }} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5">Review</button>
               )}
             </div>
           ))}

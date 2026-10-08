@@ -55,7 +55,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
       <Link href="/challenges" className="font-sans text-[12px] text-bk-muted underline">← Challenges</Link>
 
       {note && (
-        <p className={`mt-4 font-sans text-[13px] px-3 py-2 ${note.tone === "live" ? "bg-bk-live-bg text-bk-live" : note.tone === "gold" ? "bg-[rgba(239,159,39,0.12)] text-[#EF9F27]" : "bg-bk-surface text-bk-muted"}`}>
+        <p className={`mt-4 font-sans text-[13px] px-3 py-2 ${note.tone === "live" ? "bg-bk-live-bg text-bk-live" : note.tone === "gold" ? "bg-bk-amber/[0.12] text-bk-amber" : "bg-bk-surface text-bk-muted"}`}>
           {note.text}
           {c.reviewNote && ` Reason: ${c.reviewNote}`}
         </p>
@@ -70,12 +70,12 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         {posterRecord.paymentDisputesLost > 0 ? ` · ${posterRecord.paymentDisputesLost} payment dispute${posterRecord.paymentDisputesLost === 1 ? "" : "s"} lost` : ""}
       </p>
       {underReview && (
-        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-[rgba(239,159,39,0.12)] text-[#EF9F27]">
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-bk-amber/[0.12] text-bk-amber">
           This challenge is being reviewed after reports. Applications are paused until an admin has looked.
         </p>
       )}
       {frozen && (
-        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-[rgba(239,159,39,0.12)] text-[#EF9F27]">
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-bk-amber/[0.12] text-bk-amber">
           {isPoster
             ? "Your challenges are paused while a payment dispute is settled. You can't post or take applications until then."
             : "This poster's challenges are temporarily paused."}
@@ -139,12 +139,12 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         </>
       ) : acceptingApplications ? (
         !user ? (
-          <Link href={`/login?redirectTo=/challenges/${c.id}`} className="inline-block bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
+          <Link href={`/login?redirectTo=/challenges/${c.id}`} className="inline-block bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
             Sign in to join
           </Link>
         ) : apply?.planBlocked ? (
           <div>
-            <Link href="/plans" className="inline-block bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
+            <Link href="/plans" className="inline-block bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
               Upgrade to join
             </Link>
             <p className="font-sans text-[12px] text-bk-muted mt-2">

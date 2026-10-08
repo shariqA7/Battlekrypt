@@ -47,7 +47,7 @@ export default function PlanRequestForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.8px] uppercase px-4 py-2"
+        className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.8px] uppercase px-4 py-2"
       >
         Get {planName}
       </button>
@@ -84,7 +84,7 @@ export default function PlanRequestForm({
           type="button"
           onClick={submit}
           disabled={submitting}
-          className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.8px] uppercase px-4 py-2 disabled:opacity-50"
+          className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.8px] uppercase px-4 py-2 disabled:opacity-50"
         >
           {submitting ? "Submitting..." : "Submit for approval"}
         </button>

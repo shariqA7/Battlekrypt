@@ -9,9 +9,9 @@ import DashboardTop from "@/components/dashboard/DashboardTop";
 const STATUS_DOT: Record<string, string> = {
   draft: "bg-bk-muted",
   published: "bg-bk-gold-light",
-  registration_open: "bg-[#1D9E75]",
-  registration_closed: "bg-[#EF9F27]",
-  in_progress: "bg-[#1D9E75]",
+  registration_open: "bg-bk-teal",
+  registration_closed: "bg-bk-amber",
+  in_progress: "bg-bk-teal",
   completed: "bg-bk-muted",
   cancelled: "bg-bk-live",
 };
@@ -60,7 +60,7 @@ export default async function OrganizerDashboard() {
             </Link>
             <Link
               href="/organizer/dashboard/tournaments/new"
-              className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.6px] uppercase px-4 py-2.5"
+              className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.6px] uppercase px-4 py-2.5"
             >
               + New tournament
             </Link>
@@ -68,7 +68,7 @@ export default async function OrganizerDashboard() {
         </div>
 
         {!isApproved && (
-          <p className="bg-[rgba(239,159,39,0.12)] text-[#EF9F27] font-sans text-[12px] px-3 py-2 mb-6 inline-block">
+          <p className="bg-bk-amber/[0.12] text-bk-amber font-sans text-[12px] px-3 py-2 mb-6 inline-block">
             Your organizer account is pending admin approval. You can build
             drafts now, but publishing is locked until you&apos;re approved.
           </p>

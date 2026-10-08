@@ -64,7 +64,7 @@ export default function UserMenu({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-bk-gold-gradient flex items-center justify-center font-sans font-bold text-[13px] text-bk-bg">
+          <div className="w-full h-full bg-bk-gold-gradient flex items-center justify-center font-sans font-bold text-[13px] text-bk-on-gold">
             {initial}
           </div>
         )}
@@ -81,7 +81,7 @@ export default function UserMenu({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-bk-gold-gradient flex items-center justify-center font-sans font-bold text-[14px] text-bk-bg">
+                <div className="w-full h-full bg-bk-gold-gradient flex items-center justify-center font-sans font-bold text-[14px] text-bk-on-gold">
                   {initial}
                 </div>
               )}
@@ -92,7 +92,7 @@ export default function UserMenu({
                   {displayName}
                 </p>
                 {isAdmin && (
-                  <span className="shrink-0 bg-bk-gold-gradient text-bk-bg font-sans font-bold text-[9px] tracking-[0.5px] uppercase px-1.5 py-0.5 rounded-full">
+                  <span className="shrink-0 bg-bk-gold-gradient text-bk-on-gold font-sans font-bold text-[9px] tracking-[0.5px] uppercase px-1.5 py-0.5 rounded-full">
                     Admin
                   </span>
                 )}
@@ -159,7 +159,7 @@ export default function UserMenu({
             <form action={logout}>
               <button
                 type="submit"
-                className="w-full flex items-center gap-3 px-4 py-2.5 font-sans text-[13px] text-bk-body hover:bg-white/[0.04] transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 font-sans text-[13px] text-bk-body hover:bg-bk-heading/[0.05] transition-colors text-left"
               >
                 <LogoutIcon />
                 Sign out
@@ -185,7 +185,7 @@ function MenuLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className="flex items-center gap-3 px-4 py-2.5 font-sans text-[13px] text-bk-body hover:bg-white/[0.04] transition-colors"
+      className="flex items-center gap-3 px-4 py-2.5 font-sans text-[13px] text-bk-body hover:bg-bk-heading/[0.05] transition-colors"
     >
       {children}
     </Link>

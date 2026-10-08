@@ -115,7 +115,7 @@ export default function ClubInvites({
                       }
                       call(`/api/players/me/club-invites/${i.id}/accept`, "POST", i.id);
                     }}
-                    className={`${btn} bg-white text-bk-bg`}
+                    className={`${btn} bg-bk-primary text-bk-on-primary`}
                   >
                     Accept
                   </button>

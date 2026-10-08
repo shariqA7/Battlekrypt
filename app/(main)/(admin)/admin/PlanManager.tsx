@@ -164,7 +164,7 @@ function PlanRow({ initial }: { initial: AdminPlan }) {
           type="button"
           onClick={save}
           disabled={saving}
-          className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50"
+          className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save plan"}
         </button>

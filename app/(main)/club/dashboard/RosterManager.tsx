@@ -57,7 +57,7 @@ const inputClass =
 const labelClass =
   "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5";
 const primaryBtn =
-  "bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50";
+  "bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50";
 const ghostBtn =
   "border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap";
 

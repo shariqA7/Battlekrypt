@@ -58,7 +58,7 @@ export default function SaveAsTemplateButton({ tournamentId }: { tournamentId: s
       <button
         type="submit"
         disabled={busy}
-        className="bg-white text-bk-bg font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1.5 disabled:opacity-50"
+        className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1.5 disabled:opacity-50"
       >
         Save
       </button>

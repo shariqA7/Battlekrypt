@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import UserMenu from "@/components/layout/UserMenu";
 import MobileMenu from "@/components/layout/MobileMenu";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 
 const NAV_LINKS = [
   { label: "Games", href: "/games" },
@@ -81,7 +82,8 @@ export default async function Nav() {
 
       {/* Phones: signed-in people keep their avatar menu in the bar; the
           hamburger holds everything else. */}
-      <div className="flex items-center gap-3 lg:hidden">
+      <div className="flex items-center gap-1 lg:hidden">
+        <ThemeToggle />
         {user && (
           <UserMenu
             displayName={displayName ?? "Player"}
@@ -97,6 +99,7 @@ export default async function Nav() {
       </div>
 
       <div className="hidden lg:flex items-center gap-4">
+        <ThemeToggle />
         <button aria-label="Search" className="text-bk-body">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -117,7 +120,7 @@ export default async function Nav() {
             </Link>
             <Link
               href="/signup"
-              className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-4 py-2"
+              className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-4 py-2"
             >
               Sign Up
             </Link>

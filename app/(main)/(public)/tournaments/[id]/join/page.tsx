@@ -66,7 +66,7 @@ export default async function JoinTournamentPage({
             </p>
             <a
               href={`/dashboard/profile?next=${encodeURIComponent(`/tournaments/${tournament.slug}/join`)}`}
-              className="block sm:inline-block text-center bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-3"
+              className="block sm:inline-block text-center bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-3"
             >
               Verify now
             </a>
