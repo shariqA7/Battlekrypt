@@ -1,4 +1,6 @@
-// GET /api/tournaments/:id/registrations — organizer views registrations for their tournament
+// GET /api/tournaments/:id/registrations?status=&view=all|mine
+// Host: all registrations (or just its own with view=mine). Accepted co-host:
+// only the registrations routed to its own institute.
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -12,6 +14,8 @@ export async function GET(
   const { id } = await params;
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") ?? undefined;
+  // Host only: "mine" = entries the host handles itself (not routed to a co-host).
+  const view = searchParams.get("view") === "mine" ? "mine" : "all";
 
   const supabase = await createClient();
   const {
@@ -38,7 +42,7 @@ export async function GET(
     );
   }
 
-  const result = await listRegistrations(id, organizerProfile.id, status);
+  const result = await listRegistrations(id, organizerProfile.id, status, view);
 
   if (result.error === "not_found") {
     return NextResponse.json(
@@ -48,10 +52,10 @@ export async function GET(
   }
   if (result.error === "forbidden") {
     return NextResponse.json(
-      { error: { code: "forbidden", message: "You don't own this tournament." } },
+      { error: { code: "forbidden", message: "You can't view these registrations." } },
       { status: 403 }
     );
   }
 
-  return NextResponse.json({ data: result.data });
+  return NextResponse.json({ data: result.data, role: result.role });
 }

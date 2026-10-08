@@ -410,6 +410,46 @@ using (
 );
 ```
 
+## Institutes and co-hosts (replaces the admin-reviewed student verification)
+
+Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_institutes_cohosts` and `20261007010000_institute_quotas`.
+
+**How it works now**
+
+- An organization registers the institute it runs (**Organizer → My institute**). An admin verifies the institute once (**Admin → Institutes**).
+- A player belongs to **one** verified institute, chosen from their profile. They can change it once every 7 days, after confirming a warning.
+- Institution-only tournaments are open to the host institute's members, plus any **co-host** or **guest** institutes the host adds. The institute, not the admin, approves each entry for each tournament.
+  - **Co-host:** must accept the invite; approves or rejects **only its own institute's** players. The host still sees every request (**All requests** / **My requests**).
+  - **Guest:** its players may enter, but the host approves them.
+  - On a **paid** tournament a co-host confirms eligibility only; the host still confirms the payment before the entry becomes approved.
+- **One institute per team.** In an institution-only tournament every player on a team must belong to the same institute; mixed teams are refused (also when a club edits its roster afterwards). Open tournaments are unaffected.
+- **Entry quotas.** The host sets how many entries (solo players or teams) each institute may send: a default for all institutes plus an optional override per co-host/guest institute (**Manage tournament → Participating institutes**). Pending and approved entries count; rejecting one frees the slot. Organizer manual-add can't bypass the quota.
+- **Institute lock.** While a player has a live entry — a pending/approved registration (as registrant or team member) in a tournament that isn't completed or cancelled, or an applied/selected challenge application — they can't change institute. Their institute approved them and is responsible for them until it ends.
+- Existing students who typed an institute name before this change keep their name but must pick their institute from the list again before entering institution-only tournaments. Old admin-review fields on `PlayerInstitution` are legacy and unused.
+
+**Supabase storage** — add this policy so a co-host can open the per-tournament ID photos of its own players (the existing "organizers read proofs" policy only covers the host):
+
+```sql
+create policy "co-host institutes read proofs of their players"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'institution-proofs'
+  and exists (
+    select 1
+    from public."Registration" r
+    join public."TournamentInstitution" ti
+      on ti."tournamentId" = r."tournamentId"
+     and ti."institutionId" = r."routedInstitutionId"
+     and ti."role" = 'cohost'
+     and ti."status" = 'accepted'
+    join public."Institution" i on i.id = ti."institutionId"
+    join public."OrganizerProfile" o on o.id = i."organizerId"
+    where r."institutionProofPath" = storage.objects.name
+      and o."userId" = auth.uid()::text
+  )
+);
+```
+
 ## Phase 8.3 — LAN venues and check-in
 
 Run `npx prisma migrate dev` to apply `20261006030000_phase8_3_venue_checkin`. No new Supabase setup.

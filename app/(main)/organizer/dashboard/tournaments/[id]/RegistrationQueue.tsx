@@ -12,6 +12,9 @@ interface Registration {
   paymentStatus: string;
   paymentProofUrl: string | null;
   institutionProofPath: string | null;
+  // Set when the entry belongs to a co-host institute's queue.
+  routedInstitution?: { id: string; name: string } | null;
+  institutionApprovedAt?: Date | string | null;
   checkInStatus: "pending" | "checked_in" | "no_show";
   placement: number | null;
   points: number | null;
@@ -27,7 +30,7 @@ interface TournamentRuleOption {
 
 // The ID photo lives in a private bucket: only the tournament's organizer can
 // create a signed link (storage policy in SETUP.md), valid for 5 minutes.
-function InstitutionProofLink({ path }: { path: string }) {
+export function InstitutionProofLink({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
   async function open() {
     setBusy(true);
@@ -410,6 +413,12 @@ export default function RegistrationQueue({
                 )}
                 {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}
               </div>
+              {r.routedInstitution && (
+                <p className="font-sans text-[11px] text-bk-muted mt-1">
+                  Co-host queue: {r.routedInstitution.name}
+                  {r.institutionApprovedAt && r.status === "pending" && " · eligibility approved, waiting for your payment check"}
+                </p>
+              )}
               {isLan && r.status === "approved" && (
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span
