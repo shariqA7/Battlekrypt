@@ -104,7 +104,7 @@ export default function FilterBar() {
         </select>
         <button
           onClick={() => applyFilters()}
-          className="w-full sm:w-auto bg-white text-bk-bg font-sans font-bold text-[12px] px-4 h-[44px] sm:h-[36px]"
+          className="w-full sm:w-auto bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] px-4 h-[44px] sm:h-[36px]"
         >
           Search
         </button>

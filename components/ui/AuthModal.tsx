@@ -33,19 +33,19 @@ export default function AuthModal({
       onClick={onClose}
     >
       <div
-        className="w-[min(320px,calc(100vw-2rem))] bg-[#1F2833] border border-[#39342A] p-6"
+        className="w-[min(320px,calc(100vw-2rem))] bg-bk-surface border border-bk-border p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="font-sans font-bold text-[20px] text-[#EAE1D3] mb-1">
+        <p className="font-sans font-bold text-[20px] text-bk-heading mb-1">
           Sign in to join
         </p>
-        <p className="font-sans text-[13px] text-[#D1C5AE] mb-5">
+        <p className="font-sans text-[13px] text-bk-body mb-5">
           Create an account to register and play
         </p>
 
         <button
           onClick={onGoogleLogin}
-          className="w-full bg-white text-[#0B0C10] font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-2.5"
+          className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3 flex items-center justify-center gap-2 mb-2.5"
         >
           <GoogleIcon />
           Continue with Google
@@ -60,11 +60,11 @@ export default function AuthModal({
         </button>
 
         <div className="flex items-center gap-2.5 mb-3.5">
-          <div className="flex-1 h-px bg-[#39342A]" />
-          <span className="text-[#7A7365] text-[10px] tracking-[1px] font-sans">
+          <div className="flex-1 h-px bg-bk-border" />
+          <span className="text-bk-muted text-[10px] tracking-[1px] font-sans">
             OR
           </span>
-          <div className="flex-1 h-px bg-[#39342A]" />
+          <div className="flex-1 h-px bg-bk-border" />
         </div>
 
         <input
@@ -72,12 +72,12 @@ export default function AuthModal({
           value={emailOrPhone}
           onChange={(e) => setEmailOrPhone(e.target.value)}
           placeholder="Email or phone"
-          className="w-full bg-[#0B0C10] border border-[#39342A] text-[#EAE1D3] placeholder:text-[#7A7365] text-[12px] font-sans px-3 h-[38px] mb-2.5"
+          className="w-full bg-bk-bg border border-bk-border text-bk-heading placeholder:text-bk-muted text-[12px] font-sans px-3 h-[38px] mb-2.5"
         />
 
         <button
           onClick={() => onEmailContinue(emailOrPhone)}
-          className="w-full bg-[#0B0C10] border border-[#B8860B] text-[#B8860B] font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3"
+          className="w-full bg-bk-bg border border-bk-gold-to text-bk-gold-to font-sans font-bold text-[12px] tracking-[1.2px] uppercase py-3"
         >
           Continue
         </button>

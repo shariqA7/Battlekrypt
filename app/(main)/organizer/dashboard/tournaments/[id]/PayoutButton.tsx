@@ -24,7 +24,7 @@ export default function PayoutButton({
 
   if (payoutConfirmed) {
     return (
-      <span className="text-[#1D9E75] font-sans text-[11px] uppercase tracking-[0.5px]">
+      <span className="text-bk-teal font-sans text-[11px] uppercase tracking-[0.5px]">
         Payout confirmed
       </span>
     );

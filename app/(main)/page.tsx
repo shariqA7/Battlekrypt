@@ -24,7 +24,7 @@ export default async function Home() {
         <div className="flex gap-3 justify-center">
           <Link
             href="/tournaments"
-            className="bg-white text-bk-bg font-sans font-bold text-[13px] tracking-[0.5px] uppercase px-6 py-3"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[13px] tracking-[0.5px] uppercase px-6 py-3"
           >
             Browse tournaments
           </Link>

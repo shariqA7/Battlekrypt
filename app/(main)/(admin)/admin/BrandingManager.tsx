@@ -91,7 +91,7 @@ export default function BrandingManager({
           />
           <button
             onClick={saveLogo}
-            className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 whitespace-nowrap"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 whitespace-nowrap"
           >
             {logoSaved ? "Saved!" : "Save logo"}
           </button>
@@ -166,7 +166,7 @@ export default function BrandingManager({
           <button
             onClick={addSlide}
             disabled={!newMediaUrl || adding}
-            className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 disabled:opacity-50"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 disabled:opacity-50"
           >
             {adding ? "Adding..." : "Add slide"}
           </button>

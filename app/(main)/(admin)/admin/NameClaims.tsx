@@ -173,7 +173,7 @@ export default function NameClaims({
                 </div>
               </div>
             ) : (
-              <button onClick={() => { setOpen(c.id); setError(null); }} className="mt-3 bg-white text-bk-bg font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5">
+              <button onClick={() => { setOpen(c.id); setError(null); }} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5">
                 Review
               </button>
             )}

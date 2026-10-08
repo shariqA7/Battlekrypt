@@ -74,7 +74,7 @@ export default async function OrganizerProfilePage({
 
         {totalVotes > 0 && (
           <div className="bg-bk-surface p-4 mb-8 flex items-center gap-4">
-            <span className="font-mono text-lg text-[#1D9E75]">👍 {organizer.likes}</span>
+            <span className="font-mono text-lg text-bk-teal">👍 {organizer.likes}</span>
             <span className="font-mono text-lg text-bk-live">👎 {organizer.dislikes}</span>
             <span className="font-sans text-bk-muted text-xs uppercase tracking-[0.5px]">
               From players who joined their tournaments

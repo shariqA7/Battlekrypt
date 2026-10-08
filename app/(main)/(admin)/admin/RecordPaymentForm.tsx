@@ -46,7 +46,7 @@ export default function RecordPaymentForm() {
       </select>
       <input required value={f.method} onChange={set("method")} placeholder="Paid via (JazzCash, bank…)" className={`${field} w-48`} />
       <input value={f.reference} onChange={set("reference")} placeholder="Reference (optional)" className={`${field} w-44`} />
-      <button disabled={busy} className="bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-4 h-[36px] disabled:opacity-50">
+      <button disabled={busy} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-4 h-[36px] disabled:opacity-50">
         Record payment
       </button>
       {msg && <p className={`w-full font-sans text-[12px] ${msg.error ? "text-bk-live" : "text-bk-gold-light"}`}>{msg.text}</p>}

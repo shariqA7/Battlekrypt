@@ -105,10 +105,10 @@ function ResultInput({
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: "bg-[rgba(239,159,39,0.15)] text-[#EF9F27]",
-  approved: "bg-[rgba(29,158,117,0.15)] text-[#1D9E75]",
-  rejected: "bg-[rgba(239,68,68,0.15)] text-bk-live",
-  disqualified: "bg-[rgba(239,68,68,0.15)] text-bk-live",
+  pending: "bg-bk-amber/15 text-bk-amber",
+  approved: "bg-bk-teal/15 text-bk-teal",
+  rejected: "bg-bk-live/15 text-bk-live",
+  disqualified: "bg-bk-live/15 text-bk-live",
 };
 
 export default function RegistrationQueue({
@@ -427,7 +427,7 @@ export default function RegistrationQueue({
                     <button
                       type="button"
                       onClick={() => setCheckIn(r.id, "checked_in")}
-                      className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
+                      className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
                     >
                       Check in
                     </button>
@@ -457,7 +457,7 @@ export default function RegistrationQueue({
               <div className="flex gap-2">
                 <button
                   onClick={() => handleAction(r.id, "approve")}
-                  className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                 >
                   Approve
                 </button>

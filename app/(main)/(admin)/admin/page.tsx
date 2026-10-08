@@ -44,7 +44,7 @@ export default async function AdminOverviewPage() {
           <ColumnChart data={o.signups} />
         </Panel>
         <Panel title="Sessions, last 30 days">
-          <ColumnChart data={o.sessionsPerDay} color="#6BA4E8" />
+          <ColumnChart data={o.sessionsPerDay} color="var(--bk-teal)" />
         </Panel>
       </div>
 

@@ -110,7 +110,7 @@ export default function StageManager({
                 />
                 <button
                   onClick={() => saveRoom(stage.id)}
-                  className="col-span-3 bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase py-2 mt-1"
+                  className="col-span-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase py-2 mt-1"
                 >
                   Save room details
                 </button>

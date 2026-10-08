@@ -93,7 +93,7 @@ export default function ApplyPanel({ challengeId, existing, player, teams }: Pro
             className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2 mb-3" placeholder="Why you're a good pick" />
           {error && <p className="font-sans text-[12px] text-bk-live mb-3">{error}</p>}
           <button disabled={busy || !!selected?.blocker} onClick={apply}
-            className="bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5 disabled:opacity-50">
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5 disabled:opacity-50">
             {busy ? "Applying…" : "Apply"}
           </button>
         </>

@@ -88,7 +88,7 @@ export default function InstitutionVerification({ userId, initial, next }: Props
       {next && initial && initial.status !== "rejected" && !editing && (
         <a
           href={next}
-          className="mt-4 block sm:inline-block text-center bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-3"
+          className="mt-4 block sm:inline-block text-center bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-3"
         >
           {initial.status === "approved" ? "Back to the tournament" : "Back (we'll notify you once reviewed)"}
         </a>

@@ -93,7 +93,7 @@ export default function ApplicantsPanel({
       {error && <p className="mt-3 font-sans text-[12px] text-bk-live">{error}</p>}
 
       {canPick && chosen.length > 0 && !confirming && (
-        <button onClick={() => setConfirming(true)} className="mt-4 bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
+        <button onClick={() => setConfirming(true)} className="mt-4 bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
           Review my pick ({chosen.length})
         </button>
       )}
@@ -106,7 +106,7 @@ export default function ApplicantsPanel({
             The other {applicants.length - picked.length} applicant{applicants.length - picked.length === 1 ? "" : "s"} will be rejected and told. This can&apos;t be undone.
           </p>
           <div className="flex gap-3">
-            <button disabled={busy} onClick={confirm} className="bg-white text-bk-bg font-sans font-bold text-[12px] uppercase px-4 py-2 disabled:opacity-50">
+            <button disabled={busy} onClick={confirm} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase px-4 py-2 disabled:opacity-50">
               {busy ? "Confirming…" : "Confirm"}
             </button>
             <button onClick={() => setConfirming(false)} className="font-sans text-[12px] text-bk-muted underline">Change my pick</button>

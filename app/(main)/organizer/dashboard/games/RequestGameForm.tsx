@@ -49,7 +49,7 @@ export default function RequestGameForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.5px] uppercase px-4 disabled:opacity-50"
+        className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.5px] uppercase px-4 disabled:opacity-50"
       >
         {submitting ? "..." : "Request"}
       </button>

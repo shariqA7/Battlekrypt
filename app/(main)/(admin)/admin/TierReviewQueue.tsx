@@ -90,7 +90,7 @@ export default function TierReviewQueue({
                 <button
                   onClick={() => approve(t.id)}
                   disabled={busyId === t.id}
-                  className="bg-white text-bk-bg font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1.5 disabled:opacity-50"
+                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1.5 disabled:opacity-50"
                 >
                   Approve
                 </button>

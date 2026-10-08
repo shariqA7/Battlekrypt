@@ -59,7 +59,7 @@ function Field({
       <label className={labelCls}>{label}</label>
       {children}
       {feedback && (
-        <p className="mt-1.5 font-sans text-[12px] text-[#EF9F27] bg-[rgba(239,159,39,0.12)] px-2.5 py-1.5">
+        <p className="mt-1.5 font-sans text-[12px] text-bk-amber bg-bk-amber/[0.12] px-2.5 py-1.5">
           Admin: {feedback}
         </p>
       )}
@@ -354,7 +354,7 @@ export default function OrgApplicationForm({
       </p>
 
       {blocked && (
-        <p className="mt-5 font-sans text-[12px] text-[#EF9F27] bg-[rgba(239,159,39,0.12)] px-3 py-2">
+        <p className="mt-5 font-sans text-[12px] text-bk-amber bg-bk-amber/[0.12] px-3 py-2">
           You can resubmit after {new Date(retryAt as string).toLocaleString()}.
         </p>
       )}
@@ -367,7 +367,7 @@ export default function OrgApplicationForm({
       <button
         type="submit"
         disabled={submitting || blocked}
-        className="mt-6 w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50"
+        className="mt-6 w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : mode === "resubmit" ? "Resubmit for review" : "Submit for review"}
       </button>
