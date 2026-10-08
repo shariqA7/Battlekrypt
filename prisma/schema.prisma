@@ -163,6 +163,14 @@ enum CoHostRole {
   guest
 }
 
+// Where a challenge application stands with the institute that has to vouch
+// for the applicant. Open challenges leave every application "approved".
+enum InstituteReview {
+  pending
+  approved
+  rejected
+}
+
 enum CoHostStatus {
   pending
   accepted
@@ -1245,6 +1253,14 @@ model Challenge {
   reviewedAt   DateTime?
 
   // When the poster ticked "I understand" on the prize / payment terms.
+  // Institution-only challenges (organization posters with a verified institute):
+  // only players/teams of participating institutes may apply, and each applicant
+  // is approved by their own institute before the poster can pick them.
+  audienceScope               AudienceScope          @default(open)
+  // Default cap on applications per institute (null = no cap).
+  maxApplicationsPerInstitute Int?
+  institutions                ChallengeInstitution[]
+
   termsAcceptedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -1473,10 +1489,21 @@ model ChallengeApplication {
   failedReason       String?
   disputes           ChallengeDispute[]
 
+  // Institution-only challenges: the ONE institute the entrant plays for (a
+  // team's players all share it), whose queue it sits in (null = the host's),
+  // and whether that institute has vouched for the applicant yet.
+  institutionId           String?
+  institution             Institution?    @relation("ChallengeAppEntry", fields: [institutionId], references: [id])
+  routedInstitutionId     String?
+  routedInstitution       Institution?    @relation("ChallengeAppRouted", fields: [routedInstitutionId], references: [id])
+  institutionReview       InstituteReview @default(approved)
+  approvedByInstitutionId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([challengeId, applicantUserId])
+  @@index([challengeId, institutionId])
   @@index([challengeId, status])
   @@index([applicantUserId])
 }
@@ -1619,10 +1646,13 @@ model Institution {
 
   createdAt DateTime @default(now())
 
-  members             PlayerInstitution[]
-  tournamentLinks     TournamentInstitution[]
-  routedRegistrations Registration[]          @relation("RoutedRegistration")
-  entries             Registration[]          @relation("EntryInstitution")
+  members                     PlayerInstitution[]
+  tournamentLinks             TournamentInstitution[]
+  routedRegistrations         Registration[]          @relation("RoutedRegistration")
+  entries                     Registration[]          @relation("EntryInstitution")
+  challengeLinks              ChallengeInstitution[]
+  challengeApplications       ChallengeApplication[]  @relation("ChallengeAppEntry")
+  routedChallengeApplications ChallengeApplication[]  @relation("ChallengeAppRouted")
 
   @@index([verified])
 }
@@ -1644,5 +1674,23 @@ model TournamentInstitution {
   maxEntries    Int?
 
   @@unique([tournamentId, institutionId])
+  @@index([institutionId, status])
+}
+
+// Co-host / guest institutes of one institution-only challenge (see CoHostRole).
+model ChallengeInstitution {
+  id              String       @id @default(uuid())
+  challengeId     String
+  challenge       Challenge    @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  institutionId   String
+  institution     Institution  @relation(fields: [institutionId], references: [id])
+  role            CoHostRole
+  status          CoHostStatus @default(pending)
+  invitedAt       DateTime     @default(now())
+  respondedAt     DateTime?
+  // Max applications from this institute. Null = the challenge default applies.
+  maxApplications Int?
+
+  @@unique([challengeId, institutionId])
   @@index([institutionId, status])
 }

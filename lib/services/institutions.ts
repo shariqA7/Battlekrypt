@@ -138,7 +138,19 @@ export async function countActiveEntries(playerId: string, userId: string) {
       },
     }),
   ]);
-  return { tournaments, challenges, total: tournaments + challenges };
+  // A club team's challenge application pins every player on that team's roster.
+  const asTeamMember = await prisma.challengeApplication.count({
+    where: {
+      kind: "team",
+      status: { in: ["applied", "selected"] },
+      completedAt: null,
+      challenge: { status: { in: ["open", "in_progress"] } },
+      clubTeam: { members: { some: { playerId } } },
+      applicantUserId: { not: userId },
+    },
+  });
+  const challengesTotal = challenges + asTeamMember;
+  return { tournaments, challenges: challengesTotal, total: tournaments + challengesTotal };
 }
 
 export interface SetInstitutionInput {
@@ -223,14 +235,20 @@ export async function setPlayerInstitution(
 // The host institute is the tournament organizer's own (if verified); extra
 // institutes come from TournamentInstitution. A co-host only counts once it
 // has accepted; guests are allowed outright.
-async function loadAudience(tournamentId: string, organizerId: string) {
-  const [host, links] = await Promise.all([
-    prisma.institution.findUnique({ where: { organizerId }, select: { id: true, verified: true } }),
-    prisma.tournamentInstitution.findMany({
-      where: { tournamentId, institution: { verified: true } },
-      select: { institutionId: true, role: true, status: true },
-    }),
-  ]);
+export interface AudienceLink {
+  institutionId: string;
+  role: "cohost" | "guest";
+  status: "pending" | "accepted" | "declined";
+}
+
+// Shared by tournaments and challenges: the host institute is the organizer's
+// own (if verified); `links` are the extra institutes (already filtered to
+// verified ones). A co-host only counts once accepted; guests outright.
+export async function buildAudience(organizerId: string, links: AudienceLink[]) {
+  const host = await prisma.institution.findUnique({
+    where: { organizerId },
+    select: { id: true, verified: true },
+  });
   const hostId = host?.verified ? host.id : null;
   const cohostIds = new Set(
     links.filter((l) => l.role === "cohost" && l.status === "accepted").map((l) => l.institutionId)
@@ -239,6 +257,54 @@ async function loadAudience(tournamentId: string, organizerId: string) {
   const allowed = new Set<string>([...cohostIds, ...guestIds]);
   if (hostId) allowed.add(hostId);
   return { hostId, cohostIds, guestIds, allowed };
+}
+export type Audience = Awaited<ReturnType<typeof buildAudience>>;
+
+async function loadAudience(tournamentId: string, organizerId: string) {
+  const links = await prisma.tournamentInstitution.findMany({
+    where: { tournamentId, institution: { verified: true } },
+    select: { institutionId: true, role: true, status: true },
+  });
+  return buildAudience(organizerId, links);
+}
+
+// Every player on an entry must belong to a participating institute, and they
+// must all share ONE (a team plays for a single institute).
+export async function evaluateMembership(
+  audience: Audience,
+  playerIds: string[],
+  opts: { selfPlayerId?: string; noun: "tournament" | "challenge" }
+): Promise<
+  | { ok: true; institutionId: string }
+  | { error: "institution_required" | "institution_mixed_team"; message: string }
+> {
+  const ids = [...new Set(playerIds)];
+  const memberships = await prisma.playerInstitution.findMany({
+    where: { playerId: { in: ids } },
+    select: { playerId: true, institutionId: true },
+  });
+  const byPlayer = new Map(memberships.map((m) => [m.playerId, m.institutionId]));
+  const missing = ids.filter((id) => {
+    const inst = byPlayer.get(id);
+    return !inst || !audience.allowed.has(inst);
+  });
+  if (ids.length === 0 || missing.length > 0) {
+    const selfMissing = opts.selfPlayerId ? missing.includes(opts.selfPlayerId) : true;
+    return {
+      error: "institution_required",
+      message: selfMissing
+        ? `This ${opts.noun} is only open to players from the participating institutes. Check that you've selected your institute in your profile.`
+        : `Every player on the team must belong to an institute taking part in this ${opts.noun}.`,
+    };
+  }
+  const institutes = new Set(ids.map((id) => byPlayer.get(id)));
+  if (institutes.size > 1) {
+    return {
+      error: "institution_mixed_team",
+      message: "All players in a team must belong to the same institute.",
+    };
+  }
+  return { ok: true, institutionId: [...institutes][0] as string };
 }
 
 export type InstitutionGateResult =
@@ -284,38 +350,13 @@ export async function checkInstitutionGate(
     return { ok: true, institutionId: null, routedInstitutionId: null };
   }
 
-  const ids = [...new Set(playerIds)];
-  const [audience, memberships] = await Promise.all([
-    loadAudience(tournamentId, t.organizerId),
-    prisma.playerInstitution.findMany({
-      where: { playerId: { in: ids } },
-      select: { playerId: true, institutionId: true },
-    }),
-  ]);
-  const byPlayer = new Map(memberships.map((m) => [m.playerId, m.institutionId]));
-  const missing = ids.filter((id) => {
-    const inst = byPlayer.get(id);
-    return !inst || !audience.allowed.has(inst);
+  const audience = await loadAudience(tournamentId, t.organizerId);
+  const member = await evaluateMembership(audience, playerIds, {
+    selfPlayerId: opts.selfPlayerId,
+    noun: "tournament",
   });
-  if (missing.length > 0) {
-    const selfMissing = opts.selfPlayerId ? missing.includes(opts.selfPlayerId) : true;
-    return {
-      error: "institution_required",
-      message: selfMissing
-        ? "This tournament is only open to players from the participating institutes. Check that you've selected your institute in your profile."
-        : "Every player on the team must belong to an institute taking part in this tournament.",
-    };
-  }
-
-  // A team plays for ONE institute: every member must belong to the same one.
-  const institutes = new Set(ids.map((id) => byPlayer.get(id)));
-  if (institutes.size > 1) {
-    return {
-      error: "institution_mixed_team",
-      message: "All players in a team must belong to the same institute.",
-    };
-  }
-  const institutionId = [...institutes][0] as string;
+  if ("error" in member) return member;
+  const institutionId = member.institutionId;
 
   if (t.requireFreshInstitutionProof && !opts.skipProof && !opts.proofPath) {
     return {

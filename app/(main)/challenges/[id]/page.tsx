@@ -10,6 +10,8 @@ import CancelButton from "./CancelButton";
 import ApplyPanel from "./ApplyPanel";
 import ApplicantsPanel from "./ApplicantsPanel";
 import EntryPanel from "./EntryPanel";
+import InstitutesPanel from "@/components/institutes/InstitutesPanel";
+import { listChallengeInstitutions, getChallengeInstitutionUsage } from "@/lib/services/challenge-institutions";
 import ReportButton from "./ReportButton";
 import { isUnderReview } from "@/lib/services/challenge-moderation";
 import { CHALLENGE_NOTICE } from "@/lib/challenge-terms";
@@ -50,6 +52,18 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
   const prizeType = c.prizeType as "cash" | "in_game" | "reward";
   const underReview = c.status === "open" && (await isUnderReview(c.id));
 
+  // Institution-only: the host manages participating institutes and sees usage.
+  const institutional = c.audienceScope === "institution";
+  const hostInstitute =
+    institutional && isPoster
+      ? await prisma.institution.findFirst({
+          where: { organizer: { userId: c.posterUserId } },
+          select: { id: true, name: true, verified: true },
+        })
+      : null;
+  const linkedInstitutes = institutional && isPoster ? await listChallengeInstitutions(c.id) : [];
+  const instituteUsage = institutional && isPoster ? await getChallengeInstitutionUsage(c.id) : {};
+
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
       <Link href="/challenges" className="font-sans text-[12px] text-bk-muted underline">← Challenges</Link>
@@ -65,6 +79,12 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
       <p className="font-sans text-[13px] text-bk-muted mb-5">
         {c.game.name} · {POSTER_LABEL[c.posterType]}: {c.posterName}
       </p>
+      {institutional && (
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-bk-surface border border-bk-border text-bk-body">
+          Institution-only. Open to players from the institutes taking part; each applicant is approved
+          by their own institute, and a team must be from a single institute.
+        </p>
+      )}
       <p className="font-sans text-[12px] text-bk-muted -mt-3 mb-5">
         Poster record: {posterRecord.completed} prize{posterRecord.completed === 1 ? "" : "s"} settled
         {posterRecord.paymentDisputesLost > 0 ? ` · ${posterRecord.paymentDisputesLost} payment dispute${posterRecord.paymentDisputesLost === 1 ? "" : "s"} lost` : ""}
@@ -113,7 +133,24 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
             </p>
           )}
           {c.status === "open" && (
-            <ApplicantsPanel challengeId={c.id} slots={c.slots} applicants={applicants} canPick />
+            <ApplicantsPanel challengeId={c.id} slots={c.slots} applicants={applicants} canPick institutional={institutional} />
+          )}
+          {institutional && c.status === "open" && (
+            <InstitutesPanel
+              endpoint={`/api/challenges/${c.id}/institutions`}
+              noun="challenge"
+              hostInstitute={hostInstitute}
+              hostInstituteId={hostInstitute?.id ?? null}
+              defaultLimit={c.maxApplicationsPerInstitute}
+              usage={instituteUsage}
+              initial={linkedInstitutes.map((l) => ({
+                institutionId: l.institutionId,
+                name: l.institution.name,
+                role: l.role,
+                status: l.status,
+                maxEntries: l.maxApplications,
+              }))}
+            />
           )}
           {entries.length > 0 && (
             <div className="space-y-3">

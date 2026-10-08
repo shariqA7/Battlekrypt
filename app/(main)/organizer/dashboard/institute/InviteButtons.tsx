@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function InviteButtons({ id }: { id: string }) {
+export default function InviteButtons({
+  id,
+  kind = "tournament",
+}: {
+  id: string;
+  kind?: "tournament" | "challenge";
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -11,7 +17,9 @@ export default function InviteButtons({ id }: { id: string }) {
   async function respond(accept: boolean) {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/organizer/cohost-invites/${id}/respond`, {
+    const res = await fetch(kind === "challenge"
+        ? `/api/organizer/challenge-invites/${id}/respond`
+        : `/api/organizer/cohost-invites/${id}/respond`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ accept }),

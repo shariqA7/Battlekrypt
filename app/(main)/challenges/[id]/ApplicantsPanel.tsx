@@ -10,6 +10,9 @@ interface Applicant {
   rating: number;
   message: string | null;
   status: string;
+  institutionReview?: string;
+  routedInstitutionId?: string | null;
+  institution?: { name: string } | null;
 }
 
 // Poster's view: tick the applicants you want (up to the slot count), review
@@ -20,17 +23,36 @@ export default function ApplicantsPanel({
   slots,
   applicants,
   canPick,
+  institutional = false,
 }: {
   challengeId: string;
   slots: number;
   applicants: Applicant[];
   canPick: boolean;
+  // Institution-only challenge: each applicant needs their institute's approval first.
+  institutional?: boolean;
 }) {
   const router = useRouter();
   const [chosen, setChosen] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // "mine" hides the applicants a co-host institute is handling.
+  const [view, setView] = useState<"all" | "mine">("all");
+  const shown = view === "mine" ? applicants.filter((a) => !a.routedInstitutionId) : applicants;
+
+  async function review(id: string, approve: boolean) {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/challenge-applications/${id}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ approve }),
+    });
+    if (!res.ok) setError((await res.json()).error.message);
+    else router.refresh();
+    setBusy(false);
+  }
 
   function toggle(id: string) {
     setError(null);
@@ -71,19 +93,42 @@ export default function ApplicantsPanel({
           Pick up to {slots}. Everyone you don&apos;t pick is turned down automatically once you confirm.
         </p>
       )}
+      {institutional && (
+        <div className="flex gap-2 mb-3 font-sans text-[12px]">
+          {(["all", "mine"] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)}
+              className={`px-3 py-1.5 border ${view === v ? "border-bk-gold-light text-bk-gold-light" : "border-bk-border text-bk-muted"}`}>
+              {v === "all" ? "All requests" : "My requests"}
+            </button>
+          ))}
+        </div>
+      )}
       {applicants.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No applications yet.</p>}
 
       <ul className="divide-y divide-bk-border">
-        {applicants.map((a) => (
+        {shown.map((a) => (
           <li key={a.id} className="py-3 flex gap-3">
             {canPick && (
-              <input type="checkbox" checked={chosen.includes(a.id)} onChange={() => toggle(a.id)} disabled={confirming} className="mt-1" aria-label={`Pick ${a.entrantName}`} />
+              <input type="checkbox" checked={chosen.includes(a.id)} onChange={() => toggle(a.id)} disabled={confirming || (institutional && a.institutionReview !== "approved")} className="mt-1" aria-label={`Pick ${a.entrantName}`} />
             )}
             <div>
               <p className="font-sans text-[13px] text-bk-heading">
                 {a.entrantName} {a.status === "selected" && <span className="text-bk-gold-light">· chosen</span>}
               </p>
               <p className="font-sans text-[12px] text-bk-muted">{a.kind === "team" ? "Team" : "Solo player"} · rating {a.rating}</p>
+              {institutional && (
+                <p className="font-sans text-[12px] text-bk-muted">
+                  {a.institution?.name ?? "No institute"}
+                  {a.routedInstitutionId ? " (co-host queue)" : ""} ·{" "}
+                  {a.institutionReview === "approved" ? "approved by institute" : "waiting for institute approval"}
+                </p>
+              )}
+              {institutional && a.status === "applied" && a.institutionReview === "pending" && (
+                <div className="flex gap-2 mt-1">
+                  <button disabled={busy} onClick={() => review(a.id, true)} className="font-sans text-[11px] border border-bk-border text-bk-heading px-2 py-1 disabled:opacity-50">Approve</button>
+                  <button disabled={busy} onClick={() => review(a.id, false)} className="font-sans text-[11px] border border-bk-live text-bk-live px-2 py-1 disabled:opacity-50">Reject</button>
+                </div>
+              )}
               {a.message && <p className="font-sans text-[12px] text-bk-body mt-1">&ldquo;{a.message}&rdquo;</p>}
             </div>
           </li>

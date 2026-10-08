@@ -17,14 +17,17 @@ const selectClass =
 // Host-only: add co-host institutes (they approve their OWN players) or guest
 // institutes (their players may enter, the host approves them).
 export default function InstitutesPanel({
-  tournamentId,
+  endpoint,
+  noun = "tournament",
   hostInstitute,
   hostInstituteId,
   defaultLimit,
   usage,
   initial,
 }: {
-  tournamentId: string;
+  // e.g. /api/tournaments/:id/institutions or /api/challenges/:id/institutions
+  endpoint: string;
+  noun?: "tournament" | "challenge";
   hostInstitute: { name: string; verified: boolean } | null;
   hostInstituteId: string | null;
   // Cap on entries per institute for the whole tournament (null = no cap).
@@ -57,7 +60,7 @@ export default function InstitutesPanel({
   async function call(method: "POST" | "DELETE", body: Record<string, string>) {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/tournaments/${tournamentId}/institutions`, {
+    const res = await fetch(endpoint, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -74,7 +77,7 @@ export default function InstitutesPanel({
   async function saveLimit(institutionId: string | null, value: string) {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/tournaments/${tournamentId}/institutions`, {
+    const res = await fetch(endpoint, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ institutionId, maxEntries: value.trim() === "" ? null : Number(value) }),
@@ -95,7 +98,7 @@ export default function InstitutesPanel({
       <p className="font-sans font-medium text-bk-heading text-sm">Participating institutes</p>
       {!hostInstitute?.verified ? (
         <p className="font-sans text-[12px] text-bk-live mt-2">
-          Your institute isn&apos;t verified yet, so players can&apos;t enter this tournament.{" "}
+          Your institute isn&apos;t verified yet, so players can&apos;t enter this {noun}.{" "}
           <a href="/organizer/dashboard/institute" className="underline">
             Set up your institute
           </a>
@@ -109,7 +112,7 @@ export default function InstitutesPanel({
       )}
 
       <div className="flex flex-wrap items-center gap-2 mt-3 font-sans text-[12px] text-bk-muted">
-        <span>Entries allowed per institute (solo players or teams):</span>
+        <span>{noun === "challenge" ? "Applications allowed per institute:" : "Entries allowed per institute (solo players or teams):"}</span>
         <input
           inputMode="numeric"
           value={defaultInput}

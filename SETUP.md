@@ -412,7 +412,7 @@ using (
 
 ## Institutes and co-hosts (replaces the admin-reviewed student verification)
 
-Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_institutes_cohosts` and `20261007010000_institute_quotas`.
+Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_institutes_cohosts`, `20261007010000_institute_quotas` and `20261007020000_challenge_institutes`.
 
 **How it works now**
 
@@ -426,6 +426,13 @@ Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_inst
 - **Entry quotas.** The host sets how many entries (solo players or teams) each institute may send: a default for all institutes plus an optional override per co-host/guest institute (**Manage tournament → Participating institutes**). Pending and approved entries count; rejecting one frees the slot. Organizer manual-add can't bypass the quota.
 - **Institute lock.** While a player has a live entry — a pending/approved registration (as registrant or team member) in a tournament that isn't completed or cancelled, or an applied/selected challenge application — they can't change institute. Their institute approved them and is responsible for them until it ends.
 - Existing students who typed an institute name before this change keep their name but must pick their institute from the list again before entering institution-only tournaments. Old admin-review fields on `PlayerInstitution` are legacy and unused.
+
+**Institution-only challenges.** An organization with a verified institute can post a challenge as "Participating institutes only" (**Post a challenge → Who can apply**). It works like a tournament:
+
+- The host adds **co-host** institutes (they accept the invite, then approve/reject **only their own** institute's applicants) and **guest** institutes (the host approves them). The host sees **All requests** / **My requests** on the challenge page; co-hosts use **My institute → Challenge co-host invitations**.
+- An applicant (a solo player, or a club team whose whole roster belongs to ONE institute) is "waiting for institute approval" until their institute approves them. **The poster can only pick approved applicants.** A rejected applicant can't re-apply to the same challenge.
+- The host can cap applications per institute (a default plus per-institute overrides). Rejected, withdrawn and not-selected applications free the slot.
+- A live challenge application (including a club team's, for every player on its roster) also stops a player changing institute.
 
 **Supabase storage** — add this policy so a co-host can open the per-tournament ID photos of its own players (the existing "organizers read proofs" policy only covers the host):
 

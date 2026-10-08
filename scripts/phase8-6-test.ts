@@ -122,6 +122,19 @@ async function main() {
     ok("declined co-host's players stay blocked", err(await registerForTournament({ tournamentId: t5.id, playerId: prof.p_l1 })) === "institution_required");
   }
 
+  // --- two co-hosts must not be able to act on each other's entries
+  const t7 = await prisma.tournament.create({ data: { ...base, slug: "t7", name: "Cup 7", mode: "solo", entryType: "free" } });
+  for (const k of ["comsats", "lums"]) {
+    const l = await addTournamentInstitution(t7.id, org.fast.id, inst[k], "cohost");
+    if ("data" in l) await respondToCoHostInvite(l.data.id, org[k].id, true);
+  }
+  const rC = await registerForTournament({ tournamentId: t7.id, playerId: prof.p_c3 });
+  const rL = await registerForTournament({ tournamentId: t7.id, playerId: prof.p_l1 });
+  if (!("data" in rC && rC.data && "data" in rL && rL.data)) { console.log("FAIL two-cohost setup", JSON.stringify([rC, rL])); fails++; return; }
+  ok("co-host A can NOT act on co-host B's entry", err(await approveRegistration(rC.data.id, org.lums.id)) === "forbidden" && err(await rejectRegistration(rL.data.id, org.comsats.id)) === "forbidden");
+  ok("each co-host sees only its own entries", JSON.stringify(ids(await listRegistrations(t7.id, org.comsats.id))) === JSON.stringify([rC.data.id]) && JSON.stringify(ids(await listRegistrations(t7.id, org.lums.id))) === JSON.stringify([rL.data.id]));
+  ok("each co-host CAN act on its own", "data" in await approveRegistration(rC.data.id, org.comsats.id) && "data" in await approveRegistration(rL.data.id, org.lums.id));
+
   // --- routing is a snapshot: later institute changes don't strand a registration
   const snap = await registerForTournament({ tournamentId: t5.id, playerId: prof.p_f2 });
   void snap;
