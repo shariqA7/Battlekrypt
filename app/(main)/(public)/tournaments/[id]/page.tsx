@@ -34,20 +34,20 @@ export default async function TournamentDetailPage({
       <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
         <div className="h-[120px] bg-bk-surface mb-6 flex items-end p-3 relative">
           {tournament.status === "in_progress" && (
-            <span className="bg-[rgba(239,68,68,0.15)] text-bk-live text-[11px] font-sans px-2 py-1 flex items-center gap-1.5">
+            <span className="bg-bk-live/15 text-bk-live text-[11px] font-sans px-2 py-1 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-bk-live" />
               Live now
             </span>
           )}
           {tournament.competitiveTier !== "none" && (
-            <span className="absolute top-3 right-3 bg-bk-gold-gradient text-bk-bg text-[10px] font-sans font-bold px-2 py-1">
+            <span className="absolute top-3 right-3 bg-bk-gold-gradient text-bk-on-gold text-[10px] font-sans font-bold px-2 py-1">
               {tournament.competitiveTier.toUpperCase()}-TIER
             </span>
           )}
         </div>
 
-        <div className="flex justify-between items-start mb-6">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6">
+          <div className="min-w-0">
             <h1 className="font-sans font-bold text-xl text-bk-heading mb-1">
               {tournament.name}
             </h1>
@@ -71,8 +71,8 @@ export default async function TournamentDetailPage({
                 Students only · institution verification required
               </p>
             )}
-            <p className="font-sans text-bk-muted text-sm flex items-center gap-1.5">
-              Hosted by{" "}
+            <p className="font-sans text-bk-muted text-sm flex flex-wrap items-center gap-x-1.5">
+              <span className="whitespace-nowrap">Hosted by</span>
               <a href={`/organizers/${tournament.organizer.id}`} className="underline">
                 {tournament.organizer.orgName}
               </a>
@@ -81,13 +81,13 @@ export default async function TournamentDetailPage({
           </div>
           <a
             href={`/tournaments/${tournament.slug}/join`}
-            className="bg-white text-bk-bg font-sans font-bold text-[13px] px-5 py-2.5 inline-block text-center"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[13px] px-5 py-3 sm:py-2.5 block sm:inline-block w-full sm:w-auto text-center shrink-0"
           >
             Join tournament
           </a>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
           <div className="bg-bk-surface p-4">
             <p className="text-bk-muted text-[11px] font-sans mb-1">Prize pool</p>
             <p className="font-mono text-bk-gold-light text-lg">

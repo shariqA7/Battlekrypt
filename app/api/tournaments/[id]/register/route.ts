@@ -67,6 +67,8 @@ export async function POST(
     tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
     institution_required: { status: 403, message: "This tournament is for verified students only." },
     institution_proof_required: { status: 400, message: "A fresh photo of your student ID is required." },
+    institution_mixed_team: { status: 400, message: "All players in a team must belong to the same institute." },
+    institution_quota_full: { status: 409, message: "Your institute has no entries left in this tournament." },
   };
 
   if (result.error) {

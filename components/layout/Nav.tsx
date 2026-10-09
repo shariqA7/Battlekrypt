@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import UserMenu from "@/components/layout/UserMenu";
+import MobileMenu from "@/components/layout/MobileMenu";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 
 const NAV_LINKS = [
   { label: "Games", href: "/games" },
@@ -52,12 +54,14 @@ export default async function Nav() {
   }
 
   return (
-    <nav className="bg-bk-bg-nav border-b border-bk-border-nav px-6 py-3.5 flex items-center justify-between">
-      <div className="flex items-center gap-7">
+    // nav-safe: clears the notch and runs edge to edge in landscape (globals.css).
+    // The full desktop bar needs ~1000px, so phones AND tablets get the drawer.
+    <nav className="nav-safe bg-bk-bg-nav border-b border-bk-border-nav py-3 lg:py-3.5 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-7 min-w-0">
         <Link href="/" className="text-bk-gold-light font-sans font-extrabold text-lg">
           BattleKrypt
         </Link>
-        <div className="flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-6">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -76,7 +80,26 @@ export default async function Nav() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      {/* Phones: signed-in people keep their avatar menu in the bar; the
+          hamburger holds everything else. */}
+      <div className="flex items-center gap-1 lg:hidden">
+        <ThemeToggle />
+        {user && (
+          <UserMenu
+            displayName={displayName ?? "Player"}
+            email={email}
+            avatarUrl={avatarUrl}
+            isAdmin={isAdmin}
+            isOrganizer={isOrganizer}
+            isClub={isClub}
+            orgApplicationStatus={orgApplicationStatus}
+          />
+        )}
+        <MobileMenu links={NAV_LINKS} signedIn={!!user} />
+      </div>
+
+      <div className="hidden lg:flex items-center gap-4">
+        <ThemeToggle />
         <button aria-label="Search" className="text-bk-body">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -97,7 +120,7 @@ export default async function Nav() {
             </Link>
             <Link
               href="/signup"
-              className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-4 py-2"
+              className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-4 py-2"
             >
               Sign Up
             </Link>

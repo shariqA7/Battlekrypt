@@ -21,10 +21,15 @@ export async function POST(
   }
   if (result.error === "forbidden") {
     return NextResponse.json(
-      { error: { code: "forbidden", message: "You don't own this tournament." } },
+      { error: { code: "forbidden", message: "You can't manage this registration." } },
       { status: 403 }
     );
   }
 
-  return NextResponse.json(result.data);
+  return NextResponse.json({
+    ...result.data,
+    // True when a co-host approved a paid entry: the host still has to
+    // confirm payment before the registration counts as approved.
+    awaitingHostPayment: result.awaitingHostPayment,
+  });
 }

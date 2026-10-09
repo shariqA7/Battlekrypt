@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import RequestGameForm from "./RequestGameForm";
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: "text-[#EF9F27]",
-  approved: "text-[#1D9E75]",
+  pending: "text-bk-amber",
+  approved: "text-bk-teal",
   rejected: "text-bk-live",
 };
 

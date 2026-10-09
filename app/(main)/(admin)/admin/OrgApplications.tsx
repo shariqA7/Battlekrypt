@@ -91,7 +91,7 @@ export default function OrgApplications({ initial }: { initial: AdminOrgApplicat
                 <button
                   disabled={busy}
                   onClick={() => act(a.id, "approve")}
-                  className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 disabled:opacity-50"
+                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 disabled:opacity-50"
                 >
                   Approve
                 </button>

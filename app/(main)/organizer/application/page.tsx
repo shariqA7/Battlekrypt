@@ -36,7 +36,7 @@ export default async function OrganizationApplicationPage() {
     return (
       <main className="flex-1 px-6 py-16 max-w-xl mx-auto w-full">
         <div className="bg-bk-surface border border-bk-border p-6">
-          <span className="inline-block bg-[rgba(239,159,39,0.12)] text-[#EF9F27] font-sans text-[11px] uppercase tracking-[0.8px] px-2.5 py-1 mb-4">
+          <span className="inline-block bg-bk-amber/[0.12] text-bk-amber font-sans text-[11px] uppercase tracking-[0.8px] px-2.5 py-1 mb-4">
             Under review
           </span>
           <h1 className="font-sans font-extrabold text-xl text-bk-heading mb-2">

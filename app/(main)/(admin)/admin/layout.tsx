@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     prisma.challengeDispute.count({ where: { status: "awaiting_admin" } }),
     countReportedChallenges(),
     countOpenFlags(),
-    prisma.playerInstitution.count({ where: { status: "pending" } }),
+    prisma.institution.count({ where: { verified: false } }),
   ]);
 
   return (

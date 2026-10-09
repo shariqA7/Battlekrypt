@@ -25,7 +25,7 @@ interface Options {
 }
 
 const primaryBtn =
-  "bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-2 px-4 disabled:opacity-50";
+  "bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-2 px-4 disabled:opacity-50";
 
 export default function ClubEntryPanel({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();

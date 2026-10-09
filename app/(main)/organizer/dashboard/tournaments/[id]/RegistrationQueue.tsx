@@ -12,6 +12,9 @@ interface Registration {
   paymentStatus: string;
   paymentProofUrl: string | null;
   institutionProofPath: string | null;
+  // Set when the entry belongs to a co-host institute's queue.
+  routedInstitution?: { id: string; name: string } | null;
+  institutionApprovedAt?: Date | string | null;
   checkInStatus: "pending" | "checked_in" | "no_show";
   placement: number | null;
   points: number | null;
@@ -27,7 +30,7 @@ interface TournamentRuleOption {
 
 // The ID photo lives in a private bucket: only the tournament's organizer can
 // create a signed link (storage policy in SETUP.md), valid for 5 minutes.
-function InstitutionProofLink({ path }: { path: string }) {
+export function InstitutionProofLink({ path }: { path: string }) {
   const [busy, setBusy] = useState(false);
   async function open() {
     setBusy(true);
@@ -105,10 +108,10 @@ function ResultInput({
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  pending: "bg-[rgba(239,159,39,0.15)] text-[#EF9F27]",
-  approved: "bg-[rgba(29,158,117,0.15)] text-[#1D9E75]",
-  rejected: "bg-[rgba(239,68,68,0.15)] text-bk-live",
-  disqualified: "bg-[rgba(239,68,68,0.15)] text-bk-live",
+  pending: "bg-bk-amber/15 text-bk-amber",
+  approved: "bg-bk-teal/15 text-bk-teal",
+  rejected: "bg-bk-live/15 text-bk-live",
+  disqualified: "bg-bk-live/15 text-bk-live",
 };
 
 export default function RegistrationQueue({
@@ -410,6 +413,12 @@ export default function RegistrationQueue({
                 )}
                 {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}
               </div>
+              {r.routedInstitution && (
+                <p className="font-sans text-[11px] text-bk-muted mt-1">
+                  Co-host queue: {r.routedInstitution.name}
+                  {r.institutionApprovedAt && r.status === "pending" && " · eligibility approved, waiting for your payment check"}
+                </p>
+              )}
               {isLan && r.status === "approved" && (
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <span
@@ -427,7 +436,7 @@ export default function RegistrationQueue({
                     <button
                       type="button"
                       onClick={() => setCheckIn(r.id, "checked_in")}
-                      className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
+                      className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
                     >
                       Check in
                     </button>
@@ -457,7 +466,7 @@ export default function RegistrationQueue({
               <div className="flex gap-2">
                 <button
                   onClick={() => handleAction(r.id, "approve")}
-                  className="bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
                 >
                   Approve
                 </button>

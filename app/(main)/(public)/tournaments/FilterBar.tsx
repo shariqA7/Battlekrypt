@@ -55,13 +55,13 @@ export default function FilterBar() {
 
   return (
     <div className="bg-bk-surface border border-bk-border p-3 mb-6">
-      <div className="flex gap-2 mb-2.5">
+      <div className="flex flex-wrap gap-2 mb-2.5">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && applyFilters()}
           placeholder="Search tournaments..."
-          className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[36px]"
+          className="w-full sm:w-auto sm:flex-1 sm:min-w-[180px] bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[44px] sm:h-[36px]"
         />
         <select
           value={game}
@@ -69,7 +69,7 @@ export default function FilterBar() {
             setGame(e.target.value);
             applyFilters({ game: e.target.value });
           }}
-          className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[36px]"
+          className="flex-1 min-w-0 sm:flex-none bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[44px] sm:h-[36px]"
         >
           <option value="">All games</option>
           {games.map((g) => (
@@ -85,7 +85,7 @@ export default function FilterBar() {
             applyFilters({ place: e.target.value });
           }}
           aria-label="Region or country"
-          className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[36px] max-w-[130px] sm:max-w-none"
+          className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[44px] sm:h-[36px] flex-1 min-w-0 sm:flex-none"
         >
           <option value="">Everywhere</option>
           {REGIONS.map((r) => (
@@ -104,73 +104,83 @@ export default function FilterBar() {
         </select>
         <button
           onClick={() => applyFilters()}
-          className="bg-white text-bk-bg font-sans font-bold text-[12px] px-4"
+          className="w-full sm:w-auto bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] px-4 h-[44px] sm:h-[36px]"
         >
           Search
         </button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto">
-        {["", "free", "paid"].map((val) => (
-          <button
-            key={val || "all"}
-            onClick={() => {
-              setEntryType(val);
-              applyFilters({ entryType: val });
-            }}
-            className={pillClass(entryType === val)}
-          >
-            {val === "" ? "Any entry" : val}
-          </button>
-        ))}
-        {["", "tournament", "league", "scrim"].map((val) => (
-          <button
-            key={val || "all-types"}
-            onClick={() => {
-              setType(val);
-              applyFilters({ type: val });
-            }}
-            className={pillClass(type === val)}
-          >
-            {val === "" ? "Any type" : val}
-          </button>
-        ))}
-        {["", "online", "lan", "hybrid"].map((val) => (
-          <button
-            key={val || "all-venues"}
-            onClick={() => {
-              setVenueType(val);
-              applyFilters({ venueType: val });
-            }}
-            className={pillClass(venueType === val)}
-          >
-            {val === "" ? "Any venue" : val === "lan" ? "LAN" : val === "hybrid" ? "Hybrid" : "Online"}
-          </button>
-        ))}
-        {["", "institution"].map((val) => (
-          <button
-            key={val || "all-audience"}
-            onClick={() => {
-              setAudienceScope(val);
-              applyFilters({ audienceScope: val });
-            }}
-            className={pillClass(audienceScope === val)}
-          >
-            {val === "" ? "Any audience" : "Students only"}
-          </button>
-        ))}
-        {["", "solo", "duo", "squad"].map((val) => (
-          <button
-            key={val || "all-modes"}
-            onClick={() => {
-              setMode(val);
-              applyFilters({ mode: val });
-            }}
-            className={pillClass(mode === val)}
-          >
-            {val === "" ? "Any mode" : val}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        <div className="flex flex-wrap gap-2">
+          {["", "free", "paid"].map((val) => (
+            <button
+              key={val || "all"}
+              onClick={() => {
+                setEntryType(val);
+                applyFilters({ entryType: val });
+              }}
+              className={pillClass(entryType === val)}
+            >
+              {val === "" ? "Any entry" : val}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {["", "tournament", "league", "scrim"].map((val) => (
+            <button
+              key={val || "all-types"}
+              onClick={() => {
+                setType(val);
+                applyFilters({ type: val });
+              }}
+              className={pillClass(type === val)}
+            >
+              {val === "" ? "Any type" : val}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {["", "online", "lan", "hybrid"].map((val) => (
+            <button
+              key={val || "all-venues"}
+              onClick={() => {
+                setVenueType(val);
+                applyFilters({ venueType: val });
+              }}
+              className={pillClass(venueType === val)}
+            >
+              {val === "" ? "Any venue" : val === "lan" ? "LAN" : val === "hybrid" ? "Hybrid" : "Online"}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {["", "institution"].map((val) => (
+            <button
+              key={val || "all-audience"}
+              onClick={() => {
+                setAudienceScope(val);
+                applyFilters({ audienceScope: val });
+              }}
+              className={pillClass(audienceScope === val)}
+            >
+              {val === "" ? "Any audience" : "Students only"}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {["", "solo", "duo", "squad"].map((val) => (
+            <button
+              key={val || "all-modes"}
+              onClick={() => {
+                setMode(val);
+                applyFilters({ mode: val });
+              }}
+              className={pillClass(mode === val)}
+            >
+              {val === "" ? "Any mode" : val}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -130,7 +130,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={labelClass}>Max teams</label>
           <input
@@ -215,7 +215,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
+        className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
       >
         {submitting ? "Saving..." : "Save changes"}
       </button>

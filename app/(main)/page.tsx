@@ -24,7 +24,7 @@ export default async function Home() {
         <div className="flex gap-3 justify-center">
           <Link
             href="/tournaments"
-            className="bg-white text-bk-bg font-sans font-bold text-[13px] tracking-[0.5px] uppercase px-6 py-3"
+            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[13px] tracking-[0.5px] uppercase px-6 py-3"
           >
             Browse tournaments
           </Link>
@@ -43,7 +43,7 @@ export default async function Home() {
             <span className="w-2 h-2 rounded-full bg-bk-live" />
             <h2 className="font-sans font-bold text-lg text-bk-heading">Live now</h2>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {live.map((t) => (
               <Link
                 key={t.id}
@@ -70,7 +70,7 @@ export default async function Home() {
             No tournaments published yet — check back soon.
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {upcoming.map((t) => (
               <Link
                 key={t.id}

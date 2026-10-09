@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlayerProfileByUserId } from "@/lib/services/tournaments";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
-import InstitutionVerification from "./InstitutionVerification";
+import InstituteSelect from "./InstituteSelect";
+import { institutionChangeUnlocksAt, countActiveEntries } from "@/lib/services/institutions";
 import { getInstitutionForUser } from "@/lib/services/institutions";
 
 export default async function PlayerProfileSettingsPage({
@@ -21,6 +22,7 @@ export default async function PlayerProfileSettingsPage({
 
   const profile = await getPlayerProfileByUserId(user.id);
   const institution = profile ? await getInstitutionForUser(user.id) : null;
+  const activeEntries = profile ? (await countActiveEntries(profile.id, user.id)).total : 0;
 
   return (
     <main className="flex-1 px-6 py-10 max-w-md mx-auto w-full">
@@ -42,16 +44,18 @@ export default async function PlayerProfileSettingsPage({
         initialFavoriteGames={profile?.favoriteGames ?? []}
       />
       {profile && (
-        <InstitutionVerification
-          userId={user.id}
+        <InstituteSelect
           next={safeNext}
+          activeEntries={activeEntries}
           initial={
             institution
               ? {
-                  institutionName: institution.institutionName,
+                  institutionId: institution.institutionId,
+                  institutionName: institution.institution?.name ?? institution.institutionName,
                   studentId: institution.studentId,
-                  status: institution.status,
-                  adminNote: institution.adminNote,
+                  changeUnlocksAt: institution.institutionId
+                    ? institutionChangeUnlocksAt(institution.lastChangedAt).toISOString()
+                    : null,
                 }
               : null
           }

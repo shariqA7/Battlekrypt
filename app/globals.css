@@ -8,26 +8,77 @@
    ============================================================ */
 
 :root {
-  --bk-bg: #0B0C10;
+  color-scheme: dark;
+
+  /* ---- surfaces (dark = the mockup: warm near-black, not blue-black) ---- */
+  --bk-bg: #16130B;
   --bk-bg-nav: #16130B;
   --bk-bg-footer: #110E06;
-  --bk-surface: #1F2833;
+  --bk-surface: #231F16;
+  --bk-surface-hover: #2C271B;
 
   --bk-border: #39342A;
   --bk-border-soft: rgba(57, 52, 42, 0.5);
   --bk-border-nav: rgba(77, 70, 52, 0.3);
 
+  /* ---- text ---- */
   --bk-text-heading: #EAE1D3;
   --bk-text-body: #D1C5AE;
-  --bk-text-gold-light: #FFE7AD;
-  --bk-text-muted: #7A7365;
+  --bk-text-gold-light: #FFE7AD; /* emphasis: titles, prize figures, links */
+  --bk-text-muted: #948C79; /* readable secondary text (AA on bg and surface) */
+  --bk-text-faint: #736C5C; /* decorative / "not yet" states only — below AA */
 
+  /* ---- gold ---- */
   --bk-gold-from: #F4C842;
   --bk-gold-to: #B8860B;
   --bk-gold-glow: 0px 0px 7.5px rgba(244, 200, 66, 0.3);
+  --bk-on-gold: #16130B; /* text on the gold gradient (gold is gold in both themes) */
 
+  /* ---- primary button (the cream "ENTER NOW" / "CONNECT WALLET" button) ---- */
+  --bk-primary: #EAE1D3;
+  --bk-on-primary: #16130B;
+
+  /* ---- status colours (spec §14: teal = live/active, amber = pending,
+         coral = money, red = danger) ---- */
   --bk-live: #EF4444;
   --bk-live-bg: rgba(239, 68, 68, 0.15);
+  --bk-teal: #1D9E75;
+  --bk-amber: #EF9F27;
+}
+
+/* Light theme: warm paper rather than stark white, so the gold still reads as
+   gold. Every text/background pair below is checked for WCAG AA (4.5:1). */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bk-bg: #F6F1E7;
+  --bk-bg-nav: #FBF8F1;
+  --bk-bg-footer: #ECE5D4;
+  --bk-surface: #FFFDF8;
+  --bk-surface-hover: #F1EADB;
+
+  --bk-border: #D8CDB6;
+  --bk-border-soft: rgba(120, 100, 60, 0.25);
+  --bk-border-nav: rgba(120, 100, 60, 0.22);
+
+  --bk-text-heading: #1E1A10;
+  --bk-text-body: #4A4232;
+  --bk-text-gold-light: #7A5200; /* deep amber: the bright gold is unreadable on paper */
+  --bk-text-muted: #6E6451;
+  --bk-text-faint: #9A917C;
+
+  --bk-gold-from: #F4C842;
+  --bk-gold-to: #B8860B;
+  --bk-gold-glow: 0px 1px 6px rgba(184, 134, 11, 0.25);
+  --bk-on-gold: #1E1A10;
+
+  --bk-primary: #1E1A10;
+  --bk-on-primary: #FBF6EA;
+
+  --bk-live: #C62828;
+  --bk-live-bg: rgba(198, 40, 40, 0.1);
+  --bk-teal: #0B7A58;
+  --bk-amber: #9A5A00;
 }
 
 @theme inline {
@@ -35,18 +86,28 @@
   --color-bk-bg-nav: var(--bk-bg-nav);
   --color-bk-bg-footer: var(--bk-bg-footer);
   --color-bk-surface: var(--bk-surface);
+  --color-bk-surface-hover: var(--bk-surface-hover);
 
   --color-bk-border: var(--bk-border);
+  --color-bk-border-nav: var(--bk-border-nav);
 
   --color-bk-heading: var(--bk-text-heading);
   --color-bk-body: var(--bk-text-body);
   --color-bk-gold-light: var(--bk-text-gold-light);
   --color-bk-muted: var(--bk-text-muted);
+  --color-bk-faint: var(--bk-text-faint);
 
   --color-bk-gold-from: var(--bk-gold-from);
   --color-bk-gold-to: var(--bk-gold-to);
+  --color-bk-on-gold: var(--bk-on-gold);
+
+  --color-bk-primary: var(--bk-primary);
+  --color-bk-on-primary: var(--bk-on-primary);
 
   --color-bk-live: var(--bk-live);
+  --color-bk-live-bg: var(--bk-live-bg);
+  --color-bk-teal: var(--bk-teal);
+  --color-bk-amber: var(--bk-amber);
 
   /* --font-sans / --font-mono are set by next/font/google on the <html>
      element in app/layout.tsx — Tailwind's font-sans/font-mono utilities
@@ -63,4 +124,66 @@ body {
 .bg-bk-gold-gradient {
   background-image: linear-gradient(135deg, var(--bk-gold-from) 0%, var(--bk-gold-to) 100%);
   box-shadow: var(--bk-gold-glow);
+}
+
+
+/* ============================================================
+   Mobile / notch handling (Phase 8.6)
+   viewport-fit=cover (see app/layout.tsx) makes the page extend under the
+   notch, the rounded corners and the home indicator. These insets are 0 on
+   desktop and on phones without a notch, so nothing changes there.
+   ============================================================ */
+
+/* Left/right insets matter in landscape, where the notch sits on a side. */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  /* Safety net: a stray wide element must never make the whole page scroll
+     sideways. "clip" (unlike "hidden") doesn't break position: sticky. */
+  overflow-x: clip;
+}
+
+/* The top bar: grows by the notch height in its own colour (a border, so it
+   can't override the bar's own vertical padding), and breaks out of the
+   body's landscape side padding so it stays edge to edge while its content
+   still sits clear of the notch. All of this is 0 without a notch. */
+.nav-safe {
+  border-top: env(safe-area-inset-top) solid var(--bk-bg-nav);
+  margin-left: calc(-1 * env(safe-area-inset-left));
+  margin-right: calc(-1 * env(safe-area-inset-right));
+  padding-left: calc(1rem + env(safe-area-inset-left));
+  padding-right: calc(1rem + env(safe-area-inset-right));
+}
+@media (min-width: 640px) {
+  .nav-safe {
+    padding-left: calc(1.5rem + env(safe-area-inset-left));
+    padding-right: calc(1.5rem + env(safe-area-inset-right));
+  }
+}
+
+/* iOS Safari zooms the whole page when you focus a field under 16px, and
+   doesn't zoom back — which reads as the layout being "cut off". Keep every
+   field at 16px on phones. (Unlayered CSS wins over Tailwind's utilities.) */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* Long unbroken strings (emails, URLs, room codes) wrap instead of pushing
+   the page wider than the screen. "break-word", not "anywhere": "anywhere"
+   also shrinks an item's minimum width, which let prize amounts and labels
+   get squeezed and split mid-word inside flex rows. */
+p, h1, h2, h3, h4, li, td, th, label {
+  overflow-wrap: break-word;
+}
+
+/* Taller than the visible area on mobile browsers whose address bar collapses. */
+@supports (min-height: 100dvh) {
+  body {
+    min-height: 100dvh;
+  }
 }

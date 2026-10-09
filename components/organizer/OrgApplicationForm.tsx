@@ -59,7 +59,7 @@ function Field({
       <label className={labelCls}>{label}</label>
       {children}
       {feedback && (
-        <p className="mt-1.5 font-sans text-[12px] text-[#EF9F27] bg-[rgba(239,159,39,0.12)] px-2.5 py-1.5">
+        <p className="mt-1.5 font-sans text-[12px] text-bk-amber bg-bk-amber/[0.12] px-2.5 py-1.5">
           Admin: {feedback}
         </p>
       )}
@@ -285,7 +285,7 @@ export default function OrgApplicationForm({
       </Field>
 
       <Section title="Location & contact" />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Country" error={errors.country} feedback={fb("country")}>
           <input value={v.country} onChange={set("country")} className={inputCls} />
         </Field>
@@ -296,7 +296,7 @@ export default function OrgApplicationForm({
       <Field label="Address" error={errors.address} feedback={fb("address")}>
         <input value={v.address} onChange={set("address")} className={inputCls} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Organization email" error={errors.contactEmail} feedback={fb("contactEmail")}>
           <input type="email" value={v.contactEmail} onChange={set("contactEmail")} className={inputCls} />
         </Field>
@@ -309,7 +309,7 @@ export default function OrgApplicationForm({
       <Field label="Full name" error={errors.handlerName} feedback={fb("handlerName")}>
         <input value={v.handlerName} onChange={set("handlerName")} className={inputCls} />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Role in the organization" error={errors.handlerRole} feedback={fb("handlerRole")}>
           <input value={v.handlerRole} onChange={set("handlerRole")} className={inputCls} placeholder="Founder, Manager…" />
         </Field>
@@ -319,7 +319,7 @@ export default function OrgApplicationForm({
       </div>
 
       <Section title="Plan" />
-      <div className="grid grid-cols-2 gap-3 mb-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
         {plans.map((plan) => {
           const selected = v.plan === plan.code;
           const perks = [
@@ -354,7 +354,7 @@ export default function OrgApplicationForm({
       </p>
 
       {blocked && (
-        <p className="mt-5 font-sans text-[12px] text-[#EF9F27] bg-[rgba(239,159,39,0.12)] px-3 py-2">
+        <p className="mt-5 font-sans text-[12px] text-bk-amber bg-bk-amber/[0.12] px-3 py-2">
           You can resubmit after {new Date(retryAt as string).toLocaleString()}.
         </p>
       )}
@@ -367,7 +367,7 @@ export default function OrgApplicationForm({
       <button
         type="submit"
         disabled={submitting || blocked}
-        className="mt-6 w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50"
+        className="mt-6 w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : mode === "resubmit" ? "Resubmit for review" : "Submit for review"}
       </button>

@@ -43,6 +43,7 @@ export default function ChallengeForm({
     slots: "1", maxApplicants: "10", openDays: "7", completeWithinDays: "7",
     prizeType: "cash", prizeDescription: "", cashAmount: "", cashCurrency: "PKR",
     prizeEstimatedUsd: "", payoutMethod: "",
+    audienceScope: "open", maxApplicationsPerInstitute: "",
   });
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -63,7 +64,12 @@ export default function ChallengeForm({
     const res = await fetch("/api/challenges", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...f, acceptTerms }),
+      // Institution-only is for organizations; anything else is always open.
+      body: JSON.stringify({
+        ...f,
+        audienceScope: f.postAs === "organizer" ? f.audienceScope : "open",
+        acceptTerms,
+      }),
     });
     const body = await res.json();
     if (!res.ok) {
@@ -108,6 +114,29 @@ export default function ChallengeForm({
         <textarea value={f.description} onChange={set("description")} rows={4} className={`${field} h-auto py-2`}
           placeholder="Rules, map, mode, number of rounds, what counts as a win…" />
       </Field>
+
+      {f.postAs === "organizer" && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field name="Who can apply" error={errors.audienceScope}>
+            <select value={f.audienceScope} onChange={set("audienceScope")} className={field}>
+              <option value="open">Anyone</option>
+              <option value="institution">Participating institutes only</option>
+            </select>
+          </Field>
+          {f.audienceScope === "institution" && (
+            <Field name="Applications per institute (optional)" error={errors.maxApplicationsPerInstitute}>
+              <input type="number" min={1} max={50} value={f.maxApplicationsPerInstitute} onChange={set("maxApplicationsPerInstitute")} className={field} placeholder="No limit" />
+            </Field>
+          )}
+          {f.audienceScope === "institution" && (
+            <p className="col-span-2 font-sans text-[12px] text-bk-muted -mt-1">
+              Needs a verified institute. After posting you can add co-host and guest institutes. Each
+              applicant is approved by their own institute before you can pick them, and a team must be
+              from a single institute.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Field name="Who can take it on" error={errors.entrantType}>
@@ -179,7 +208,7 @@ export default function ChallengeForm({
       </div>
 
       {message && <p className="font-sans text-[12px] text-bk-live mb-3">{message}</p>}
-      <button disabled={busy} className="w-full bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50">
+      <button disabled={busy} className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50">
         {busy ? "Posting…" : "Post challenge"}
       </button>
     </form>

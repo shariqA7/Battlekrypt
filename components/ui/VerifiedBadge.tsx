@@ -27,9 +27,9 @@ export function VerifiedBadge({ size = 15 }: VerifiedBadgeProps) {
         d="M12 1l2.6 2.1 3.3-.4 1 3.2 3 1.5-.9 3.3 1.9 2.8-2.4 2.4.4 3.3-3.3.5-1.6 2.9-3-1.3-3 1.3-1.6-2.9-3.3-.5.4-3.3-2.4-2.4 1.9-2.8-.9-3.3 3-1.5 1-3.2 3.3.4L12 1z"
       />
       <path
-        fill="#0B0C10"
+        fill="#16130B"
         d="M9.5 12.6l1.8 1.8 3.7-4.1"
-        stroke="#0B0C10"
+        stroke="#16130B"
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"

@@ -154,6 +154,29 @@ enum AudienceScope {
 // Where a tournament is played (spec §8). Online uses the Room ID/Password
 // flow; LAN uses a venue address and on-site check-in instead of room
 // credentials. Hybrid (per-stage venue) comes in 8.4.
+// Role of an extra institute on an institution-scoped tournament. The host
+// institute is implicit (the tournament organizer's own Institution).
+//   cohost — approves/rejects registrations from ITS OWN members only
+//   guest  — its members may enter, but the host approves them
+enum CoHostRole {
+  cohost
+  guest
+}
+
+// Where a challenge application stands with the institute that has to vouch
+// for the applicant. Open challenges leave every application "approved".
+enum InstituteReview {
+  pending
+  approved
+  rejected
+}
+
+enum CoHostStatus {
+  pending
+  accepted
+  declined
+}
+
 enum VenueType {
   online
   lan
@@ -176,22 +199,34 @@ enum InstitutionStatus {
 
 model PlayerInstitution {
   id       String        @id @default(uuid())
-  playerId String        @unique
+  playerId String        @unique // one institute per player
   player   PlayerProfile @relation(fields: [playerId], references: [id])
 
-  institutionName String
-  studentId       String? // the number printed on the ID, if the player wants to add it
-  idImagePath     String // path inside the private "institution-ids" bucket
+  // The institute the player belongs to. Null only on legacy rows created
+  // before institutes existed (free-text name below); those players must pick
+  // an institute again before entering institution-only tournaments.
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
 
-  status       InstitutionStatus @default(pending)
-  adminNote    String? // shown to the player when rejected
+  institutionName String // snapshot of the name (legacy: what the player typed)
+  studentId       String? // the number printed on the ID, if the player wants to add it
+  idImagePath     String? // LEGACY (8.1 admin review) — unused for new memberships
+
+  // LEGACY 8.1 admin-review fields. New memberships are created "approved";
+  // the institute, not the admin, decides entry per tournament.
+  status       InstitutionStatus @default(approved)
+  adminNote    String?
   reviewedById String?
   reviewedAt   DateTime?
+
+  // Players may change institute once a week (enforced in the service).
+  lastChangedAt DateTime @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([institutionId])
 }
 
 // An entry the organizer advanced into a stage (e.g. qualifiers -> finals).
@@ -250,6 +285,7 @@ model OrganizerProfile {
   templates      TournamentTemplate[]
   members        OrganizationMember[]
   featuredSlides FeaturedSlide[]
+  institution    Institution?
 
   createdAt DateTime @default(now())
 }
@@ -889,13 +925,16 @@ model Tournament {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  stages        Stage[]
-  rules         TournamentRule[]
-  registrations Registration[]
-  flags         TournamentFlag[]
-  teamEntries   TeamEntry[]
-  votes         TournamentVote[]
-  featured      FeaturedTournament?
+  stages                 Stage[]
+  rules                  TournamentRule[]
+  registrations          Registration[]
+  institutions           TournamentInstitution[]
+  // Default cap on entries per institute (institution-only tournaments). Null = no cap.
+  maxEntriesPerInstitute Int?
+  flags                  TournamentFlag[]
+  teamEntries            TeamEntry[]
+  votes                  TournamentVote[]
+  featured               FeaturedTournament?
 
   @@index([audienceScope])
   @@index([venueType])
@@ -1076,6 +1115,21 @@ model Registration {
   // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
   institutionProofPath String?
 
+  // Which institute's queue this registration belongs to (the player's — or,
+  // for a team, the shared — institute at registration time). Null = the host
+  // handles it. A co-host acts only on registrations routed to its institute.
+  routedInstitutionId     String?
+  routedInstitution       Institution? @relation("RoutedRegistration", fields: [routedInstitutionId], references: [id])
+  // The ONE institute this entry plays for (every player on a team shares it).
+  // Set for institution-only tournaments; counts against the institute's quota.
+  institutionId           String?
+  institution             Institution? @relation("EntryInstitution", fields: [institutionId], references: [id])
+  // Which institute took responsibility by approving the entry (host or co-host).
+  approvedByInstitutionId String?
+  // Set when a co-host approved eligibility on a PAID tournament; the host
+  // still confirms payment before the registration becomes approved.
+  institutionApprovedAt   DateTime?
+
   // LAN check-in (a team entry checks in as one unit).
   checkInStatus   CheckInStatus @default(pending)
   checkedInAt     DateTime?
@@ -1199,6 +1253,14 @@ model Challenge {
   reviewedAt   DateTime?
 
   // When the poster ticked "I understand" on the prize / payment terms.
+  // Institution-only challenges (organization posters with a verified institute):
+  // only players/teams of participating institutes may apply, and each applicant
+  // is approved by their own institute before the poster can pick them.
+  audienceScope               AudienceScope          @default(open)
+  // Default cap on applications per institute (null = no cap).
+  maxApplicationsPerInstitute Int?
+  institutions                ChallengeInstitution[]
+
   termsAcceptedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -1427,10 +1489,21 @@ model ChallengeApplication {
   failedReason       String?
   disputes           ChallengeDispute[]
 
+  // Institution-only challenges: the ONE institute the entrant plays for (a
+  // team's players all share it), whose queue it sits in (null = the host's),
+  // and whether that institute has vouched for the applicant yet.
+  institutionId           String?
+  institution             Institution?    @relation("ChallengeAppEntry", fields: [institutionId], references: [id])
+  routedInstitutionId     String?
+  routedInstitution       Institution?    @relation("ChallengeAppRouted", fields: [routedInstitutionId], references: [id])
+  institutionReview       InstituteReview @default(approved)
+  approvedByInstitutionId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([challengeId, applicantUserId])
+  @@index([challengeId, institutionId])
   @@index([challengeId, status])
   @@index([applicantUserId])
 }
@@ -1556,4 +1629,68 @@ model ChallengeFlag {
 
   @@unique([applicationId, kind])
   @@index([status, createdAt])
+}
+
+// An institute (school / college / university) run by an organization.
+// Admin verifies the institute once; after that the institute itself decides
+// which players enter its tournaments (per tournament, not globally).
+model Institution {
+  id          String           @id @default(uuid())
+  name        String           @unique
+  organizerId String           @unique
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+
+  verified     Boolean   @default(false)
+  verifiedAt   DateTime?
+  verifiedById String?
+
+  createdAt DateTime @default(now())
+
+  members                     PlayerInstitution[]
+  tournamentLinks             TournamentInstitution[]
+  routedRegistrations         Registration[]          @relation("RoutedRegistration")
+  entries                     Registration[]          @relation("EntryInstitution")
+  challengeLinks              ChallengeInstitution[]
+  challengeApplications       ChallengeApplication[]  @relation("ChallengeAppEntry")
+  routedChallengeApplications ChallengeApplication[]  @relation("ChallengeAppRouted")
+
+  @@index([verified])
+}
+
+// Co-host / guest institutes of one tournament (see CoHostRole).
+model TournamentInstitution {
+  id            String       @id @default(uuid())
+  tournamentId  String
+  tournament    Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  institutionId String
+  institution   Institution  @relation(fields: [institutionId], references: [id])
+  role          CoHostRole
+  // Guests need no acceptance (status stays accepted); co-hosts must accept.
+  status        CoHostStatus @default(pending)
+  invitedAt     DateTime     @default(now())
+  respondedAt   DateTime?
+  // Max entries (solo players or teams) this institute may have in the
+  // tournament. Null = the tournament's per-institute default applies.
+  maxEntries    Int?
+
+  @@unique([tournamentId, institutionId])
+  @@index([institutionId, status])
+}
+
+// Co-host / guest institutes of one institution-only challenge (see CoHostRole).
+model ChallengeInstitution {
+  id              String       @id @default(uuid())
+  challengeId     String
+  challenge       Challenge    @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  institutionId   String
+  institution     Institution  @relation(fields: [institutionId], references: [id])
+  role            CoHostRole
+  status          CoHostStatus @default(pending)
+  invitedAt       DateTime     @default(now())
+  respondedAt     DateTime?
+  // Max applications from this institute. Null = the challenge default applies.
+  maxApplications Int?
+
+  @@unique([challengeId, institutionId])
+  @@index([institutionId, status])
 }

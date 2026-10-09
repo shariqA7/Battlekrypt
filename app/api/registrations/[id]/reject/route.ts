@@ -22,7 +22,7 @@ export async function POST(
   }
   if (result.error === "forbidden") {
     return NextResponse.json(
-      { error: { code: "forbidden", message: "You don't own this tournament." } },
+      { error: { code: "forbidden", message: "You can't manage this registration." } },
       { status: 403 }
     );
   }

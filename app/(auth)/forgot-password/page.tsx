@@ -4,7 +4,7 @@ import ForgotPasswordForm from "./ForgotPasswordForm";
 export default function ForgotPasswordPage() {
   return (
     <main className="flex-1 flex items-center justify-center p-6">
-      <div className="w-[380px]">
+      <div className="w-full max-w-[380px]">
         <Link
           href="/login"
           className="inline-block font-sans text-[12px] text-bk-muted mb-6 hover:text-bk-heading transition-colors"

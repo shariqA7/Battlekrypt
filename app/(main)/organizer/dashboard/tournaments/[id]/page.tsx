@@ -12,13 +12,20 @@ import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
+import InstitutesPanel from "@/components/institutes/InstitutesPanel";
+import { listTournamentInstitutions, getInstitutionUsage } from "@/lib/services/institutions";
 
 export default async function ManageTournamentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
+  const { view: viewParam } = await searchParams;
+  // "mine" = entries the host handles itself; "all" also includes co-host queues.
+  const view = viewParam === "mine" ? "mine" : "all";
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,7 +42,7 @@ export default async function ManageTournamentPage({
   if (!tournament) notFound();
   if (tournament.organizerId !== organizerProfile.id) redirect("/organizer/dashboard");
 
-  const result = await listRegistrations(id, organizerProfile.id);
+  const result = await listRegistrations(id, organizerProfile.id, undefined, view);
   if ("error" in result) {
     // Ownership was already verified above, so this should be unreachable —
     // but redirecting gracefully is safer than crashing if it ever happens.
@@ -43,6 +50,12 @@ export default async function ManageTournamentPage({
   }
   const registrations = result.data;
   const capacity = await getTournamentCapacity(id);
+  const isInstitutionScoped = tournament.audienceScope === "institution";
+  const linkedInstitutes = isInstitutionScoped ? await listTournamentInstitutions(id) : [];
+  const instituteUsage = isInstitutionScoped ? await getInstitutionUsage(id) : {};
+  const hostInstitute = isInstitutionScoped
+    ? await prisma.institution.findUnique({ where: { organizerId: organizerProfile.id }, select: { id: true, name: true, verified: true } })
+    : null;
   const isLan = tournament.venueType === "lan";
   const isHybrid = tournament.venueType === "hybrid";
   const counts = isLan ? await checkInCounts(id) : null;
@@ -124,6 +137,23 @@ export default async function ManageTournamentPage({
           <StageManager tournamentId={id} initialStages={tournament.stages} />
         )}
 
+        {isInstitutionScoped && (
+          <InstitutesPanel
+            endpoint={`/api/tournaments/${id}/institutions`}
+            hostInstitute={hostInstitute}
+            defaultLimit={tournament.maxEntriesPerInstitute}
+            usage={instituteUsage}
+            hostInstituteId={hostInstitute?.id ?? null}
+            initial={linkedInstitutes.map((l) => ({
+              institutionId: l.institutionId,
+              name: l.institution.name,
+              role: l.role,
+              status: l.status,
+              maxEntries: l.maxEntries,
+            }))}
+          />
+        )}
+
         <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Rules</p>
         <RulesManager
           tournamentId={id}
@@ -143,7 +173,24 @@ export default async function ManageTournamentPage({
             </p>
           )}
         </div>
+        {isInstitutionScoped && linkedInstitutes.some((l) => l.role === "cohost" && l.status === "accepted") && (
+          <div className="flex gap-2 mb-3 font-sans text-[12px]">
+            <a
+              href={`/organizer/dashboard/tournaments/${id}?view=all`}
+              className={`px-3 py-1.5 border ${view === "all" ? "border-bk-gold-light text-bk-gold-light" : "border-bk-border text-bk-muted"}`}
+            >
+              All requests
+            </a>
+            <a
+              href={`/organizer/dashboard/tournaments/${id}?view=mine`}
+              className={`px-3 py-1.5 border ${view === "mine" ? "border-bk-gold-light text-bk-gold-light" : "border-bk-border text-bk-muted"}`}
+            >
+              My requests
+            </a>
+          </div>
+        )}
         <RegistrationQueue
+          key={view}
           tournamentId={id}
           initialRegistrations={registrations}
           mode={tournament.mode}

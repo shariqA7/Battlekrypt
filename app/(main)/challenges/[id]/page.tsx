@@ -10,6 +10,8 @@ import CancelButton from "./CancelButton";
 import ApplyPanel from "./ApplyPanel";
 import ApplicantsPanel from "./ApplicantsPanel";
 import EntryPanel from "./EntryPanel";
+import InstitutesPanel from "@/components/institutes/InstitutesPanel";
+import { listChallengeInstitutions, getChallengeInstitutionUsage } from "@/lib/services/challenge-institutions";
 import ReportButton from "./ReportButton";
 import { isUnderReview } from "@/lib/services/challenge-moderation";
 import { CHALLENGE_NOTICE } from "@/lib/challenge-terms";
@@ -50,12 +52,24 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
   const prizeType = c.prizeType as "cash" | "in_game" | "reward";
   const underReview = c.status === "open" && (await isUnderReview(c.id));
 
+  // Institution-only: the host manages participating institutes and sees usage.
+  const institutional = c.audienceScope === "institution";
+  const hostInstitute =
+    institutional && isPoster
+      ? await prisma.institution.findFirst({
+          where: { organizer: { userId: c.posterUserId } },
+          select: { id: true, name: true, verified: true },
+        })
+      : null;
+  const linkedInstitutes = institutional && isPoster ? await listChallengeInstitutions(c.id) : [];
+  const instituteUsage = institutional && isPoster ? await getChallengeInstitutionUsage(c.id) : {};
+
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
       <Link href="/challenges" className="font-sans text-[12px] text-bk-muted underline">← Challenges</Link>
 
       {note && (
-        <p className={`mt-4 font-sans text-[13px] px-3 py-2 ${note.tone === "live" ? "bg-bk-live-bg text-bk-live" : note.tone === "gold" ? "bg-[rgba(239,159,39,0.12)] text-[#EF9F27]" : "bg-bk-surface text-bk-muted"}`}>
+        <p className={`mt-4 font-sans text-[13px] px-3 py-2 ${note.tone === "live" ? "bg-bk-live-bg text-bk-live" : note.tone === "gold" ? "bg-bk-amber/[0.12] text-bk-amber" : "bg-bk-surface text-bk-muted"}`}>
           {note.text}
           {c.reviewNote && ` Reason: ${c.reviewNote}`}
         </p>
@@ -65,17 +79,23 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
       <p className="font-sans text-[13px] text-bk-muted mb-5">
         {c.game.name} · {POSTER_LABEL[c.posterType]}: {c.posterName}
       </p>
+      {institutional && (
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-bk-surface border border-bk-border text-bk-body">
+          Institution-only. Open to players from the institutes taking part; each applicant is approved
+          by their own institute, and a team must be from a single institute.
+        </p>
+      )}
       <p className="font-sans text-[12px] text-bk-muted -mt-3 mb-5">
         Poster record: {posterRecord.completed} prize{posterRecord.completed === 1 ? "" : "s"} settled
         {posterRecord.paymentDisputesLost > 0 ? ` · ${posterRecord.paymentDisputesLost} payment dispute${posterRecord.paymentDisputesLost === 1 ? "" : "s"} lost` : ""}
       </p>
       {underReview && (
-        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-[rgba(239,159,39,0.12)] text-[#EF9F27]">
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-bk-amber/[0.12] text-bk-amber">
           This challenge is being reviewed after reports. Applications are paused until an admin has looked.
         </p>
       )}
       {frozen && (
-        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-[rgba(239,159,39,0.12)] text-[#EF9F27]">
+        <p className="mb-5 font-sans text-[13px] px-3 py-2 bg-bk-amber/[0.12] text-bk-amber">
           {isPoster
             ? "Your challenges are paused while a payment dispute is settled. You can't post or take applications until then."
             : "This poster's challenges are temporarily paused."}
@@ -113,7 +133,24 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
             </p>
           )}
           {c.status === "open" && (
-            <ApplicantsPanel challengeId={c.id} slots={c.slots} applicants={applicants} canPick />
+            <ApplicantsPanel challengeId={c.id} slots={c.slots} applicants={applicants} canPick institutional={institutional} />
+          )}
+          {institutional && c.status === "open" && (
+            <InstitutesPanel
+              endpoint={`/api/challenges/${c.id}/institutions`}
+              noun="challenge"
+              hostInstitute={hostInstitute}
+              hostInstituteId={hostInstitute?.id ?? null}
+              defaultLimit={c.maxApplicationsPerInstitute}
+              usage={instituteUsage}
+              initial={linkedInstitutes.map((l) => ({
+                institutionId: l.institutionId,
+                name: l.institution.name,
+                role: l.role,
+                status: l.status,
+                maxEntries: l.maxApplications,
+              }))}
+            />
           )}
           {entries.length > 0 && (
             <div className="space-y-3">
@@ -139,12 +176,12 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         </>
       ) : acceptingApplications ? (
         !user ? (
-          <Link href={`/login?redirectTo=/challenges/${c.id}`} className="inline-block bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
+          <Link href={`/login?redirectTo=/challenges/${c.id}`} className="inline-block bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
             Sign in to join
           </Link>
         ) : apply?.planBlocked ? (
           <div>
-            <Link href="/plans" className="inline-block bg-white text-bk-bg font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
+            <Link href="/plans" className="inline-block bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-5 py-2.5">
               Upgrade to join
             </Link>
             <p className="font-sans text-[12px] text-bk-muted mt-2">

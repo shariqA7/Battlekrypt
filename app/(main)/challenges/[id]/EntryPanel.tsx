@@ -27,7 +27,7 @@ const FAIL_TEXT: Record<string, string> = {
 };
 const field = "w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[36px]";
 const area = "w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2";
-const primary = "bg-white text-bk-bg font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-4 py-2 disabled:opacity-50";
+const primary = "bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-4 py-2 disabled:opacity-50";
 const danger = "border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-4 py-2 disabled:opacity-50";
 
 // Dates are formatted in the browser only, so the server's time zone can't
@@ -146,7 +146,7 @@ export default function EntryPanel({
           <Links urls={d.openerEvidenceUrls} label="Evidence" />
           {d.responderNote && <p>Response: {d.responderNote}</p>}
           <Links urls={d.responderEvidenceUrls} label="Response evidence" />
-          {d.status === "awaiting_response" && <p className="text-[#EF9F27]"><When iso={d.responseDueAt} prefix="Response due by " /></p>}
+          {d.status === "awaiting_response" && <p className="text-bk-amber"><When iso={d.responseDueAt} prefix="Response due by " /></p>}
           {d.missedDeadline && <p className="text-bk-live">The response deadline was missed.</p>}
           {d.status === "awaiting_admin" && <p>Waiting for an admin to decide.</p>}
           {d.adminNote && <p>Admin: {d.adminNote}</p>}
@@ -339,7 +339,7 @@ function RespondForm({ act, busy, kind }: { act: Act; busy: boolean; kind: strin
   const [note, setNote] = useState("");
   const [urls, setUrls] = useState<string[]>([]);
   return (
-    <div className="mt-3 space-y-3 border border-[#EF9F27]/50 p-3">
+    <div className="mt-3 space-y-3 border border-bk-amber/50 p-3">
       <p className="font-sans text-[13px] text-bk-heading">
         {kind === "payment"
           ? "Upload proof that you paid within 24 hours. If you can't, your account can be banned."

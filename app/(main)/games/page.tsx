@@ -17,7 +17,7 @@ export default async function GamesPage() {
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-6">
         Games
       </h1>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {games.map((g) => (
           <Link
             key={g.id}

@@ -52,7 +52,7 @@ export default async function TournamentsPage({
                 href={`/tournaments/${t.slug}`}
                 className="bg-bk-surface border border-bk-border p-4 flex items-center justify-between hover:border-bk-gold-light transition-colors"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-sans font-medium text-bk-heading text-sm">
                     {t.name}
                   </p>
@@ -78,9 +78,9 @@ export default async function TournamentsPage({
                     )}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-right shrink-0 pl-3">
                   {t.prizePoolAmount ? (
-                    <p className="font-mono text-bk-gold-light text-sm">
+                    <p className="font-mono text-bk-gold-light text-sm whitespace-nowrap">
                       {formatMoney(t.prizePoolAmount, t.prizePoolCurrency ?? "PKR")}
                     </p>
                   ) : (

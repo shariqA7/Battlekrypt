@@ -18,7 +18,7 @@
 import { prisma } from "@/lib/prisma";
 import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
 import { checkTierEntryGate } from "@/lib/services/competitive-tiers";
-import { checkInstitutionGate } from "@/lib/services/institutions";
+import { checkInstitutionGate, checkTeamRosterInstitution } from "@/lib/services/institutions";
 
 export const CLUB_ENTRY_ERRORS = {
   validation_error: { status: 400, message: "Invalid input." },
@@ -57,6 +57,14 @@ export const CLUB_ENTRY_ERRORS = {
     message: "This tournament is for verified students only.",
   },
   institution_proof_required: { status: 400, message: "Fresh ID proof is required." },
+  institution_mixed_team: {
+    status: 400,
+    message: "All players in a team must belong to the same institute.",
+  },
+  institution_quota_full: {
+    status: 409,
+    message: "That institute has no entries left in this tournament.",
+  },
 } as const;
 
 export type ClubEntryErrorCode = keyof typeof CLUB_ENTRY_ERRORS;
@@ -233,6 +241,18 @@ export async function updateClubTeamEntryMembers(
   const rosterMembers = await prisma.clubRoster.findMany({ where: { teamId: entry.clubTeamId } });
   const rosterIds = new Set(rosterMembers.map((m) => m.playerId));
   if (!ids.every((id) => rosterIds.has(id))) return fail("member_not_on_team");
+
+  // Institution-only: the team keeps playing for its one institute.
+  const entryReg = await prisma.registration.findUnique({
+    where: { teamEntryId },
+    select: { institutionId: true },
+  });
+  const rosterCheck = await checkTeamRosterInstitution(
+    entry.tournamentId,
+    ids,
+    entryReg?.institutionId ?? null
+  );
+  if ("error" in rosterCheck) return fail(rosterCheck.error, rosterCheck.message);
 
   await prisma.$transaction([
     prisma.teamMember.deleteMany({ where: { teamEntryId } }),
@@ -422,6 +442,8 @@ export async function manualAddClubTeamEntry(
         approvedAt: new Date(),
         addedBy: "organizer",
         paymentStatus,
+        routedInstitutionId: instGate.routedInstitutionId,
+        institutionId: instGate.institutionId,
       },
     });
   });
@@ -467,6 +489,8 @@ export async function manualAddClubSoloEntry(
       approvedAt: new Date(),
       addedBy: "organizer",
       paymentStatus,
+      routedInstitutionId: instGate.routedInstitutionId,
+      institutionId: instGate.institutionId,
     },
   });
 

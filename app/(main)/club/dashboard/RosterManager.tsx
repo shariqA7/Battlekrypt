@@ -57,7 +57,7 @@ const inputClass =
 const labelClass =
   "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5";
 const primaryBtn =
-  "bg-white text-bk-bg font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50";
+  "bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50";
 const ghostBtn =
   "border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap";
 
@@ -165,7 +165,7 @@ export default function RosterManager({
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">Teams</p>
 
-        <div className="bg-bk-surface border border-bk-border p-3 mb-3 grid grid-cols-2 gap-3">
+        <div className="bg-bk-surface border border-bk-border p-3 mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Game</label>
             <select
@@ -384,7 +384,7 @@ export default function RosterManager({
           team, remove them first and invite them again.
         </p>
 
-        <div className="bg-bk-surface border border-bk-border p-3 grid grid-cols-2 gap-3">
+        <div className="bg-bk-surface border border-bk-border p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Game</label>
             <select

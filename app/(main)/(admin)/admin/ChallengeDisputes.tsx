@@ -173,12 +173,12 @@ export default function ChallengeDisputes({ initial }: { initial: AdminDispute[]
                 />
                 {error && <p className="font-sans text-[12px] text-bk-live">{error}</p>}
                 <div className="flex gap-3">
-                  <button disabled={busy} onClick={() => resolve(d)} className="bg-white text-bk-bg font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-4 py-2 disabled:opacity-50">Record decision</button>
+                  <button disabled={busy} onClick={() => resolve(d)} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-4 py-2 disabled:opacity-50">Record decision</button>
                   <button onClick={() => setOpen(null)} className="font-sans text-[12px] text-bk-muted underline">Cancel</button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => start(d)} className="mt-3 bg-white text-bk-bg font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-3 py-1.5">Review</button>
+              <button onClick={() => start(d)} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.6px] px-3 py-1.5">Review</button>
             )}
           </div>
         ))}

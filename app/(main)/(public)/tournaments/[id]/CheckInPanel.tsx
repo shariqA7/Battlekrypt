@@ -116,7 +116,7 @@ export default function CheckInPanel({
               <button
                 type="submit"
                 disabled={busy || !code.trim()}
-                className="bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 h-[44px] disabled:opacity-50"
+                className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 h-[44px] disabled:opacity-50"
               >
                 {busy ? "Checking..." : "Check in"}
               </button>

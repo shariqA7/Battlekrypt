@@ -12,7 +12,7 @@ import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
-import { checkInstitutionGate } from "@/lib/services/institutions";
+import { checkInstitutionGate, getRegistrationActor } from "@/lib/services/institutions";
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { hybridStagesError } from "@/lib/services/stages";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
@@ -257,6 +257,21 @@ export async function publishTournament(tournamentId: string, organizerId: strin
     if (hybridError) return { error: "venue_incomplete" as const, message: hybridError };
   }
 
+  // An institution-only tournament is hosted BY an institute: it must be
+  // registered and admin-verified, or no player could ever qualify to enter.
+  if (tournament.audienceScope === "institution") {
+    const host = await prisma.institution.findUnique({
+      where: { organizerId },
+      select: { verified: true },
+    });
+    if (!host?.verified) {
+      return {
+        error: "institution_host_required" as const,
+        message: "Institution-only tournaments need a verified institute. Register yours under My institute.",
+      };
+    }
+  }
+
   // A LAN tournament needs a venue before it goes public.
   if (!venueIsComplete(tournament)) {
     return {
@@ -465,6 +480,8 @@ export async function registerForTournament(input: RegisterInput) {
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
         institutionProofPath: input.institutionProofPath,
+        routedInstitutionId: institutionGate.routedInstitutionId,
+        institutionId: institutionGate.institutionId,
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
       },
     });
@@ -478,6 +495,8 @@ export async function registerForTournament(input: RegisterInput) {
       paymentStatus: paymentStatus ?? "unpaid",
       paymentProofUrl: input.paymentProofUrl,
       institutionProofPath: input.institutionProofPath,
+      routedInstitutionId: institutionGate.routedInstitutionId,
+      institutionId: institutionGate.institutionId,
       customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
     },
   });
@@ -486,43 +505,100 @@ export async function registerForTournament(input: RegisterInput) {
   return { data: registration };
 }
 
+// Queue of registrations. The host sees everything (view "all") or just the
+// ones it handles itself (view "mine": its own members, guests and open
+// entries — i.e. not routed to a co-host). A co-host only ever sees the
+// registrations routed to its own institute.
 export async function listRegistrations(
   tournamentId: string,
   organizerId: string,
-  status?: string
+  status?: string,
+  view: "all" | "mine" = "all"
 ) {
   const tournament = await prisma.tournament.findUnique({ where: { id: tournamentId } });
   if (!tournament) return { error: "not_found" as const };
-  if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+
+  let scope: Record<string, unknown> = {};
+  let role: "host" | "cohost" = "host";
+  if (tournament.organizerId === organizerId) {
+    if (view === "mine") scope = { routedInstitutionId: null };
+  } else {
+    const link = await prisma.tournamentInstitution.findFirst({
+      where: {
+        tournamentId,
+        role: "cohost",
+        status: "accepted",
+        institution: { organizerId, verified: true },
+      },
+      select: { institutionId: true },
+    });
+    if (!link) return { error: "forbidden" as const };
+    role = "cohost";
+    scope = { routedInstitutionId: link.institutionId };
+  }
 
   const registrations = await prisma.registration.findMany({
     where: {
       tournamentId,
+      ...scope,
       ...(status ? { status: status as never } : {}),
     },
     include: {
       player: { include: { user: { select: { displayName: true } } } },
       teamEntry: { include: { members: true } },
+      routedInstitution: { select: { id: true, name: true } },
     },
     orderBy: { registeredAt: "asc" },
   });
 
-  return { data: registrations };
+  return { data: registrations, role };
 }
 
+// Host: may act on any registration. Co-host: only on registrations routed to
+// its own (accepted) institute. A co-host approving a PAID entry confirms
+// eligibility only — the host still verifies the payment before the entry
+// becomes approved, so a co-host can't mark money as received.
 export async function approveRegistration(registrationId: string, organizerId: string) {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
     include: { tournament: true },
   });
   if (!registration) return { error: "not_found" as const };
-  if (registration.tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+  const actor = await getRegistrationActor(
+    registration.tournamentId,
+    registration.tournament.organizerId,
+    organizerId,
+    registration.routedInstitutionId
+  );
+  if (!actor) return { error: "forbidden" as const };
 
+  if (actor.role === "cohost") {
+    const needsPayment =
+      registration.tournament.entryType === "paid" && registration.paymentStatus === "unpaid";
+    const updated = await prisma.registration.update({
+      where: { id: registrationId },
+      data: needsPayment
+        ? { institutionApprovedAt: new Date(), approvedByInstitutionId: actor.institutionId }
+        : {
+            status: "approved",
+            approvedAt: new Date(),
+            institutionApprovedAt: new Date(),
+            approvedByInstitutionId: actor.institutionId,
+          },
+    });
+    return { data: updated, awaitingHostPayment: needsPayment };
+  }
+
+  const hostInstitute = await prisma.institution.findUnique({
+    where: { organizerId },
+    select: { id: true },
+  });
   const updated = await prisma.registration.update({
     where: { id: registrationId },
     data: {
       status: "approved",
       approvedAt: new Date(),
+      approvedByInstitutionId: hostInstitute?.id ?? null,
       // Paid entries get marked paid on approval, since approval implies the
       // organizer verified the payment screenshot. Free/waived entries stay as-is.
       paymentStatus:
@@ -530,7 +606,7 @@ export async function approveRegistration(registrationId: string, organizerId: s
     },
   });
 
-  return { data: updated };
+  return { data: updated, awaitingHostPayment: false };
 }
 
 export async function rejectRegistration(
@@ -543,7 +619,13 @@ export async function rejectRegistration(
     include: { tournament: true },
   });
   if (!registration) return { error: "not_found" as const };
-  if (registration.tournament.organizerId !== organizerId) return { error: "forbidden" as const };
+  const actor = await getRegistrationActor(
+    registration.tournamentId,
+    registration.tournament.organizerId,
+    organizerId,
+    registration.routedInstitutionId
+  );
+  if (!actor) return { error: "forbidden" as const };
 
   const updated = await prisma.registration.update({
     where: { id: registrationId },
@@ -1441,6 +1523,8 @@ export async function manualAddRegistration(
       approvedAt: new Date(),
       addedBy: "organizer",
       paymentStatus,
+      routedInstitutionId: institutionGate.routedInstitutionId,
+      institutionId: institutionGate.institutionId,
     },
   });
 
