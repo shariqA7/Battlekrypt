@@ -355,28 +355,7 @@ now exist**, and the duplicate-function check remains clean at 30 functions.
 
 Players verify their institution once on **Dashboard → Profile settings**; admins review on **/admin/institutions**. Run `npx prisma migrate dev` to apply `20261002200000_phase8_1_institution_verification`.
 
-**Required Supabase setup** (SQL editor) — the ID photos go in a PRIVATE bucket, unlike `tournament-assets`:
-
-```sql
-insert into storage.buckets (id, name, public)
-values ('institution-ids', 'institution-ids', false)
-on conflict (id) do nothing;
-
--- a player may only upload into their own folder: <userId>/<file>
-create policy "players upload own institution id"
-on storage.objects for insert to authenticated
-with check (bucket_id = 'institution-ids' and (storage.foldername(name))[1] = auth.uid()::text);
-
--- only admins can read ID photos (the admin page uses 5-minute signed links)
-create policy "admins read institution ids"
-on storage.objects for select to authenticated
-using (
-  bucket_id = 'institution-ids'
-  and exists (select 1 from public."User" u where u.id = auth.uid()::text and u."isAdmin")
-);
-```
-
-`FileUpload` has a new `isPrivate` prop: it returns the storage path instead of a public URL.
+> **Superseded.** This admin-reviewed student verification was replaced by institutes and co-hosts (see **Institutes and co-hosts** below). The `institution-ids` bucket and its policies are **no longer used**: there is nothing to set up for 8.1, and if you created them earlier you can leave them or delete them.
 
 ## Phase 8.2 — Students-only tournaments
 
@@ -384,31 +363,7 @@ Run `npx prisma migrate dev` to apply `20261002210000_phase8_2_audience_scope`.
 
 Organizers choose **Everyone / Students only** when creating or editing a draft (and optionally ask for a fresh ID photo per registration). It's saved in templates too. Once active registrations exist, the setting can't change.
 
-**Required Supabase setup** (only if you use the "fresh ID photo" option) — a second PRIVATE bucket whose photos only the tournament's organizer can read:
-
-```sql
-insert into storage.buckets (id, name, public)
-values ('institution-proofs', 'institution-proofs', false)
-on conflict (id) do nothing;
-
-create policy "players upload own institution proof"
-on storage.objects for insert to authenticated
-with check (bucket_id = 'institution-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
-
-create policy "organizers read proofs for their tournaments"
-on storage.objects for select to authenticated
-using (
-  bucket_id = 'institution-proofs'
-  and exists (
-    select 1
-    from public."Registration" r
-    join public."Tournament" t on t.id = r."tournamentId"
-    join public."OrganizerProfile" o on o.id = t."organizerId"
-    where r."institutionProofPath" = storage.objects.name
-      and o."userId" = auth.uid()::text
-  )
-);
-```
+**Supabase setup** (only if you use the "fresh ID photo" option): see **Supabase storage for ID photos** in the next section. It is one block that covers the host and co-hosts.
 
 ## Institutes and co-hosts (replaces the admin-reviewed student verification)
 
@@ -434,14 +389,58 @@ Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_inst
 - The host can cap applications per institute (a default plus per-institute overrides). Rejected, withdrawn and not-selected applications free the slot.
 - A live challenge application (including a club team's, for every player on its roster) also stops a player changing institute.
 
-**Supabase storage** — add this policy so a co-host can open the per-tournament ID photos of its own players (the existing "organizers read proofs" policy only covers the host):
+### Supabase storage for ID photos
+
+Only needed if organizers use the **fresh ID photo** option. The photos live in a PRIVATE bucket, and only the host organizer and, for their own players, an accepted co-host can read them. Run this once in the SQL editor (after the migrations above, because it reads the `TournamentInstitution` table). It is safe to run again.
+
+**Why functions?** A storage policy runs as the signed-in user, and that role usually can't read your Prisma tables directly, so a policy that queries `Registration` or `User` inline silently matches nothing and every photo link fails. Each policy below calls a small `security definer` function instead; it runs with the owner's rights, has a fixed empty `search_path`, and is only executable by signed-in users.
 
 ```sql
-create policy "co-host institutes read proofs of their players"
+-- 1. private bucket
+insert into storage.buckets (id, name, public)
+values ('institution-proofs', 'institution-proofs', false)
+on conflict (id) do nothing;
+
+-- 2. a player may only upload into their own folder: <userId>/<file>
+drop policy if exists "players upload own institution proof" on storage.objects;
+create policy "players upload own institution proof"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'institution-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 3. the host organizer of the tournament can read the photo
+create or replace function public.bk_organizes_proof(object_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public."Registration" r
+    join public."Tournament" t on t.id = r."tournamentId"
+    join public."OrganizerProfile" o on o.id = t."organizerId"
+    where r."institutionProofPath" = object_name
+      and o."userId" = auth.uid()::text
+  );
+$$;
+revoke all on function public.bk_organizes_proof(text) from public, anon;
+grant execute on function public.bk_organizes_proof(text) to authenticated;
+
+drop policy if exists "organizers read proofs for their tournaments" on storage.objects;
+create policy "organizers read proofs for their tournaments"
 on storage.objects for select to authenticated
-using (
-  bucket_id = 'institution-proofs'
-  and exists (
+using (bucket_id = 'institution-proofs' and public.bk_organizes_proof(name));
+
+-- 4. an ACCEPTED co-host can read the photos of the players routed to its own institute
+create or replace function public.bk_cohosts_proof(object_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
     select 1
     from public."Registration" r
     join public."TournamentInstitution" ti
@@ -451,11 +450,22 @@ using (
      and ti."status" = 'accepted'
     join public."Institution" i on i.id = ti."institutionId"
     join public."OrganizerProfile" o on o.id = i."organizerId"
-    where r."institutionProofPath" = storage.objects.name
+    where r."institutionProofPath" = object_name
       and o."userId" = auth.uid()::text
-  )
-);
+  );
+$$;
+revoke all on function public.bk_cohosts_proof(text) from public, anon;
+grant execute on function public.bk_cohosts_proof(text) to authenticated;
+
+drop policy if exists "co-host institutes read proofs of their players" on storage.objects;
+create policy "co-host institutes read proofs of their players"
+on storage.objects for select to authenticated
+using (bucket_id = 'institution-proofs' and public.bk_cohosts_proof(name));
 ```
+
+Policies on the same table combine with OR, so the host and co-host policies together give each person access through whichever one matches. Challenges don't use ID photos, so they need no storage setup.
+
+**Check it:** register as a player from a co-host institute for a tournament that asks for a fresh ID photo, then open the photo link as the host and as the co-host. Both should work; a different organizer should get an access error.
 
 ## Phase 8.3 — LAN venues and check-in
 
