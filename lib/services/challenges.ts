@@ -143,7 +143,7 @@ export async function setChallengeReviewUsd(adminId: string, usd: number) {
 
 export type CreateResult =
   | { data: { id: string; status: "open" | "pending_review" } }
-  | { error: "role_unavailable" | "challenge_limit" | "prize_cap" | "fx_unavailable" | "game_not_found" | "poster_frozen" | "age_restricted"; message: string }
+  | { error: "role_unavailable" | "institution_host_required" | "challenge_limit" | "prize_cap" | "fx_unavailable" | "game_not_found" | "poster_frozen" | "age_restricted"; message: string }
   | { error: "validation_error"; message: string; fields: ChallengeFieldErrors };
 
 export async function createChallenge(userId: string, input: ChallengeInput): Promise<CreateResult> {
@@ -153,6 +153,21 @@ export async function createChallenge(userId: string, input: ChallengeInput): Pr
   }
   if (await isPosterFrozen(userId)) {
     return { error: "poster_frozen", message: "You can't post challenges while a payment dispute against you is unresolved." };
+  }
+
+  // An institution-only challenge is hosted BY an institute: the poster must be
+  // an organization whose institute an admin has verified, or nobody could apply.
+  if (input.audienceScope === "institution") {
+    const host = await prisma.institution.findFirst({
+      where: { organizer: { userId } },
+      select: { verified: true },
+    });
+    if (input.postAs !== "organizer" || !host?.verified) {
+      return {
+        error: "institution_host_required",
+        message: "Institution-only challenges need a verified institute. Register yours under My institute.",
+      };
+    }
   }
 
   // 1. Monthly count, from the plan.
@@ -226,6 +241,8 @@ export async function createChallenge(userId: string, input: ChallengeInput): Pr
       prizeUsd: prizeUsd === null ? null : prizeUsd.toFixed(2),
       payoutMethod: input.payoutMethod,
       termsAcceptedAt: new Date(),
+      audienceScope: input.audienceScope,
+      maxApplicationsPerInstitute: input.maxApplicationsPerInstitute,
       status: needsReview ? "pending_review" : "open",
     },
   });

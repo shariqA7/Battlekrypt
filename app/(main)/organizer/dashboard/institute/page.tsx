@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getInstitutionForOrganizer, listCoHostInvitations } from "@/lib/services/institutions";
+import { listChallengeCoHostInvitations } from "@/lib/services/challenge-institutions";
 import InstituteSetup from "./InstituteSetup";
 import InviteButtons from "./InviteButtons";
 
@@ -15,9 +16,10 @@ export default async function OrganizerInstitutePage() {
   const organizer = await prisma.organizerProfile.findUnique({ where: { userId: user.id } });
   if (!organizer) redirect("/organizer/onboard");
 
-  const [institute, invites] = await Promise.all([
+  const [institute, invites, challengeInvites] = await Promise.all([
     getInstitutionForOrganizer(organizer.id),
     listCoHostInvitations(organizer.id),
+    listChallengeCoHostInvitations(organizer.id),
   ]);
 
   return (
@@ -56,6 +58,29 @@ export default async function OrganizerInstitutePage() {
                 className="inline-block mt-2 text-bk-gold-light text-[12px] underline"
               >
                 Review your players&apos; requests
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Challenge co-host invitations</p>
+      {challengeInvites.length === 0 && (
+        <p className="font-sans text-[12px] text-bk-muted">No invitations yet.</p>
+      )}
+      <ul className="space-y-3">
+        {challengeInvites.map((i) => (
+          <li key={i.id} className="border border-bk-border p-4 font-sans text-[13px]">
+            <p className="text-bk-heading font-bold break-words">{i.challenge.title}</p>
+            <p className="text-bk-muted text-[12px]">Hosted by {i.challenge.posterName}</p>
+            {i.status === "pending" ? (
+              <InviteButtons id={i.id} kind="challenge" />
+            ) : (
+              <a
+                href={`/organizer/dashboard/institute/challenges/${i.challenge.id}`}
+                className="inline-block mt-2 text-bk-gold-light text-[12px] underline"
+              >
+                Review your players&apos; applications
               </a>
             )}
           </li>

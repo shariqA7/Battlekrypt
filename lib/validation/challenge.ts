@@ -26,6 +26,9 @@ export interface ChallengeInput {
   prizeEstimatedUsd: number | null; // in-game prizes only
   payoutMethod: string;
   acceptTerms: boolean;
+  // Organization posters only: restrict to participating institutes' players.
+  audienceScope: "open" | "institution";
+  maxApplicationsPerInstitute: number | null;
 }
 
 export type ChallengeFieldErrors = Partial<Record<keyof ChallengeInput, string>>;
@@ -108,6 +111,17 @@ export function validateChallenge(
     e.payoutMethod = "Say how you'll pay or deliver the prize (e.g. JazzCash or bank transfer, PKR).";
   }
 
+  const audienceScope = str(b.audienceScope) === "institution" ? "institution" : "open";
+  if (audienceScope === "institution" && postAs !== "organizer") {
+    e.audienceScope = "Only organizations with a verified institute can host institution-only challenges.";
+  }
+  let maxApplicationsPerInstitute: number | null = null;
+  if (audienceScope === "institution" && b.maxApplicationsPerInstitute !== undefined && b.maxApplicationsPerInstitute !== null && String(b.maxApplicationsPerInstitute).trim() !== "") {
+    const n = int(b.maxApplicationsPerInstitute);
+    if (!Number.isInteger(n) || n < 1 || n > 50) e.maxApplicationsPerInstitute = "Per-institute limit must be a whole number from 1 to 50.";
+    else maxApplicationsPerInstitute = n;
+  }
+
   // The poster must tick the terms box (see lib/challenge-terms.ts).
   const acceptTerms = b.acceptTerms === true;
   if (!acceptTerms) e.acceptTerms = "Please read and accept the terms to post.";
@@ -117,7 +131,7 @@ export function validateChallenge(
     data: {
       postAs, title, description, gameId, entrantType, minRating, slots, maxApplicants,
       openDays, completeWithinDays, prizeType, prizeDescription, cashAmount, cashCurrency,
-      prizeEstimatedUsd, payoutMethod, acceptTerms,
+      prizeEstimatedUsd, payoutMethod, acceptTerms, audienceScope, maxApplicationsPerInstitute,
     },
   };
 }

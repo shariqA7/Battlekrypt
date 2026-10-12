@@ -12,7 +12,7 @@ import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
-import InstitutesPanel from "./InstitutesPanel";
+import InstitutesPanel from "@/components/institutes/InstitutesPanel";
 import { listTournamentInstitutions, getInstitutionUsage } from "@/lib/services/institutions";
 
 export default async function ManageTournamentPage({
@@ -139,7 +139,7 @@ export default async function ManageTournamentPage({
 
         {isInstitutionScoped && (
           <InstitutesPanel
-            tournamentId={id}
+            endpoint={`/api/tournaments/${id}/institutions`}
             hostInstitute={hostInstitute}
             defaultLimit={tournament.maxEntriesPerInstitute}
             usage={instituteUsage}

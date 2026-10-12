@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 
 interface Props {
   challengeId: string;
-  existing: { status: string; kind: string; entrantName: string; message: string | null } | null;
+  existing: {
+    status: string;
+    kind: string;
+    entrantName: string;
+    message: string | null;
+    institutionReview?: string;
+  } | null;
   player: { rating: number; blocker: string | null } | null;
   teams: { id: string; name: string; rating: number; blocker: string | null }[];
 }
@@ -59,6 +65,11 @@ export default function ApplyPanel({ challengeId, existing, player, teams }: Pro
       <div className="bg-bk-surface border border-bk-border p-4">
         <p className="font-sans font-medium text-bk-heading text-sm">Applied as {existing.entrantName}</p>
         <p className="font-sans text-[13px] text-bk-body mt-1">{STATUS_TEXT[existing.status]}</p>
+        {existing.status === "applied" && existing.institutionReview === "pending" && (
+          <p className="font-sans text-[12px] text-bk-muted mt-1">
+            Your institute still has to approve your application. The poster can only pick approved applicants.
+          </p>
+        )}
         {existing.status === "applied" && (
           <button disabled={busy} onClick={withdraw} className="mt-3 font-sans text-[12px] text-bk-live underline disabled:opacity-50">
             Withdraw application
@@ -73,7 +84,13 @@ export default function ApplyPanel({ challengeId, existing, player, teams }: Pro
 
   return (
     <div className="bg-bk-surface border border-bk-border p-4">
-      {existing?.status === "not_selected" && <p className="font-sans text-[12px] text-bk-muted mb-3">{STATUS_TEXT.not_selected}</p>}
+      {existing?.status === "not_selected" && (
+        <p className="font-sans text-[12px] text-bk-muted mb-3">
+          {existing.institutionReview === "rejected"
+            ? "Your institute turned down your application for this challenge."
+            : STATUS_TEXT.not_selected}
+        </p>
+      )}
       {options.length === 0 ? (
         <p className="font-sans text-[13px] text-bk-body">
           You need a player profile, or a club with a team in this game, to apply.{" "}

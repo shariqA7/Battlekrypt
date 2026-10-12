@@ -13,6 +13,7 @@ import { isUnderReview } from "@/lib/services/challenge-moderation";
 import { detectSelectionFlags } from "@/lib/services/challenge-integrity";
 import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
 import { applyBlocker, selectionBlocker, type EntrantKind } from "@/lib/challenge-rules";
+import { checkChallengeInstitutionGate } from "@/lib/services/challenge-institutions";
 
 const DAY = 86_400_000;
 
@@ -23,7 +24,13 @@ type ChallengeRow = NonNullable<Awaited<ReturnType<typeof prisma.challenge.findU
 // ------------------------------------------------------------
 
 export interface ApplyState {
-  existing: { status: string; kind: string; entrantName: string; message: string | null } | null;
+  existing: {
+    status: string;
+    kind: string;
+    entrantName: string;
+    message: string | null;
+    institutionReview: string;
+  } | null;
   player: { rating: number; blocker: string | null } | null;
   teams: { id: string; name: string; rating: number; blocker: string | null }[];
   planBlocked: boolean; // no entrant type is covered by a plan that allows joining
@@ -49,29 +56,48 @@ export async function getApplyState(userId: string, c: ChallengeRow): Promise<Ap
   const alreadyApplied = existing?.status === "applied" || existing?.status === "selected";
   const common = { challenge: c, userId, activeApplications, alreadyApplied };
 
+  // Institution-only challenge: say up front if the viewer's institute (or a
+  // team's players) can't take part, instead of failing at "Apply".
+  const instituteMessage = async (kind: "player" | "team", clubTeamId: string | null) => {
+    if (c.audienceScope !== "institution" || existing) return null;
+    const gate = await checkChallengeInstitutionGate(prisma, c, { userId, kind, clubTeamId });
+    return "error" in gate ? gate.message : null;
+  };
+  const playerInstituteBlock = player ? await instituteMessage("player", null) : null;
+
   const playerRating = player?.gameRatings[0]?.rating ?? 1000;
   const playerState = player
     ? {
         rating: playerRating,
         blocker:
-          applyBlocker({ ...common, kind: "player", rating: playerRating, hasPlanAccess: access.asPlayer })?.message ?? null,
+          applyBlocker({ ...common, kind: "player", rating: playerRating, hasPlanAccess: access.asPlayer })?.message ??
+          playerInstituteBlock,
       }
     : null;
 
   const teams =
     club && club.status === "approved"
-      ? club.teams.map((t) => ({
-          id: t.id,
-          name: t.name,
-          rating: t.rating,
-          blocker:
-            applyBlocker({ ...common, kind: "team", rating: t.rating, hasPlanAccess: access.asTeam })?.message ?? null,
-        }))
+      ? await Promise.all(
+          club.teams.map(async (t) => ({
+            id: t.id,
+            name: t.name,
+            rating: t.rating,
+            blocker:
+              applyBlocker({ ...common, kind: "team", rating: t.rating, hasPlanAccess: access.asTeam })?.message ??
+              (await instituteMessage("team", t.id)),
+          }))
+        )
       : [];
 
   return {
     existing: existing
-      ? { status: existing.status, kind: existing.kind, entrantName: existing.entrantName, message: existing.message }
+      ? {
+          status: existing.status,
+          kind: existing.kind,
+          entrantName: existing.entrantName,
+          message: existing.message,
+          institutionReview: existing.institutionReview,
+        }
       : null,
     player: playerState,
     teams,
@@ -176,7 +202,21 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
     });
     if (blocker) return { error: blocker.code, message: blocker.message };
 
+    // Turned down by their institute: they can't keep re-applying to its queue.
+    if (c.audienceScope === "institution" && existing?.institutionReview === "rejected") {
+      return { error: "institute_rejected", message: "Your institute turned down your application for this challenge." };
+    }
+
+    // Institution-only: the entrant's institute must take part, a team must be
+    // from ONE institute, and the institute's application limit must have room.
+    const instGate = await checkChallengeInstitutionGate(tx, c, { userId, kind: input.kind, clubTeamId });
+    if ("error" in instGate) return { error: instGate.error, message: instGate.message };
+
     const data = {
+      institutionId: instGate.institutionId,
+      routedInstitutionId: instGate.routedInstitutionId,
+      institutionReview: instGate.review,
+      approvedByInstitutionId: null,
       kind: input.kind,
       clubTeamId,
       entrantName,
@@ -226,7 +266,12 @@ export async function listApplicants(challengeId: string) {
   return prisma.challengeApplication.findMany({
     where: { challengeId, status: { in: ["applied", "selected"] } },
     orderBy: [{ rating: "desc" }, { createdAt: "asc" }],
-    select: { id: true, kind: true, entrantName: true, rating: true, message: true, status: true, createdAt: true },
+    select: {
+      id: true, kind: true, entrantName: true, rating: true, message: true, status: true, createdAt: true,
+      institutionReview: true,
+      routedInstitutionId: true,
+      institution: { select: { name: true } },
+    },
   });
 }
 
@@ -243,13 +288,16 @@ export async function selectApplicants(
 
     const applied = await tx.challengeApplication.findMany({
       where: { challengeId, status: "applied" },
-      select: { id: true, applicantUserId: true },
+      select: { id: true, applicantUserId: true, institutionReview: true },
     });
+    // Institution-only: the poster can only pick applicants their own institute
+    // has approved (everyone else is still turned down below).
+    const pickable = c.audienceScope === "institution" ? applied.filter((a) => a.institutionReview === "approved") : applied;
     const blocker = selectionBlocker({
       status: c.status,
       slots: c.slots,
       chosenIds,
-      appliedIds: applied.map((a) => a.id),
+      appliedIds: pickable.map((a) => a.id),
       confirm,
     });
     if (blocker) return { error: blocker.code, message: blocker.message };
