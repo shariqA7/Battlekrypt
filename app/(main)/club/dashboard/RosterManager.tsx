@@ -57,9 +57,9 @@ const inputClass =
 const labelClass =
   "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5";
 const primaryBtn =
-  "bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50";
+  "bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.8px] uppercase px-4 min-h-[36px] hover:opacity-90 disabled:opacity-50";
 const ghostBtn =
-  "border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap";
+  "border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.8px] px-3 min-h-[32px] whitespace-nowrap hover:border-bk-gold-from";
 
 async function api(url: string, method = "GET", body?: unknown) {
   const res = await fetch(url, {
@@ -163,7 +163,7 @@ export default function RosterManager({
 
       {/* ---------------- Teams ---------------- */}
       <section>
-        <p className="font-sans font-medium text-bk-heading text-sm mb-3">Teams</p>
+        <p className="font-sans font-bold text-bk-heading text-base mb-3">Teams</p>
 
         <div className="bg-bk-surface border border-bk-border p-3 mb-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -190,7 +190,7 @@ export default function RosterManager({
               placeholder="Alpha"
             />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className={labelClass}>
               Coach (optional{limits.canSetCoach ? "" : " — paid plans only"})
             </label>
@@ -203,7 +203,7 @@ export default function RosterManager({
               placeholder="Coach name"
             />
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <button
               type="button"
               className={primaryBtn}
@@ -231,7 +231,7 @@ export default function RosterManager({
           <div className="flex flex-col gap-2">
             {roster.teams.map((t) => (
               <div key={t.id} className="bg-bk-surface border border-bk-border p-3">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-sans text-bk-heading text-sm">
                       {t.name}{" "}
@@ -308,7 +308,7 @@ export default function RosterManager({
                 ) : (
                   <div className="flex flex-col gap-1.5 mt-2">
                     {t.members.map((m) => (
-                      <div key={m.rosterId} className="flex items-center justify-between">
+                      <div key={m.rosterId} className="flex flex-wrap items-center justify-between gap-2">
                         <span className="font-sans text-bk-body text-[13px]">
                           {m.player.name}
                           {m.isCaptain && (
@@ -345,7 +345,7 @@ export default function RosterManager({
 
       {/* ---------------- Solo players ---------------- */}
       <section>
-        <p className="font-sans font-medium text-bk-heading text-sm mb-3">Solo players</p>
+        <p className="font-sans font-bold text-bk-heading text-base mb-3">Solo players</p>
         {roster.soloPlayers.length === 0 ? (
           <p className="text-bk-muted font-sans text-sm">No solo players yet.</p>
         ) : (
@@ -353,7 +353,7 @@ export default function RosterManager({
             {roster.soloPlayers.map((s) => (
               <div
                 key={s.rosterId}
-                className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between"
+                className="bg-bk-surface border border-bk-border p-3 flex flex-wrap items-center justify-between gap-2"
               >
                 <span className="font-sans text-bk-heading text-sm">
                   {s.player.name}{" "}
@@ -378,7 +378,7 @@ export default function RosterManager({
 
       {/* ---------------- Invite ---------------- */}
       <section>
-        <p className="font-sans font-medium text-bk-heading text-sm mb-1">Invite a player</p>
+        <p className="font-sans font-bold text-bk-heading text-base mb-1">Invite a player</p>
         <p className="font-sans text-bk-muted text-xs mb-3">
           The player joins your roster once they accept. To move someone to another game or
           team, remove them first and invite them again.
@@ -429,7 +429,7 @@ export default function RosterManager({
               </select>
             </div>
           )}
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className={labelClass}>Find player by name</label>
             <input
               value={query}
@@ -440,9 +440,9 @@ export default function RosterManager({
           </div>
 
           {shownResults.length > 0 && (
-            <div className="col-span-2 flex flex-col gap-1.5">
+            <div className="sm:col-span-2 flex flex-col gap-1.5">
               {shownResults.map((p) => (
-                <div key={p.id} className="flex items-center justify-between">
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-sans text-bk-body text-[13px]">{p.name}</span>
                   {p.onYourRoster ? (
                     <span className="font-sans text-bk-muted text-xs">On your roster</span>
@@ -476,7 +476,7 @@ export default function RosterManager({
 
       {/* ---------------- Pending invites ---------------- */}
       <section>
-        <p className="font-sans font-medium text-bk-heading text-sm mb-3">
+        <p className="font-sans font-bold text-bk-heading text-base mb-3">
           Pending invitations ({invites.length})
         </p>
         {invites.length === 0 ? (
@@ -486,7 +486,7 @@ export default function RosterManager({
             {invites.map((i) => (
               <div
                 key={i.id}
-                className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between"
+                className="bg-bk-surface border border-bk-border p-3 flex flex-wrap items-center justify-between gap-2"
               >
                 <div>
                   <p className="font-sans text-bk-heading text-sm">{i.player.name}</p>

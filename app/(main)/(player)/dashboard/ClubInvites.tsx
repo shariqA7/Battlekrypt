@@ -25,7 +25,7 @@ interface Invite {
 }
 
 const btn =
-  "font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50";
+  "font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 min-h-[36px] disabled:opacity-50";
 
 export default function ClubInvites({
   membership,
@@ -60,7 +60,7 @@ export default function ClubInvites({
   return (
     <section className="mb-8">
       {membership && (
-        <div className="bg-bk-surface border border-bk-border p-4 mb-3 flex items-center justify-between">
+        <div className="bg-bk-surface border border-bk-border p-4 mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1">
               My club
@@ -78,7 +78,7 @@ export default function ClubInvites({
                 call("/api/players/me/club", "DELETE", "leave");
               }
             }}
-            className="border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1"
+            className="border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-3 min-h-[32px]"
           >
             Leave club
           </button>
@@ -94,7 +94,7 @@ export default function ClubInvites({
             {invites.map((i) => (
               <div
                 key={i.id}
-                className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between gap-3"
+                className="bg-bk-surface border border-bk-border p-3 flex flex-wrap items-center justify-between gap-3"
               >
                 <div>
                   <p className="font-sans text-bk-heading text-sm">{i.club.clubName}</p>

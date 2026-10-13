@@ -38,7 +38,12 @@ export default async function EditTournamentPage({
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-6">
         Edit tournament
       </h1>
-      <EditForm tournament={tournament} />
+      <EditForm
+        tournament={{
+          ...tournament,
+          prizeTiers: tournament.prizeTiers.map((t) => ({ positionFrom: t.positionFrom, positionTo: t.positionTo, amount: Number(t.amount) })),
+        }}
+      />
     </main>
   );
 }

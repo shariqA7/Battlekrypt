@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlayerProfileByUserId } from "@/lib/services/tournaments";
 import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
+import { Panel, SectionHeading } from "@/components/ui/Panel";
 import InstituteSelect from "./InstituteSelect";
 import { institutionChangeUnlocksAt, countActiveEntries } from "@/lib/services/institutions";
 import { getInstitutionForUser } from "@/lib/services/institutions";
@@ -25,10 +26,9 @@ export default async function PlayerProfileSettingsPage({
   const activeEntries = profile ? (await countActiveEntries(profile.id, user.id)).total : 0;
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-md mx-auto w-full">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-6">
-        Profile settings
-      </h1>
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-xl mx-auto w-full">
+      <SectionHeading className="mb-6">Profile settings</SectionHeading>
+      <Panel className="p-5 sm:p-6 mb-6">
       <ProfileForm
         email={profile?.user.email ?? ""}
         initialAvatarUrl={profile?.user.avatarUrl ?? ""}
@@ -43,6 +43,7 @@ export default async function PlayerProfileSettingsPage({
         initialHobbies={profile?.hobbies ?? ""}
         initialFavoriteGames={profile?.favoriteGames ?? []}
       />
+      </Panel>
       {profile && (
         <InstituteSelect
           next={safeNext}

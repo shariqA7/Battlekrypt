@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 const input = "w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3";
 const label = "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5";
@@ -56,7 +57,7 @@ export default function ClaimForm() {
       {message && (
         <p className={`font-sans text-[12px] mb-3 ${message.error ? "text-bk-live" : "text-bk-gold-light"}`}>{message.text}</p>
       )}
-      <button disabled={busy} className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50">
+      <button disabled={busy} className={buttonClass("primary", "lg", "w-full")}>
         {busy ? "Sending…" : "Send claim"}
       </button>
     </form>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import SettingsForm from "./SettingsForm";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function OrganizerSettingsPage() {
   const supabase = await createClient();
@@ -16,11 +17,9 @@ export default async function OrganizerSettingsPage() {
   if (!organizerProfile) redirect("/organizer/onboard");
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-lg mx-auto w-full">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
-        Profile settings
-      </h1>
-      <p className="font-sans text-bk-body text-[13px] mb-6">
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-lg mx-auto w-full">
+      <SectionHeading className="mb-3">Profile settings</SectionHeading>
+      <p className="font-sans text-bk-body text-[13px] mb-6 pl-[19px]">
         Shown on your public organizer page — social links let players find
         your streams from the Live Matches tab.
       </p>

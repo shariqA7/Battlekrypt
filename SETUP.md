@@ -514,3 +514,13 @@ The app has two themes, **dark** (default, matches the design mockup) and **ligh
 - **Contrast:** every text/background pair in both themes was checked against WCAG AA (4.5:1). `text-bk-faint` is deliberately below AA and is only for decorative or "not yet" states.
 - **Shared components:** `components/ui/Button.tsx` (primary / outline / ghost / danger, 44 px touch targets on phones), `Badge.tsx` (tier and status chips), `Panel.tsx` (card, gold-bar section heading, small uppercase label), and `components/layout/ThemeToggle.tsx`.
 - Brand colors (Google, Discord) and the verified-badge gold stay fixed on purpose.
+
+## Tournament page redesign + prize distribution (D3)
+
+Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261008010000_d3_prize_tiers`. No Supabase setup.
+
+- **New tournament page** (`/tournaments/[slug]`): hero with tier badge, date range, title, description and the details row (game, mode, format, entry fee, teams); the total prize pool and the main button on the right; then the **Stage Rail**, **Rules & conduct** cards, **Prize distribution** and **Organized by** panels. Phone layout is a single column with a vertical stage timeline. The venue / check-in / room-reveal blocks from Phase 8 sit under the Stage Rail.
+- **Stage Rail** is worked out in `lib/tournament-view.ts`: Registration is "Open" or "Closed"; a stage is **Live now** when its status is `live`/`in_progress`, or, once the tournament is in progress, when it is the latest stage whose start time has passed. Earlier stages show as done, later ones as "Starts {date}". Dates are shown in the visitor's own time zone.
+- **Main button:** "Enter now" while registration is open; otherwise a disabled label ("Full", "Registration closed", "Live now", "Completed", "Cancelled").
+- **Prize distribution:** organizers split the prize pool by finishing place in the create/edit forms ("From place", optional "To", and what each team in that range wins). The split can't overlap places or exceed the prize pool, needs a prize pool, and — like the pool and tier — is locked once players have registered. The panel only appears when a split exists.
+- Not included yet: templates don't copy the prize split, and the page doesn't track payouts per place.

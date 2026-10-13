@@ -11,7 +11,7 @@ export default function ResetPasswordPage() {
           Choose a new password for your account.
         </p>
         <div
-          className="rounded-2xl border border-bk-border p-7"
+          className="border border-bk-border p-7"
           style={{ boxShadow: "0 0 60px rgba(244,200,66,0.07)" }}
         >
           <ResetPasswordForm />

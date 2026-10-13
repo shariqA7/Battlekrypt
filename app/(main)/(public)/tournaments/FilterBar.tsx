@@ -49,8 +49,8 @@ export default function FilterBar() {
   }
 
   const pillClass = (active: boolean) =>
-    `font-sans text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 whitespace-nowrap ${
-      active ? "bg-bk-gold-light text-bk-bg" : "bg-bk-surface text-bk-body border border-bk-border"
+    `font-sans text-[11px] uppercase tracking-[0.8px] px-3 min-h-[36px] sm:min-h-[30px] whitespace-nowrap  ${
+      active ? "bg-bk-gold-light text-bk-bg border border-bk-gold-light font-bold" : "bg-bk-bg text-bk-body border border-bk-border hover:border-bk-gold-to"
     }`;
 
   return (
@@ -104,7 +104,7 @@ export default function FilterBar() {
         </select>
         <button
           onClick={() => applyFilters()}
-          className="w-full sm:w-auto bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] px-4 h-[44px] sm:h-[36px]"
+          className="w-full sm:w-auto bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[1.2px] px-5 h-[44px] sm:h-[36px] hover:opacity-90"
         >
           Search
         </button>

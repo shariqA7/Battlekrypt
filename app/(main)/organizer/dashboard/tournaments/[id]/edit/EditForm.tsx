@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
+import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
@@ -21,6 +22,7 @@ interface TournamentForEdit {
   paymentInstructions: string | null;
   prizePoolAmount: unknown;
   prizePoolCurrency: string | null;
+  prizeTiers?: { positionFrom: number; positionTo: number; amount: unknown }[];
   competitiveTier: CompetitiveTierValue;
   audienceScope: AudienceScopeValue;
   requireFreshInstitutionProof: boolean;
@@ -52,6 +54,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
     tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0
   );
   const [prizePoolCurrency, setPrizePoolCurrency] = useState(tournament.prizePoolCurrency ?? "PKR");
+  const [prizeRows, setPrizeRows] = useState<PrizeRow[]>(prizeRowsFromTiers(tournament.prizeTiers));
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
     tournament.competitiveTier
   );
@@ -94,6 +97,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         ...(prizePoolAmount > 0 && {
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
         }),
+        prizeTiers: prizePoolAmount > 0 ? prizeRowsToBody(prizeRows) : [],
         competitiveTier,
         ...venueToBody(venue),
         country: country || null,
@@ -192,6 +196,8 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           setPrizePoolCurrency(c);
         }}
       />
+
+      <PrizeSplitEditor rows={prizeRows} onChange={setPrizeRows} poolAmount={prizePoolAmount} currency={prizePoolCurrency} />
 
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />

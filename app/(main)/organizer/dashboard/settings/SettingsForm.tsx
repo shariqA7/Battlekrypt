@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 // Spec §10: "Organizer profile: social links (YouTube, Twitch, Discord,
 // Instagram, Facebook, TikTok)". Fixed set — matches what the Live Matches
@@ -54,7 +55,7 @@ export default function SettingsForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-bk-surface border border-bk-border p-6">
+    <form onSubmit={handleSubmit} className="bg-bk-surface border border-bk-border p-5 sm:p-6">
       <label className="block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5">
         Organization name
       </label>
@@ -105,7 +106,7 @@ export default function SettingsForm({
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50"
+        className={buttonClass("primary", "lg", "w-full")}
       >
         {submitting ? "Saving..." : "Save changes"}
       </button>

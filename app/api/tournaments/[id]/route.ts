@@ -6,6 +6,7 @@ import { requireOrganizer } from "@/lib/auth-helpers";
 import { parseOptionalMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { parseVenue } from "@/lib/venue-input";
+import { parsePrizeTiers } from "@/lib/services/prize-tiers";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { isCountryCode } from "@/lib/geo-data";
 import { toPublicTournament } from "@/lib/services/venue";
@@ -76,6 +77,9 @@ export async function PATCH(
     return moneyError("audienceScope must be open or institution.");
   }
 
+  const tiers = body.prizeTiers === undefined ? { ok: true as const, tiers: undefined } : parsePrizeTiers(body.prizeTiers);
+  if (!tiers.ok) return moneyError(tiers.message);
+
   const venue = parseVenue(body, { partial: true });
   if (!venue.ok) return moneyError(venue.message);
 
@@ -95,6 +99,7 @@ export async function PATCH(
     requireFreshInstitutionProof:
       typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
     ...venue.value,
+    prizeTiers: tiers.tiers,
     country: body.country === undefined ? undefined : body.country || null,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
@@ -128,6 +133,15 @@ export async function PATCH(
   }
   if (result.error === "invalid_fee") {
     return moneyError("A paid tournament needs an entry fee greater than zero.");
+  }
+  if (result.error === "invalid_prize_tiers") {
+    return moneyError(result.message);
+  }
+  if (result.error === "prize_locked") {
+    return NextResponse.json(
+      { error: { code: "prize_locked", message: "Players have already registered, so the prize split can no longer change." } },
+      { status: 409 }
+    );
   }
   if (result.error === "venue_locked") {
     return NextResponse.json(

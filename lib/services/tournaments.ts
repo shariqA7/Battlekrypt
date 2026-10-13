@@ -19,6 +19,7 @@ import {
   notifyEntryDecision,
 } from "@/lib/services/institution-notifications";
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
+import { checkAgainstPool, replacePrizeTiers, type PrizeTierInput } from "@/lib/services/prize-tiers";
 import { hybridStagesError } from "@/lib/services/stages";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
@@ -122,8 +123,9 @@ export async function getTournamentById(idOrSlug: string) {
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     include: {
       game: true,
-      organizer: { include: { user: { select: { kycStatus: true } } } },
+      organizer: { include: { user: { select: { kycStatus: true, avatarUrl: true } } } },
       stages: { orderBy: { order: "asc" } },
+      prizeTiers: { orderBy: { positionFrom: "asc" } },
       rules: {
         orderBy: [{ position: "asc" }, { id: "asc" }],
         include: { appliesToStage: { select: { id: true, name: true } } },
@@ -166,6 +168,7 @@ export interface CreateTournamentInput {
   requireFreshInstitutionProof?: boolean;
   venueType?: VenueType;
   country?: string | null;
+  prizeTiers?: PrizeTierInput[];
   venueName?: string;
   venueAddress?: string;
   venueCity?: string;
@@ -228,6 +231,9 @@ export async function createTournament(input: CreateTournamentInput) {
       status: "draft",
       rules: input.rules?.length
         ? { create: await prepareRulesForCreate(input.rules) }
+        : undefined,
+      prizeTiers: input.prizeTiers?.length
+        ? { create: input.prizeTiers.map((t) => ({ positionFrom: t.from, positionTo: t.to, amount: t.amount })) }
         : undefined,
     },
     include: { rules: { orderBy: [{ position: "asc" }, { id: "asc" }] } },
@@ -867,6 +873,7 @@ export interface UpdateTournamentInput {
   requireFreshInstitutionProof?: boolean;
   venueType?: VenueType;
   country?: string | null;
+  prizeTiers?: PrizeTierInput[];
   venueName?: string;
   venueAddress?: string;
   venueCity?: string;
@@ -884,7 +891,25 @@ export async function updateTournament(
   if (!tournament) return { error: "not_found" as const };
   if (tournament.organizerId !== organizerId) return { error: "forbidden" as const };
 
-  const data: UpdateTournamentInput = { ...input };
+  // The prize split lives in its own table, so it is split off here and never
+  // reaches the tournament update below.
+  const { prizeTiers, ...rest } = input;
+  const data: Omit<UpdateTournamentInput, "prizeTiers"> = { ...rest };
+
+  // Prize split: must fit inside the (possibly new) prize pool, and — like the
+  // pool itself — can't be changed once players have registered for it.
+  {
+    const existing = await prisma.prizeTier.findMany({ where: { tournamentId }, orderBy: { positionFrom: "asc" } });
+    const existingTiers: PrizeTierInput[] = existing.map((r) => ({ from: r.positionFrom, to: r.positionTo, amount: Number(r.amount) }));
+    const poolAfter =
+      data.prizePoolAmount !== undefined ? Number(data.prizePoolAmount) : tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0;
+    const tiersAfter = prizeTiers ?? existingTiers;
+    const poolError = checkAgainstPool(tiersAfter, poolAfter);
+    if (poolError) return { error: "invalid_prize_tiers" as const, message: poolError };
+    if (prizeTiers !== undefined && JSON.stringify(prizeTiers) !== JSON.stringify(existingTiers)) {
+      if ((await getActiveRegistrationCount(tournamentId)) > 0) return { error: "prize_locked" as const };
+    }
+  }
 
   // A free tournament carries no entry fee; the edit form always sends one
   // (0), which used to get written onto free tournaments.
@@ -999,6 +1024,9 @@ export async function updateTournament(
     where: { id: tournamentId },
     data,
   });
+  if (prizeTiers !== undefined) {
+    await prisma.$transaction(replacePrizeTiers(tournamentId, prizeTiers));
+  }
   return { data: updated };
 }
 

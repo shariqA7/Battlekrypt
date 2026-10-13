@@ -24,7 +24,8 @@
   /* ---- text ---- */
   --bk-text-heading: #EAE1D3;
   --bk-text-body: #D1C5AE;
-  --bk-text-gold-light: #FFE7AD; /* emphasis: titles, prize figures, links */
+  --bk-text-gold-light: #FFE7AD; /* emphasis: titles, links */
+  --bk-text-gold: #F4C842; /* the big prize figures */
   --bk-text-muted: #948C79; /* readable secondary text (AA on bg and surface) */
   --bk-text-faint: #736C5C; /* decorative / "not yet" states only — below AA */
 
@@ -64,6 +65,7 @@
   --bk-text-heading: #1E1A10;
   --bk-text-body: #4A4232;
   --bk-text-gold-light: #7A5200; /* deep amber: the bright gold is unreadable on paper */
+  --bk-text-gold: #8A5E00;
   --bk-text-muted: #6E6451;
   --bk-text-faint: #9A917C;
 
@@ -94,6 +96,7 @@
   --color-bk-heading: var(--bk-text-heading);
   --color-bk-body: var(--bk-text-body);
   --color-bk-gold-light: var(--bk-text-gold-light);
+  --color-bk-gold: var(--bk-text-gold);
   --color-bk-muted: var(--bk-text-muted);
   --color-bk-faint: var(--bk-text-faint);
 

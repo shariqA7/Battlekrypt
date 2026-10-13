@@ -16,14 +16,14 @@ export default async function ChallengesPage({
 
   return (
     <main className="flex-1 px-6 py-10 max-w-3xl mx-auto w-full">
-      <div className="flex items-end justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Challenges</h1>
           <p className="font-sans text-bk-body text-[13px]">
             Beat a squad or hit a target and win the prize the poster offers.
           </p>
         </div>
-        <div className="flex gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 sm:shrink-0">
           <Link href="/challenges/applied" className="font-sans text-[12px] text-bk-muted underline self-center">
             My applications
           </Link>
