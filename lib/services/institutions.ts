@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { notifyInviteSent, notifyInviteAnswered } from "@/lib/services/institution-notifications";
 
 type Result<T> = { data: T } | { error: string };
 
@@ -472,6 +473,7 @@ export async function addTournamentInstitution(
       status: role === "guest" ? "accepted" : "pending",
     },
   });
+  await notifyInviteSent("tournament", tournamentId, institutionId, role);
   return { data: { id: row.id } };
 }
 
@@ -531,6 +533,7 @@ export async function respondToCoHostInvite(
     where: { id: linkId },
     data: { status, respondedAt: new Date() },
   });
+  await notifyInviteAnswered("tournament", link.tournamentId, link.institutionId, accept);
   return { data: { status } };
 }
 

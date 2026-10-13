@@ -1153,6 +1153,9 @@ model Registration {
 
   registeredAt DateTime  @default(now())
   approvedAt   DateTime?
+
+  // Quota counts ask "how many live entries does this institute have in this tournament".
+  @@index([tournamentId, institutionId])
 }
 
 model SiteSettings {
