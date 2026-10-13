@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getTournamentById } from "@/lib/services/tournaments";
 import { redirect, notFound } from "next/navigation";
 import EditForm from "./EditForm";
+import { Panel, SectionHeading } from "@/components/ui/Panel";
 
 export default async function EditTournamentPage({
   params,
@@ -34,16 +35,16 @@ export default async function EditTournamentPage({
   }
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-lg mx-auto w-full">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-6">
-        Edit tournament
-      </h1>
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+      <SectionHeading className="mb-6">Edit tournament</SectionHeading>
+      <Panel className="p-5 sm:p-6">
       <EditForm
         tournament={{
           ...tournament,
           prizeTiers: tournament.prizeTiers.map((t) => ({ positionFrom: t.positionFrom, positionTo: t.positionTo, amount: Number(t.amount) })),
         }}
       />
+      </Panel>
     </main>
   );
 }

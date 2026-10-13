@@ -37,7 +37,7 @@ export default function CancelButton({
       <button
         onClick={handleCancel}
         disabled={submitting}
-        className="text-bk-live font-sans text-[11px] uppercase tracking-[0.5px] underline disabled:opacity-50"
+        className="inline-flex items-center justify-center h-[40px] sm:h-[34px] px-3 font-sans font-bold text-[11px] uppercase tracking-[1.2px] border border-bk-live/50 text-bk-live hover:bg-bk-live/10 disabled:opacity-50"
       >
         {submitting ? "Cancelling..." : "Cancel tournament"}
       </button>

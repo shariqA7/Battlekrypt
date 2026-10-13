@@ -14,7 +14,20 @@ import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
 import InstitutesPanel from "@/components/institutes/InstitutesPanel";
 import { ButtonLink } from "@/components/ui/Button";
+import { Badge, TierBadge } from "@/components/ui/Badge";
+import Stat from "@/components/ui/Stat";
+import { Panel, SectionHeading } from "@/components/ui/Panel";
 import { listTournamentInstitutions, getInstitutionUsage } from "@/lib/services/institutions";
+
+const STATUS_TONE: Record<string, "teal" | "amber" | "danger" | "neutral" | "live"> = {
+  draft: "neutral",
+  published: "neutral",
+  registration_open: "teal",
+  registration_closed: "amber",
+  in_progress: "live",
+  completed: "neutral",
+  cancelled: "danger",
+};
 
 export default async function ManageTournamentPage({
   params,
@@ -72,30 +85,41 @@ export default async function ManageTournamentPage({
 
   return (
     <>
-      <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
-        <div className="flex justify-between items-start mb-1">
-          <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
+      <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+        <ButtonLink href="/organizer/dashboard" variant="ghost" size="sm" className="mb-3 -ml-3">
+          ← Dashboard
+        </ButtonLink>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {tournament.competitiveTier && <TierBadge tier={tournament.competitiveTier} />}
+          <Badge tone={STATUS_TONE[tournament.status] ?? "neutral"}>{tournament.status.replace(/_/g, " ")}</Badge>
+        </div>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
+          <SectionHeading className="!text-[22px] sm:!text-[26px] break-words min-w-0 flex-1">
             {tournament.name}
-          </h1>
+          </SectionHeading>
           <PublishButton
             tournamentId={id}
             status={tournament.status}
             submittedForReview={tournament.submittedForReview}
           />
         </div>
-        <p className="font-sans text-bk-body text-sm mb-3">
-          Manage registrations and match rooms
-        </p>
-        <div className="flex items-center gap-4 mb-8">
+        <p className="font-sans text-bk-body text-sm mb-5 pl-[19px]">Manage registrations and match rooms</p>
+
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          <Stat gold value={registrations.length} label="Registrations" />
+          <Stat
+            value={capacity ? `${capacity.filled}/${capacity.maxTeams}` : "—"}
+            label="Slots filled"
+          />
+          <Stat value={registrations.filter((r) => r.status === "pending").length} label="Pending" />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mb-8">
           {tournament.status === "draft" && (
-            <a
-              href={`/organizer/dashboard/tournaments/${id}/edit`}
-              className="text-bk-gold-light font-sans text-[11px] uppercase tracking-[0.5px] underline"
-            >
+            <ButtonLink href={`/organizer/dashboard/tournaments/${id}/edit`} variant="outline" size="sm">
               Edit tournament
-            </a>
+            </ButtonLink>
           )}
-          <CancelButton tournamentId={id} status={tournament.status} />
           <SaveAsTemplateButton tournamentId={id} />
           <PayoutButton
             tournamentId={id}
@@ -103,11 +127,12 @@ export default async function ManageTournamentPage({
             hasPrizePool={!!tournament.prizePoolAmount}
             payoutConfirmed={tournament.payoutConfirmed}
           />
+          <CancelButton tournamentId={id} status={tournament.status} />
         </div>
 
         {isLan && counts && (
-          <div className="mb-8 border border-bk-border bg-bk-surface p-4">
-            <p className="font-sans font-medium text-bk-heading text-sm mb-1">LAN check-in</p>
+          <Panel className="mb-8 p-4">
+            <p className="font-sans font-bold text-bk-heading text-base mb-1">LAN check-in</p>
             <p className="font-sans text-[12px] text-bk-muted mb-3 break-words">
               {tournament.venueName} · {tournament.venueAddress}, {tournament.venueCity}
             </p>
@@ -120,7 +145,7 @@ export default async function ManageTournamentPage({
             <p className="font-sans text-[12px] text-bk-body">
               {counts.checkedIn} checked in · {counts.noShow} no-show · {counts.pending} waiting
             </p>
-          </div>
+          </Panel>
         )}
 
         {isHybrid ? (
@@ -155,7 +180,7 @@ export default async function ManageTournamentPage({
           />
         )}
 
-        <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Rules</p>
+        <p className="font-sans font-bold text-bk-heading text-base mt-10 mb-3">Rules</p>
         <RulesManager
           tournamentId={id}
           gameId={tournament.gameId}
@@ -163,8 +188,8 @@ export default async function ManageTournamentPage({
           locked={!["draft", "published", "registration_open"].includes(tournament.status)}
         />
 
-        <div className="flex items-baseline justify-between mt-10 mb-3">
-          <p className="font-sans font-medium text-bk-heading text-sm">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 mt-10 mb-3">
+          <p className="font-sans font-bold text-bk-heading text-base">
             Registrations ({registrations.length})
           </p>
           {capacity && (

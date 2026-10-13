@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 interface Stage {
   id: string;
@@ -62,13 +63,13 @@ export default function StageManager({
 
   return (
     <div>
-      <p className="font-sans font-medium text-bk-heading text-sm mb-3">Stages</p>
+      <p className="font-sans font-bold text-bk-heading text-base mb-3">Stages</p>
 
       <div className="flex flex-col gap-2 mb-3">
         {stages.map((stage) => (
           <div key={stage.id} className="bg-bk-surface border border-bk-border p-3">
-            <div className="flex items-center justify-between">
-              <p className="font-sans text-bk-heading text-sm">{stage.name}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-sans font-bold text-bk-heading text-sm">{stage.name}</p>
               {stage.roomId ? (
                 <span className="text-[11px] font-mono text-bk-gold-light">
                   Room {stage.roomId} set
@@ -110,7 +111,7 @@ export default function StageManager({
                 />
                 <button
                   onClick={() => saveRoom(stage.id)}
-                  className="col-span-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase py-2 mt-1"
+                  className={buttonClass("primary", "sm", "sm:col-span-3 mt-1")}
                 >
                   Save room details
                 </button>
@@ -120,16 +121,16 @@ export default function StageManager({
         ))}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <input
           value={newStageName}
           onChange={(e) => setNewStageName(e.target.value)}
           placeholder="e.g. Qualifiers, Semis, Finals"
-          className={inputClass}
+          className={`${inputClass} flex-1 min-w-[180px]`}
         />
         <button
           onClick={addStage}
-          className="bg-bk-surface border border-bk-border text-bk-body font-sans text-[11px] uppercase tracking-[0.5px] px-4 whitespace-nowrap"
+          className={buttonClass("outline", "sm", "whitespace-nowrap")}
         >
           + Add stage
         </button>
