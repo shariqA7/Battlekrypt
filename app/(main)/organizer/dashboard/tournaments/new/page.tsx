@@ -7,6 +7,7 @@ import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
+import PrizeSplitEditor, { prizeRowsToBody, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 
@@ -44,6 +45,7 @@ export default function NewTournamentPage() {
   const [paymentInstructions, setPaymentInstructions] = useState("");
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
+  const [prizeRows, setPrizeRows] = useState<PrizeRow[]>([]);
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>("none");
   const [venue, setVenue] = useState<VenueValue>(emptyVenue);
   // "__default" = leave it to the server (the organizer's own country).
@@ -152,6 +154,7 @@ export default function NewTournamentPage() {
         entryFee: entryType === "paid" ? { amount: entryFeeAmount, currency: entryFeeCurrency } : undefined,
         paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
+        prizeTiers: prizePoolAmount > 0 ? prizeRowsToBody(prizeRows) : [],
         competitiveTier,
         ...venueToBody(venue),
         country: country === "__default" ? undefined : country,
@@ -468,6 +471,8 @@ export default function NewTournamentPage() {
               setPrizePoolCurrency(currency);
             }}
           />
+
+          <PrizeSplitEditor rows={prizeRows} onChange={setPrizeRows} poolAmount={prizePoolAmount} currency={prizePoolCurrency} />
 
           <div className="mt-4">
             <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />

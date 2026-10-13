@@ -25,7 +25,7 @@ export function Badge({ tone = "neutral", children, className = "" }: { tone?: T
   );
 }
 
-const TIER_LABEL: Record<string, string> = { D: "D-Tier", C: "C-Tier", B: "B-Tier", A: "A-Tier", S: "S-Tier", national: "National" };
+const TIER_LABEL: Record<string, string> = { D: "D-Tier", C: "C-Tier", B: "B-Tier", A: "A-Tier", S: "S-Tier", National: "National", national: "National" };
 
 export function TierBadge({ tier, suffix = "Event" }: { tier: string; suffix?: string }) {
   if (!tier || tier === "none") return null;

@@ -1,11 +1,11 @@
 import { listTournaments } from "@/lib/services/tournaments";
-import { formatMoney } from "@/lib/money";
-import Link from "next/link";
 import { Suspense } from "react";
-import { countryName, isCountryCode, isRegionKey } from "@/lib/geo-data";
+import { isCountryCode, isRegionKey } from "@/lib/geo-data";
 import FilterBar from "./FilterBar";
 
 import AdSlot from "@/components/ui/AdSlot";
+import TournamentCard from "@/components/tournaments/TournamentCard";
+import { SectionHeading } from "@/components/ui/Panel";
 export default async function TournamentsPage({
   searchParams,
 }: {
@@ -27,11 +27,9 @@ export default async function TournamentsPage({
 
   return (
     <>
-      <main className="flex-1 px-6 py-10 max-w-5xl mx-auto w-full">
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
-          Tournaments
-        </h1>
-        <p className="font-sans text-bk-body text-sm mb-4">
+      <main className="flex-1 px-5 sm:px-6 py-10 max-w-6xl mx-auto w-full">
+        <SectionHeading className="mb-2">Tournaments</SectionHeading>
+        <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
           {total} tournament{total !== 1 ? "s" : ""} found
         </p>
 
@@ -41,55 +39,12 @@ export default async function TournamentsPage({
 
         {tournaments.length === 0 ? (
           <p className="text-bk-muted font-sans text-sm">
-            No tournaments yet — once organizers start publishing, they&apos;ll
-            show up here.
+            No tournaments match. Try clearing a filter, or check back once organizers publish more.
           </p>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {tournaments.map((t) => (
-              <Link
-                key={t.id}
-                href={`/tournaments/${t.slug}`}
-                className="bg-bk-surface border border-bk-border p-4 flex items-center justify-between hover:border-bk-gold-light transition-colors"
-              >
-                <div className="min-w-0">
-                  <p className="font-sans font-medium text-bk-heading text-sm">
-                    {t.name}
-                  </p>
-                  <p className="font-sans text-bk-muted text-xs mt-1">
-                    {t.game.name} · {t.type} · {t.mode}
-                    {t.country && (
-                      <span className="ml-2 text-bk-muted uppercase tracking-[0.5px] text-[10px]">
-                        {countryName(t.country)}
-                      </span>
-                    )}
-                    {t.venueType === "hybrid" && (
-                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">Hybrid</span>
-                    )}
-                    {t.venueType === "lan" && (
-                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
-                        LAN{t.venueCity ? ` · ${t.venueCity}` : ""}
-                      </span>
-                    )}
-                    {t.audienceScope === "institution" && (
-                      <span className="ml-2 text-bk-gold-light uppercase tracking-[0.5px] text-[10px]">
-                        Students only
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="text-right shrink-0 pl-3">
-                  {t.prizePoolAmount ? (
-                    <p className="font-mono text-bk-gold-light text-sm whitespace-nowrap">
-                      {formatMoney(t.prizePoolAmount, t.prizePoolCurrency ?? "PKR")}
-                    </p>
-                  ) : (
-                    <p className="font-sans text-bk-muted text-xs uppercase tracking-[0.5px]">
-                      Free
-                    </p>
-                  )}
-                </div>
-              </Link>
+              <TournamentCard key={t.id} t={t} />
             ))}
           </div>
         )}

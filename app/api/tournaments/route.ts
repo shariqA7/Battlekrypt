@@ -1,6 +1,7 @@
 // GET  /api/tournaments  — public browse/search/filter
 // POST /api/tournaments  — organizer creates a draft tournament
 import { parseVenue } from "@/lib/venue-input";
+import { parsePrizeTiers, checkAgainstPool } from "@/lib/services/prize-tiers";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { isCountryCode, isRegionKey, countryFromText } from "@/lib/geo-data";
 import { NextResponse } from "next/server";
@@ -92,6 +93,11 @@ export async function POST(request: Request) {
     prizePool: body.prizePool,
   });
   if (!money.ok) return moneyError(money.message);
+  const tiers = parsePrizeTiers(body.prizeTiers);
+  if (!tiers.ok) return moneyError(tiers.message);
+  const tierError = checkAgainstPool(tiers.tiers, money.prizePool?.amount);
+  if (tierError) return moneyError(tierError);
+
   // A valid currency can still be switched off by an admin (/admin/currencies).
   const disabled = await currenciesNotEnabled([money.entryFee?.currency, money.prizePool?.currency]);
   if (disabled) return moneyError(disabled);
@@ -148,6 +154,7 @@ export async function POST(request: Request) {
     requireFreshInstitutionProof: body.requireFreshInstitutionProof === true,
     ...venue.value,
     country,
+    prizeTiers: tiers.tiers,
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,

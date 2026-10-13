@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import UserMenu from "@/components/layout/UserMenu";
 import MobileMenu from "@/components/layout/MobileMenu";
 import ThemeToggle from "@/components/layout/ThemeToggle";
+import NavLinks from "@/components/layout/NavLinks";
+import SearchBox from "@/components/layout/SearchBox";
+import { buttonClass } from "@/components/ui/Button";
 
 const NAV_LINKS = [
   { label: "Games", href: "/games" },
@@ -55,99 +58,74 @@ export default async function Nav() {
 
   return (
     // nav-safe: clears the notch and runs edge to edge in landscape (globals.css).
-    // The full desktop bar needs ~1000px, so phones AND tablets get the drawer.
-    <nav className="nav-safe bg-bk-bg-nav border-b border-bk-border-nav py-3 lg:py-3.5 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-7 min-w-0">
-        <Link href="/" className="text-bk-gold-light font-sans font-extrabold text-lg">
-          BattleKrypt
-        </Link>
-        <div className="hidden lg:flex items-center gap-6">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-bk-body font-sans font-medium text-[11px] tracking-[1.2px] uppercase hover:text-bk-heading"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <Link
-            href="/donate"
-            className="text-bk-muted font-sans font-medium text-[11px] tracking-[1.2px] uppercase hover:text-bk-gold-light flex items-center gap-1"
-          >
-            Donate
+    // The full bar (inline search + five links + buttons) needs ~1200px, so
+    // anything narrower than xl gets the menu button and drawer instead.
+    <nav className="nav-safe bg-bk-bg-nav border-b border-bk-border-nav">
+      <div className="max-w-[1400px] mx-auto h-16 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-8 min-w-0">
+          <Link href="/" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight shrink-0">
+            BattleKrypt
           </Link>
+          <SearchBox className="hidden xl:block w-64" />
         </div>
-      </div>
 
-      {/* Phones: signed-in people keep their avatar menu in the bar; the
-          hamburger holds everything else. */}
-      <div className="flex items-center gap-1 lg:hidden">
-        <ThemeToggle />
-        {user && (
-          <UserMenu
-            displayName={displayName ?? "Player"}
-            email={email}
-            avatarUrl={avatarUrl}
-            isAdmin={isAdmin}
-            isOrganizer={isOrganizer}
-            isClub={isClub}
-            orgApplicationStatus={orgApplicationStatus}
-          />
-        )}
-        <MobileMenu links={NAV_LINKS} signedIn={!!user} />
-      </div>
+        <div className="hidden xl:block">
+          <NavLinks links={NAV_LINKS} />
+        </div>
 
-      <div className="hidden lg:flex items-center gap-4">
-        <ThemeToggle />
-        <button aria-label="Search" className="text-bk-body">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-            <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
+        {/* Phones and tablets: signed-in people keep their avatar menu in the bar;
+            the menu button holds the links and search. */}
+        <div className="flex items-center gap-1 xl:hidden">
+          <ThemeToggle />
+          {user && (
+            <UserMenu
+              displayName={displayName ?? "Player"}
+              email={email}
+              avatarUrl={avatarUrl}
+              isAdmin={isAdmin}
+              isOrganizer={isOrganizer}
+              isClub={isClub}
+              orgApplicationStatus={orgApplicationStatus}
+            />
+          )}
+          <MobileMenu links={NAV_LINKS} signedIn={!!user} />
+        </div>
 
-        {!user ? (
-          <>
-            <Link
-              href="/organizer/register"
-              className="text-bk-gold-light font-sans text-[11px] font-medium tracking-[0.6px] uppercase"
-            >
-              Register as an organization
-            </Link>
-            <Link href="/login" className="text-bk-heading font-sans text-[12px] font-medium">
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-4 py-2"
-            >
-              Sign Up
-            </Link>
-          </>
-        ) : (
-          <>
-          <Link href="/notifications" aria-label="Notifications" className="relative text-bk-body hover:text-bk-heading">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6zM10 19a2 2 0 004 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {unreadNotifications > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-bk-live text-white text-[9px] font-bold rounded-full px-1 min-w-[15px] text-center">
-                {unreadNotifications > 9 ? "9+" : unreadNotifications}
-              </span>
-            )}
-          </Link>
-          <UserMenu
-            displayName={displayName ?? "Player"}
-            email={email}
-            avatarUrl={avatarUrl}
-            isAdmin={isAdmin}
-            isOrganizer={isOrganizer}
-            isClub={isClub}
-            orgApplicationStatus={orgApplicationStatus}
-          />
-          </>
-        )}
+        <div className="hidden xl:flex items-center gap-3">
+          <ThemeToggle />
+          {!user ? (
+            <>
+              <Link href="/login" className={buttonClass("outline", "md")}>
+                Login
+              </Link>
+              <Link href="/signup" className={buttonClass("primary", "md")}>
+                Sign up
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/notifications" aria-label="Notifications" className="relative text-bk-body hover:text-bk-heading px-1">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6zM10 19a2 2 0 004 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-bk-live text-white text-[9px] font-bold rounded-full px-1 min-w-[15px] text-center">
+                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                  </span>
+                )}
+              </Link>
+              <UserMenu
+                displayName={displayName ?? "Player"}
+                email={email}
+                avatarUrl={avatarUrl}
+                isAdmin={isAdmin}
+                isOrganizer={isOrganizer}
+                isClub={isClub}
+                orgApplicationStatus={orgApplicationStatus}
+              />
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { buttonClass } from "@/components/ui/Button";
 
 export default function ForgotPasswordForm() {
   const supabase = createClient();
@@ -43,12 +44,12 @@ export default function ForgotPasswordForm() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Enter your email"
-        className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] mb-4 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
+        className="w-full bg-bk-surface border border-bk-border text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] mb-4 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
       />
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-bk-primary text-bk-on-primary rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
+        className={buttonClass("primary", "lg", "w-full")}
       >
         {submitting ? "Sending..." : "Send reset link"}
       </button>

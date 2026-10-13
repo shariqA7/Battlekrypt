@@ -10,6 +10,10 @@ import { prisma } from "@/lib/prisma";
 import { getClubLimits } from "@/lib/club-limits";
 import { getClubRoster, listClubInvites } from "@/lib/services/club-roster";
 import UpgradeForm from "./UpgradeForm";
+import InitialTile from "@/components/ui/InitialTile";
+import Stat from "@/components/ui/Stat";
+import { Badge } from "@/components/ui/Badge";
+import { Panel, SectionHeading } from "@/components/ui/Panel";
 import RosterManager from "./RosterManager";
 
 import AdSlot from "@/components/ui/AdSlot";
@@ -46,26 +50,35 @@ export default async function ClubDashboardPage() {
 
   return (
     <>
-      <div className="w-full max-w-5xl mx-auto px-6 pt-8">
+      <div className="w-full max-w-5xl mx-auto px-5 sm:px-6 pt-8">
         <DashboardTop />
       </div>
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
-      <div className="flex items-center gap-4 mb-6">
-        {club.logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={club.logoUrl}
-            alt=""
-            className="w-14 h-14 object-cover border border-bk-border"
-          />
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+      <div className="flex flex-wrap items-center gap-4 mb-6">
+        <InitialTile name={club.clubName} size={56} src={club.logoUrl} />
+        <div className="min-w-0">
+          <SectionHeading className="!text-[22px] sm:!text-[26px] break-words">{club.clubName}</SectionHeading>
+        </div>
+        {approved && (
+          <Badge tone={limits.isPaid ? "tier" : "neutral"} className="sm:ml-auto">
+            {limits.isPaid ? "Paid plan" : "Free plan"}
+          </Badge>
         )}
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
-          {club.clubName}
-        </h1>
       </div>
 
+      {approved && roster && (
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <Stat gold value={roster.teams.length} label="Teams" />
+          <Stat value={roster.soloPlayers.length} label="Solo players" />
+          <Stat
+            value={roster.teams.reduce((n, t) => n + t.members.length, 0) + roster.soloPlayers.length}
+            label="Players"
+          />
+        </div>
+      )}
+
       {club.status === "disbanded" && (
-        <div className="bg-bk-surface border border-bk-live p-4">
+        <div className="bg-bk-surface border border-bk-live p-4 mb-6">
           <p className="font-sans font-medium text-sm text-bk-live mb-1">
             This club was disbanded
           </p>
@@ -83,9 +96,9 @@ export default async function ClubDashboardPage() {
       )}
 
       {approved && !limits.isPaid && (
-        <div className="bg-bk-surface border border-bk-border p-4 mb-6">
-          <p className="font-sans font-medium text-sm text-bk-heading mb-1">
-            Free plan
+        <Panel className="p-4 mb-8">
+          <p className="font-sans font-bold text-base text-bk-heading mb-1">
+            Upgrade your club
           </p>
           {club.upgradeStatus === "pending" ? (
             <p className="font-sans text-[13px] text-bk-body">
@@ -108,7 +121,7 @@ export default async function ClubDashboardPage() {
               <UpgradeForm paymentInstructions={await getClubPaymentInstructions()} />
             </>
           )}
-        </div>
+        </Panel>
       )}
 
       {approved && roster && (

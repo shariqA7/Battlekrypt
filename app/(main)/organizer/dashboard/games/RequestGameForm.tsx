@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 export default function RequestGameForm() {
   const router = useRouter();
@@ -35,7 +36,7 @@ export default function RequestGameForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2">
       <input
         required
         value={gameName}
@@ -44,12 +45,12 @@ export default function RequestGameForm() {
           setSubmitted(false);
         }}
         placeholder="e.g. Apex Legends"
-        className="flex-1 bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[38px]"
+        className="flex-1 min-w-[180px] bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[38px]"
       />
       <button
         type="submit"
         disabled={submitting}
-        className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.5px] uppercase px-4 disabled:opacity-50"
+        className={buttonClass("primary", "md", "h-[38px] !py-0 w-full sm:w-auto")}
       >
         {submitting ? "..." : "Request"}
       </button>

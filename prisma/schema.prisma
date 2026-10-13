@@ -258,6 +258,21 @@ model CurrencySetting {
   updatedAt DateTime @updatedAt
 }
 
+// How the prize pool is split by finishing position (spec §2.11), e.g. 1st
+// $750,000, 2nd $350,000, 4th-8th $50,000 each. `amount` is PER TEAM in the
+// tournament's prize-pool currency; the whole split may not exceed the pool.
+model PrizeTier {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  positionFrom Int
+  positionTo   Int // same as positionFrom for a single place
+  amount       Decimal @db.Decimal(14, 2)
+
+  @@index([tournamentId])
+}
+
 model OrganizerProfile {
   id     String @id @default(uuid())
   userId String @unique
@@ -926,6 +941,7 @@ model Tournament {
   updatedAt DateTime @updatedAt
 
   stages                 Stage[]
+  prizeTiers             PrizeTier[]
   rules                  TournamentRule[]
   registrations          Registration[]
   institutions           TournamentInstitution[]

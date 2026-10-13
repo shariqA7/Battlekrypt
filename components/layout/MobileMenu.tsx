@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SearchBox from "@/components/layout/SearchBox";
 
 interface NavLink {
   label: string;
@@ -10,7 +11,7 @@ interface NavLink {
 }
 
 // The navigation drawer for phones and small tablets. The desktop bar in
-// Nav.tsx is hidden below the lg breakpoint, so everything it offers has to be
+// Nav.tsx is hidden below the xl breakpoint, so everything it offers has to be
 // reachable from here.
 export default function MobileMenu({
   links,
@@ -37,10 +38,10 @@ export default function MobileMenu({
   }, [open]);
 
   const item =
-    "block px-5 py-4 font-sans font-medium text-[13px] tracking-[1.2px] uppercase text-bk-body border-b border-bk-border-nav active:bg-bk-heading/[0.05]";
+    "block px-5 py-4 font-sans font-medium text-[13px] tracking-[1.2px] uppercase text-bk-body border-b border-bk-border-nav border-l-2 border-l-transparent active:bg-bk-heading/[0.05]";
 
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       <button
         type="button"
         aria-label={open ? "Close menu" : "Open menu"}
@@ -90,12 +91,22 @@ export default function MobileMenu({
               </button>
             </div>
 
+            <SearchBox id="drawer-search" className="p-4 border-b border-bk-border-nav" />
+
             <nav className="flex-1">
-              {links.map((l) => (
-                <Link key={l.href} href={l.href} className={item}>
-                  {l.label}
-                </Link>
-              ))}
+              {links.map((l) => {
+                const active = pathname === l.href || pathname.startsWith(`${l.href}/`);
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`${item} ${active ? "text-bk-gold-light border-l-2 border-l-bk-gold-from" : ""}`}
+                  >
+                    {l.label}
+                  </Link>
+                );
+              })}
               <Link href="/donate" className={`${item} text-bk-muted`}>
                 Donate
               </Link>

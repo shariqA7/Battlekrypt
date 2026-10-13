@@ -7,7 +7,7 @@
 // navigating away.
 //
 // Visual structure follows the reference the team pointed to (Claude.ai's
-// sign-in page): big headline + subtext above a rounded, bordered card
+// sign-in page): big headline + subtext above a bordered card
 // containing OAuth pills, a plain "OR" divider, and a form, with fine
 // print below. Deliberately NOT importing a serif display font to match
 // the reference's typography — the spec's design system (§14) calls for
@@ -21,9 +21,10 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { buttonClass } from "@/components/ui/Button";
 
 const fieldClass =
-  "w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]";
+  "w-full bg-bk-surface border border-bk-border text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]";
 
 interface AuthFormProps {
   mode: "login" | "signup";
@@ -94,13 +95,13 @@ export default function AuthForm({
       <p className="font-sans text-[14px] text-bk-body mb-7">{subtitle}</p>
 
       <div
-        className="rounded-2xl border border-bk-border p-7"
+        className="border border-bk-border p-7"
         style={{ boxShadow: "0 0 60px rgba(244,200,66,0.07)" }}
       >
         <button
           type="button"
           onClick={onGoogleLogin}
-          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-2.5 transition-all hover:bg-bk-heading/[0.05] hover:-translate-y-px active:translate-y-0"
+          className="w-full bg-bk-surface border border-bk-border text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-2.5 transition-all hover:bg-bk-heading/[0.05] hover:-translate-y-px active:translate-y-0"
         >
           <GoogleIcon />
           Continue with Google
@@ -109,7 +110,7 @@ export default function AuthForm({
         <button
           type="button"
           onClick={onDiscordLogin}
-          className="w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-5 transition-all hover:bg-bk-heading/[0.05] hover:-translate-y-px active:translate-y-0"
+          className="w-full bg-bk-surface border border-bk-border text-bk-heading font-sans font-medium text-[13px] py-3 flex items-center justify-center gap-2.5 mb-5 transition-all hover:bg-bk-heading/[0.05] hover:-translate-y-px active:translate-y-0"
         >
           <DiscordIcon />
           Continue with Discord
@@ -189,7 +190,7 @@ export default function AuthForm({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-bk-primary text-bk-on-primary rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
+            className={buttonClass("primary", "lg", "w-full")}
           >
             {submitting ? "Please wait..." : mode === "signup" ? "Create account" : "Sign in"}
           </button>
@@ -202,7 +203,7 @@ export default function AuthForm({
             </p>
             <Link
               href={switchHref}
-              className="block w-full border border-bk-border rounded-xl font-sans font-medium text-[13px] text-bk-heading py-3 transition-colors hover:border-bk-gold-light"
+              className={buttonClass("outline", "lg", "w-full")}
             >
               {mode === "login" ? "Create an account" : "Sign in instead"}
             </Link>

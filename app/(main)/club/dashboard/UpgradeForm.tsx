@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/ui/FileUpload";
+import { buttonClass } from "@/components/ui/Button";
 
 export default function UpgradeForm({ paymentInstructions }: { paymentInstructions: string | null }) {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function UpgradeForm({ paymentInstructions }: { paymentInstructio
         type="button"
         onClick={handleSubmit}
         disabled={submitting}
-        className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-2.5 disabled:opacity-50"
+        className={buttonClass("primary", "md", "w-full sm:w-auto")}
       >
         {submitting ? "Submitting..." : "Submit payment for review"}
       </button>

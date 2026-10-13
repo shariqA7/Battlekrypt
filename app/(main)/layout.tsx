@@ -1,4 +1,5 @@
 import Nav from "@/components/layout/Nav";
+import Footer from "@/components/layout/Footer";
 import BannedScreen from "@/components/layout/BannedScreen";
 import SessionBeacon from "@/components/analytics/SessionBeacon";
 import { createClient } from "@/lib/supabase/server";
@@ -21,15 +22,19 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     <>
       <SessionBeacon />
       <Nav />
-      {ban ? (
-        <BannedScreen
-          reason={ban.reason}
-          endsAt={ban.endsAt}
-          supportEmail={process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? null}
-        />
-      ) : (
-        children
-      )}
+      {/* flex-1 pushes the footer to the bottom on short pages */}
+      <div className="flex-1">
+        {ban ? (
+          <BannedScreen
+            reason={ban.reason}
+            endsAt={ban.endsAt}
+            supportEmail={process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? null}
+          />
+        ) : (
+          children
+        )}
+      </div>
+      <Footer />
     </>
   );
 }

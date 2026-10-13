@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 interface Member {
   id: string;
@@ -63,7 +64,7 @@ export default function MembersManager({ initialMembers }: { initialMembers: Mem
             <option value="manager">Manager</option>
           </select>
         </div>
-        <button disabled={busy} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase tracking-[0.6px] px-4 h-[38px] disabled:opacity-50">
+        <button disabled={busy} className={buttonClass("primary", "md", "h-[38px] !py-0")}>
           Add member
         </button>
         {error && <p className="w-full font-sans text-[12px] text-bk-live">{error}</p>}
@@ -72,9 +73,9 @@ export default function MembersManager({ initialMembers }: { initialMembers: Mem
       {members.length === 0 ? (
         <p className="font-sans text-[13px] text-bk-muted">No members yet.</p>
       ) : (
-        <ul className="border border-bk-border divide-y divide-bk-border">
+        <ul className="bg-bk-surface border border-bk-border divide-y divide-bk-border">
           {members.map((m) => (
-            <li key={m.id} className="flex items-center justify-between px-4 py-3">
+            <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
               <div>
                 <p className="font-sans text-[13px] text-bk-heading">{m.name || m.email}</p>
                 <p className="font-sans text-[12px] text-bk-muted">
@@ -83,7 +84,7 @@ export default function MembersManager({ initialMembers }: { initialMembers: Mem
                   {m.hasAccount ? "" : " · no account yet"}
                 </p>
               </div>
-              <button onClick={() => remove(m.id)} className="font-sans text-[12px] text-bk-live underline">
+              <button onClick={() => remove(m.id)} className="font-sans text-[12px] text-bk-live underline min-h-[32px]">
                 Remove
               </button>
             </li>

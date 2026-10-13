@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { listMembers } from "@/lib/services/org-members";
 import MembersManager from "./MembersManager";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function OrganizerMembersPage() {
   const supabase = await createClient();
@@ -20,14 +21,12 @@ export default async function OrganizerMembersPage() {
   const members = await listMembers(organizerProfile.id);
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
-      <Link href="/organizer/dashboard" className="font-sans text-[12px] text-bk-muted underline">
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+      <Link href="/organizer/dashboard" className="font-sans text-[12px] text-bk-gold-light hover:underline">
         ← Dashboard
       </Link>
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading mt-3 mb-1">
-        Members
-      </h1>
-      <p className="font-sans text-bk-body text-[13px] mb-6">
+      <SectionHeading className="mt-3 mb-2">Members</SectionHeading>
+      <p className="font-sans text-bk-body text-[13px] mb-6 pl-[19px]">
         People who help run {organizerProfile.orgName}.
       </p>
       <MembersManager

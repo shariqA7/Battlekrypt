@@ -3,9 +3,10 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { buttonClass } from "@/components/ui/Button";
 
 const fieldClass =
-  "w-full bg-bk-surface border border-bk-border rounded-xl text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]";
+  "w-full bg-bk-surface border border-bk-border text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]";
 
 export default function ResetPasswordForm() {
   const supabase = createClient();
@@ -78,7 +79,7 @@ export default function ResetPasswordForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-bk-primary text-bk-on-primary rounded-xl font-sans font-bold text-[13px] py-3.5 transition-all hover:opacity-90 hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
+        className={buttonClass("primary", "lg", "w-full")}
       >
         {submitting ? "Updating..." : "Update password"}
       </button>
