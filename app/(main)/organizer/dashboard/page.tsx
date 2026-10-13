@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyTournaments } from "@/lib/services/tournaments";
+import { countPendingCoHostInvites } from "@/lib/services/institutions";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -34,6 +35,7 @@ export default async function OrganizerDashboard() {
   const isApproved = userRecord?.kycStatus === "approved";
 
   const tournaments = await getMyTournaments(organizerProfile.id);
+  const pendingInvites = await countPendingCoHostInvites(organizerProfile.id);
 
   return (
     <>
@@ -41,11 +43,17 @@ export default async function OrganizerDashboard() {
         <DashboardTop />
       </div>
       <main className="flex-1 px-6 py-10 max-w-3xl mx-auto w-full">
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-2">
           <h1 className="font-sans font-extrabold text-2xl text-bk-heading">
             {organizerProfile.orgName}
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/organizer/dashboard/institute"
+              className="text-bk-muted font-sans text-[12px] uppercase tracking-[0.6px] underline"
+            >
+              My institute{pendingInvites > 0 ? ` (${pendingInvites})` : ""}
+            </Link>
             <Link
               href="/organizer/dashboard/members"
               className="text-bk-muted font-sans text-[12px] uppercase tracking-[0.6px] underline"
