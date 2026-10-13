@@ -10,6 +10,11 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { buildAudience, evaluateMembership } from "@/lib/services/institutions";
 import { notify } from "@/lib/services/notifications";
+import {
+  notifyInviteSent,
+  notifyInviteAnswered,
+  notifyApplicantApproved,
+} from "@/lib/services/institution-notifications";
 
 type Db = Prisma.TransactionClient | typeof prisma;
 type Result<T> = { data: T } | { error: string };
@@ -144,6 +149,7 @@ export async function addChallengeInstitution(
   const row = await prisma.challengeInstitution.create({
     data: { challengeId, institutionId, role, status: role === "guest" ? "accepted" : "pending" },
   });
+  await notifyInviteSent("challenge", challengeId, institutionId, role);
   return { data: { id: row.id } };
 }
 
@@ -221,6 +227,7 @@ export async function respondToChallengeInvite(
   if (link.status !== "pending") return { error: "already_responded" };
   const status = accept ? "accepted" : "declined";
   await prisma.challengeInstitution.update({ where: { id: linkId }, data: { status, respondedAt: new Date() } });
+  await notifyInviteAnswered("challenge", link.challengeId, link.institutionId, accept);
   return { data: { status } };
 }
 
@@ -335,6 +342,10 @@ export async function reviewChallengeApplication(
         }
       : { institutionReview, status: "not_selected", decidedAt: new Date() },
   });
+  if (approve) {
+    const c = await prisma.challenge.findUnique({ where: { id: app.challengeId }, select: { title: true } });
+    await notifyApplicantApproved(app.applicantUserId, app.challengeId, c?.title ?? "this challenge");
+  }
   if (!approve) {
     // Best effort: a notification failure must never undo the decision.
     try {

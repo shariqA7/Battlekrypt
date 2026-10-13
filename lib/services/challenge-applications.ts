@@ -14,6 +14,7 @@ import { detectSelectionFlags } from "@/lib/services/challenge-integrity";
 import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
 import { applyBlocker, selectionBlocker, type EntrantKind } from "@/lib/challenge-rules";
 import { checkChallengeInstitutionGate } from "@/lib/services/challenge-institutions";
+import { notifyNewQueueItem } from "@/lib/services/institution-notifications";
 
 const DAY = 86_400_000;
 
@@ -112,7 +113,13 @@ export async function getApplyState(userId: string, c: ChallengeRow): Promise<Ap
 export type ApplyInput = { kind: EntrantKind; clubTeamId?: string; message?: string };
 
 type Failure = { error: string; message: string };
-type ApplyOk = { data: { id: string }; posterUserId: string; title: string; entrantName: string };
+type ApplyOk = {
+  data: { id: string };
+  posterUserId: string;
+  title: string;
+  entrantName: string;
+  routedInstitutionId: string | null;
+};
 type SelectOk = {
   data: {
     id: string;
@@ -230,7 +237,13 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
       ? await tx.challengeApplication.update({ where: { id: existing.id }, data })
       : await tx.challengeApplication.create({ data: { challengeId, applicantUserId: userId, ...data } });
 
-    return { data: { id: application.id }, posterUserId: c.posterUserId, title: c.title, entrantName };
+    return {
+      data: { id: application.id },
+      posterUserId: c.posterUserId,
+      title: c.title,
+      entrantName,
+      routedInstitutionId: instGate.routedInstitutionId,
+    };
   });
 
   if ("data" in outcome) {
@@ -240,6 +253,10 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
       body: `For "${outcome.title}"`,
       href: `/challenges/${challengeId}`,
     });
+    // A co-host institute reviews its own applicants: tell it one arrived.
+    if (outcome.routedInstitutionId) {
+      await notifyNewQueueItem("challenge", challengeId, outcome.routedInstitutionId);
+    }
   }
   return outcome;
 }

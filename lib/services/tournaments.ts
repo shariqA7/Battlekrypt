@@ -13,6 +13,11 @@ import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
 import { checkInstitutionGate, getRegistrationActor } from "@/lib/services/institutions";
+import {
+  notifyNewQueueItem,
+  notifyAwaitingPayment,
+  notifyEntryDecision,
+} from "@/lib/services/institution-notifications";
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { hybridStagesError } from "@/lib/services/stages";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
@@ -486,6 +491,9 @@ export async function registerForTournament(input: RegisterInput) {
       },
     });
     await bumpRegistrationCount(input.tournamentId);
+    if (institutionGate.routedInstitutionId) {
+      await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
+    }
     return { data: registration };
   }
   const registration = await prisma.registration.create({
@@ -502,6 +510,9 @@ export async function registerForTournament(input: RegisterInput) {
   });
   await bumpRegistrationCount(input.tournamentId);
 
+  if (institutionGate.routedInstitutionId) {
+    await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
+  }
   return { data: registration };
 }
 
@@ -586,6 +597,8 @@ export async function approveRegistration(registrationId: string, organizerId: s
             approvedByInstitutionId: actor.institutionId,
           },
     });
+    await notifyEntryDecision(registrationId, true, true, needsPayment);
+    if (needsPayment) await notifyAwaitingPayment(registration.tournamentId, actor.institutionId);
     return { data: updated, awaitingHostPayment: needsPayment };
   }
 
@@ -606,6 +619,7 @@ export async function approveRegistration(registrationId: string, organizerId: s
     },
   });
 
+  await notifyEntryDecision(registrationId, true, false, false);
   return { data: updated, awaitingHostPayment: false };
 }
 
@@ -632,6 +646,7 @@ export async function rejectRegistration(
     data: { status: "rejected" },
   });
 
+  await notifyEntryDecision(registrationId, false, actor.role === "cohost", false);
   return { data: updated, reason };
 }
 
