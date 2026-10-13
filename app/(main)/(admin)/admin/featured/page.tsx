@@ -1,4 +1,5 @@
 import { requireAdminPage } from "@/lib/admin-page";
+import { SectionHeading } from "@/components/ui/Panel";
 import {
   listAllSlides,
   listEligibleOwners,
@@ -19,8 +20,8 @@ export default async function AdminFeaturedPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Featured</h1>
-        <p className="font-sans text-[13px] text-bk-body">
+        <SectionHeading>Featured</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">
           The dashboard carousel and the upcoming-tournaments list.
         </p>
       </div>

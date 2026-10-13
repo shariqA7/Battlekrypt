@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 interface TierSetting {
   id: string;
@@ -283,7 +284,7 @@ function SettingRow({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1 disabled:opacity-50"
+            className={buttonClass("primary", "sm", "")}
           >
             {saving ? "Saving..." : "Save"}
           </button>

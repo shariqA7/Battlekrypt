@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 export interface AdminOrgApplication {
   id: string;
@@ -91,14 +92,14 @@ export default function OrgApplications({ initial }: { initial: AdminOrgApplicat
                 <button
                   disabled={busy}
                   onClick={() => act(a.id, "approve")}
-                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 disabled:opacity-50"
+                  className={buttonClass("primary", "sm", "")}
                 >
                   Approve
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => setRejecting(rejecting === a.id ? null : a.id)}
-                  className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5"
+                  className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5"
                 >
                   Reject
                 </button>
@@ -139,7 +140,7 @@ export default function OrgApplications({ initial }: { initial: AdminOrgApplicat
                 <button
                   disabled={busy}
                   onClick={() => act(a.id, "reject")}
-                  className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 disabled:opacity-50"
+                  className={buttonClass("danger", "sm", "")}
                 >
                   Send rejection
                 </button>

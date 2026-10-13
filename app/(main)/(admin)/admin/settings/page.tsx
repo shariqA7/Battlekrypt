@@ -9,6 +9,7 @@ import PlanSettings from "../PlanSettings";
 import { getPlanSettings } from "@/lib/services/plan-requests";
 import ChallengeSettings from "../ChallengeSettings";
 import { getChallengeReviewUsd } from "@/lib/services/challenges";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminSettingsPage() {
   await requireAdminPage();
@@ -24,8 +25,8 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Settings</h1>
-        <p className="font-sans text-[13px] text-bk-body">Branding and payment instructions.</p>
+        <SectionHeading>Settings</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">Branding and payment instructions.</p>
       </div>
       <BrandingManager initialLogoUrl={siteSettings.logoUrl ?? ""} initialSlides={slides} />
       <ClubFeeSettings initialInstructions={instructions ?? ""} />

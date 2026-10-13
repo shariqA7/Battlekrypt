@@ -1,5 +1,6 @@
 import { requireAdminPage } from "@/lib/admin-page";
 import { listClubs } from "@/lib/services/admin-analytics";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminClubsPage() {
   await requireAdminPage();
@@ -8,8 +9,8 @@ export default async function AdminClubsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Clubs &amp; teams</h1>
-        <p className="font-sans text-[13px] text-bk-body">{clubs.length} clubs created</p>
+        <SectionHeading>Clubs &amp; teams</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">{clubs.length} clubs created</p>
       </div>
       <div className="overflow-x-auto border border-bk-border">
         <table className="w-full font-sans text-[12px]">

@@ -21,20 +21,20 @@ const ITEMS = [
 export default function AdminNav({ pending }: { pending: number }) {
   const pathname = usePathname();
   return (
-    <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible">
+    <nav aria-label="Admin sections" className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible -mx-5 px-5 sm:mx-0 sm:px-0 pb-1 md:pb-0">
       {ITEMS.map((item) => {
         const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center justify-between gap-3 px-3 py-2 font-sans text-[13px] whitespace-nowrap ${
-              active ? "bg-bk-surface text-bk-heading border-l-2 border-bk-gold-light" : "text-bk-muted hover:text-bk-heading border-l-2 border-transparent"
+            className={`flex items-center justify-between gap-3 px-3 min-h-[40px] md:min-h-[36px] font-sans text-[13px] whitespace-nowrap border-b-2 md:border-b-0 md:border-l-2 ${
+              active ? "bg-bk-surface text-bk-gold-light font-bold border-bk-gold-light" : "text-bk-muted hover:text-bk-heading hover:bg-bk-surface-hover border-transparent"
             }`}
           >
             {item.label}
             {"badgeKey" in item && pending > 0 && (
-              <span className="bg-bk-live text-white text-[10px] font-bold rounded-full px-1.5 min-w-[18px] text-center">
+              <span className="bg-bk-live text-white text-[10px] font-bold rounded-full px-1.5 min-w-[18px] text-center font-mono">
                 {pending}
               </span>
             )}

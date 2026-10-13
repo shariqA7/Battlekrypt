@@ -4,6 +4,7 @@ import { Stat } from "@/components/admin/charts";
 import ReviewButtons from "./ReviewButtons";
 import { Badge } from "@/components/ui/Badge";
 import { Panel } from "@/components/ui/Panel";
+import { SectionHeading } from "@/components/ui/Panel";
 
 
 export default async function AdminInstitutionsPage() {
@@ -12,8 +13,8 @@ export default async function AdminInstitutionsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Institutes</h1>
-      <p className="font-sans text-[13px] text-bk-muted">
+      <SectionHeading>Institutes</SectionHeading>
+      <p className="font-sans text-[13px] text-bk-muted pl-[19px]">
         Organizations register the institute they run. Verify it once; after that the institute
         itself approves players for its own tournaments.
       </p>

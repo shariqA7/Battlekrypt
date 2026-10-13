@@ -3,6 +3,7 @@ import { requireAdminPage } from "@/lib/admin-page";
 import { getOverview } from "@/lib/services/admin-analytics";
 import { formatMoney } from "@/lib/money";
 import { ColumnChart, BarList, Stat, Panel } from "@/components/admin/charts";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminOverviewPage() {
   await requireAdminPage();
@@ -13,8 +14,8 @@ export default async function AdminOverviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Overview</h1>
-        <p className="font-sans text-[13px] text-bk-body">How the platform is doing right now.</p>
+        <SectionHeading>Overview</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">How the platform is doing right now.</p>
       </div>
 
       {(c.pendingApps > 0 || c.activeBans > 0) && (

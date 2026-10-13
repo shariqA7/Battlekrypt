@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import FileUpload from "@/components/ui/FileUpload";
+import { buttonClass } from "@/components/ui/Button";
 
 interface Slide {
   id: string;
@@ -91,7 +92,7 @@ export default function BrandingManager({
           />
           <button
             onClick={saveLogo}
-            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 whitespace-nowrap"
+            className={buttonClass("primary", "sm", "")}
           >
             {logoSaved ? "Saved!" : "Save logo"}
           </button>
@@ -166,7 +167,7 @@ export default function BrandingManager({
           <button
             onClick={addSlide}
             disabled={!newMediaUrl || adding}
-            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 disabled:opacity-50"
+            className={buttonClass("primary", "sm", "")}
           >
             {adding ? "Adding..." : "Add slide"}
           </button>

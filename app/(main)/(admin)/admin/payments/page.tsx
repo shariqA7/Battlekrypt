@@ -4,6 +4,7 @@ import { PAYMENT_KINDS } from "@/lib/payment-kinds";
 import { formatMoney } from "@/lib/money";
 import { Stat, Panel } from "@/components/admin/charts";
 import RecordPaymentForm from "../RecordPaymentForm";
+import { SectionHeading } from "@/components/ui/Panel";
 
 const money = (byCur: Record<string, number>) =>
   Object.entries(byCur).map(([cur, amt]) => formatMoney(amt, cur)).join(" · ") || "—";
@@ -16,8 +17,8 @@ export default async function AdminPaymentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Payments</h1>
-        <p className="font-sans text-[13px] text-bk-body">
+        <SectionHeading>Payments</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">
           Money the platform has received. Club plan payments are recorded when you approve them; record
           organization plan payments below.
         </p>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 export interface ReviewChallenge {
   id: string;
@@ -84,12 +85,12 @@ export default function ChallengeReview({
                 <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
                   placeholder="Reason (the poster will see this)"
                   className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2 mb-2" />
-                <button disabled={busy} onClick={() => act(c.id, "reject")} className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50">Send rejection</button>
+                <button disabled={busy} onClick={() => act(c.id, "reject")} className={buttonClass("danger", "sm", "")}>Send rejection</button>
               </div>
             ) : (
               <div className="flex gap-2 mt-3">
-                <button disabled={busy} onClick={() => act(c.id, "approve")} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50">Approve</button>
-                <button onClick={() => setRejecting(c.id)} className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 py-1.5">Reject</button>
+                <button disabled={busy} onClick={() => act(c.id, "approve")} className={buttonClass("primary", "sm", "")}>Approve</button>
+                <button onClick={() => setRejecting(c.id)} className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5">Reject</button>
               </div>
             )}
           </div>

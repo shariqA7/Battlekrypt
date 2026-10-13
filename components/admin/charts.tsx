@@ -57,9 +57,9 @@ export function BarList({ data, empty = "No data yet." }: { data: SeriesPoint[];
 
 export function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div className="bg-bk-surface border border-bk-border p-4">
-      <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-muted">{label}</p>
-      <p className="font-sans font-extrabold text-2xl text-bk-heading mt-1">{value}</p>
+    <div className="bg-bk-surface border border-bk-border p-4 min-w-0">
+      <p className="font-sans text-[11px] uppercase tracking-[1.2px] text-bk-muted">{label}</p>
+      <p className="font-mono text-2xl text-bk-heading mt-1 break-words">{value}</p>
       {hint && <p className="font-sans text-[11px] text-bk-muted mt-1">{hint}</p>}
     </div>
   );
@@ -68,7 +68,7 @@ export function Stat({ label, value, hint }: { label: string; value: string | nu
 export function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="bg-bk-surface border border-bk-border p-4">
-      <p className="font-sans font-medium text-bk-heading text-sm mb-3">{title}</p>
+      <p className="font-sans font-bold text-bk-heading text-base mb-3">{title}</p>
       {children}
     </section>
   );

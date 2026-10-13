@@ -1,6 +1,7 @@
 import { requireAdminPage } from "@/lib/admin-page";
 import { listPlans } from "@/lib/services/plan-requests";
 import PlanManager from "../PlanManager";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminPlansPage() {
   await requireAdminPage();
@@ -9,8 +10,8 @@ export default async function AdminPlansPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Plans</h1>
-        <p className="font-sans text-[13px] text-bk-body">
+        <SectionHeading>Plans</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">
           Prices, durations and feature limits for Organizer, Club and Player plans.
         </p>
       </div>

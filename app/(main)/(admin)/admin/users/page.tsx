@@ -3,6 +3,8 @@ import { requireAdminPage } from "@/lib/admin-page";
 import { listUsers } from "@/lib/services/admin-analytics";
 import { countryName } from "@/lib/geo";
 import BanUserButton from "../BanUserButton";
+import { SectionHeading } from "@/components/ui/Panel";
+import { buttonClass } from "@/components/ui/Button";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -17,14 +19,14 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Users</h1>
-          <p className="font-sans text-[13px] text-bk-body">{total} account{total === 1 ? "" : "s"}</p>
+          <SectionHeading>Users</SectionHeading>
+          <p className="font-sans text-[13px] text-bk-body pl-[19px]">{total} account{total === 1 ? "" : "s"}</p>
         </div>
-        <form className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Search name or email" className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px] w-56" />
-          <button className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] uppercase px-3 h-[36px]">Search</button>
+        <form className="flex gap-2 w-full sm:w-auto">
+          <input name="q" defaultValue={q} placeholder="Search name or email" className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[40px] sm:h-[36px] w-full sm:w-56" />
+          <button className={buttonClass("primary", "sm", "")}>Search</button>
         </form>
       </div>
 

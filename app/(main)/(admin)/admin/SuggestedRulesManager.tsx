@@ -5,6 +5,7 @@
 // IS how the list changes. Deleting or editing a suggestion never touches
 // tournaments that already copied it (they hold their own copy).
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 type RuleAction = "warning" | "point_deduction" | "disqualification";
 
@@ -213,7 +214,7 @@ export default function SuggestedRulesManager({
           <button
             type="submit"
             disabled={busy}
-            className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.5px] py-2 disabled:opacity-50"
+            className={buttonClass("primary", "sm", "")}
           >
             Save suggestion
           </button>
