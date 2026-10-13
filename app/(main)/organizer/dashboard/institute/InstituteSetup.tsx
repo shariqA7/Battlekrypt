@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 
 export default function InstituteSetup() {
   const router = useRouter();
@@ -27,7 +29,8 @@ export default function InstituteSetup() {
   }
 
   return (
-    <form onSubmit={submit} className="border border-bk-border p-4">
+    <Panel className="p-4">
+    <form onSubmit={submit}>
       <label className="block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5">
         Institute name
       </label>
@@ -38,12 +41,10 @@ export default function InstituteSetup() {
         className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[38px]"
       />
       {error && <p className="text-bk-live text-[12px] mt-2">{error}</p>}
-      <button
-        disabled={busy || name.trim().length < 2}
-        className="mt-3 bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[40px] disabled:opacity-50"
-      >
+      <Button type="submit" className="mt-3" disabled={busy || name.trim().length < 2}>
         Register institute
-      </button>
+      </Button>
     </form>
+    </Panel>
   );
 }

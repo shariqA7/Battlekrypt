@@ -1,0 +1,6535 @@
+{
+  "info": {
+    "name": "BattleKrypt API Collection",
+    "_postman_id": "battlekrypt-api-collection",
+    "description": "Complete API endpoints for BattleKrypt platform. Set {{baseUrl}} in your Postman environment (default: http://localhost:3000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "ADMIN",
+      "item": [
+        {
+          "name": "POST /api/admin/bans/[id]/lift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/bans/:id/lift",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "bans",
+                ":id",
+                "lift"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/carousel-slides",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/carousel-slides",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "carousel-slides"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/admin/carousel-slides/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/carousel-slides/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "carousel-slides",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/challenge-disputes/[id]/resolve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/challenge-disputes/:id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "challenge-disputes",
+                ":id",
+                "resolve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/challenge-flags/[id]/resolve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/challenge-flags/:id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "challenge-flags",
+                ":id",
+                "resolve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/challenge-reports/[id]/resolve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/challenge-reports/:id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "challenge-reports",
+                ":id",
+                "resolve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/challenge-settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/challenge-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "challenge-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/challenges/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/challenges/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "challenges",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/challenges/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/challenges/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "challenges",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/club-name-claims/[id]/dismiss",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/club-name-claims/:id/dismiss",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "club-name-claims",
+                ":id",
+                "dismiss"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/club-name-claims/[id]/uphold",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/club-name-claims/:id/uphold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "club-name-claims",
+                ":id",
+                "uphold"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/club-settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/club-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "club-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/clubs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/clubs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "clubs"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/clubs/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/clubs/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "clubs",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/clubs/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/clubs/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "clubs",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/currencies/[code]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/currencies/:code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "currencies",
+                ":code"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "example_code",
+                  "description": "Path parameter code"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/featured/slides",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/featured/slides",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "featured",
+                "slides"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/featured/slides/[id]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/featured/slides/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "featured",
+                "slides",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/admin/featured/slides/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/featured/slides/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "featured",
+                "slides",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/featured/tournaments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/featured/tournaments?tournamentId=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "featured",
+                "tournaments"
+              ],
+              "query": [
+                {
+                  "key": "tournamentId",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/admin/featured/tournaments",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/featured/tournaments?tournamentId=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "featured",
+                "tournaments"
+              ],
+              "query": [
+                {
+                  "key": "tournamentId",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/flags/[id]/resolve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/flags/:id/resolve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "flags",
+                ":id",
+                "resolve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/game-requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/game-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "game-requests"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/game-requests/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/game-requests/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "game-requests",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/game-requests/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/game-requests/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "game-requests",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/institutions/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/institutions/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "institutions",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/institutions/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/institutions/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "institutions",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/org-applications/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/org-applications/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "org-applications",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/org-applications/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/org-applications/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "org-applications",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/organizers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/organizers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizers"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/organizers/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/organizers/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizers",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/organizers/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/organizers/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "organizers",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/payments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "payments"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/plan-requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plan-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "plan-requests"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/plan-requests/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plan-requests/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "plan-requests",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/plan-requests/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plan-requests/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "plan-requests",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/plan-settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plan-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "plan-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "plans"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/plans/[code]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plans/:code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "plans",
+                ":code"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "code",
+                  "value": "example_code",
+                  "description": "Path parameter code"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/site-settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/site-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "site-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/suggested-rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/suggested-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "suggested-rules"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/suggested-rules",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/suggested-rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "suggested-rules"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/admin/suggested-rules/[id]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/suggested-rules/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "suggested-rules",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/admin/suggested-rules/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/suggested-rules/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "suggested-rules",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/tier-settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tier-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "tier-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/tier-settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tier-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "tier-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/admin/tier-settings/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tier-settings/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "tier-settings",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/admin/tournaments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tournaments?flagged=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "tournaments"
+              ],
+              "query": [
+                {
+                  "key": "flagged",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/tournaments/[id]/tier-review/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tournaments/:id/tier-review/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "tournaments",
+                ":id",
+                "tier-review",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/tournaments/[id]/tier-review/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/tournaments/:id/tier-review/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "tournaments",
+                ":id",
+                "tier-review",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/admin/users/[id]/ban",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/:id/ban",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                ":id",
+                "ban"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Admin (Session / Role)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ANALYTICS",
+      "item": [
+        {
+          "name": "POST /api/analytics/session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "session"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AUTH",
+      "item": [
+        {
+          "name": "POST /api/auth/ensure-user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/ensure-user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "ensure-user"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CAROUSEL-SLIDES",
+      "item": [
+        {
+          "name": "GET /api/carousel-slides",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carousel-slides",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carousel-slides"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CHALLENGE-APPLICATIONS",
+      "item": [
+        {
+          "name": "POST /api/challenge-applications/[id]/review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenge-applications/:id/review",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenge-applications",
+                ":id",
+                "review"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CHALLENGE-ENTRIES",
+      "item": [
+        {
+          "name": "POST /api/challenge-entries/[id]/[action]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenge-entries/:id/:action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenge-entries",
+                ":id",
+                ":action"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                },
+                {
+                  "key": "action",
+                  "value": "example_action",
+                  "description": "Path parameter action"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CHALLENGES",
+      "item": [
+        {
+          "name": "POST /api/challenges",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/challenges/[id]/applications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "applications"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/challenges/[id]/applications",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "applications"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/challenges/[id]/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "cancel"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/challenges/[id]/institutions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/challenges/[id]/institutions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/challenges/[id]/institutions",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/challenges/[id]/institutions",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/challenges/[id]/report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "report"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/challenges/[id]/select",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/challenges/:id/select",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "challenges",
+                ":id",
+                "select"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLUB-NAME-CLAIMS",
+      "item": [
+        {
+          "name": "POST /api/club-name-claims",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club-name-claims",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club-name-claims"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLUB",
+      "item": [
+        {
+          "name": "GET /api/club/invites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "invites"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/club/invites",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "invites"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/club/invites/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/invites/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "invites",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/club/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/club/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/club/name-available",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/name-available?name=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "name-available"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/club/players/search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/players/search?q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "players",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/club/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "register"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/club/roster",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/roster",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "roster"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/club/roster/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/roster/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "roster",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/club/teams",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club/teams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "teams"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/club/teams/[id]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club/teams/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "teams",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/club/teams/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/club/teams/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "teams",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/club/teams/[id]/captain",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club/teams/:id/captain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "club",
+                "teams",
+                ":id",
+                "captain"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CRON",
+      "item": [
+        {
+          "name": "GET /api/cron/challenges",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cron/challenges",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "cron",
+                "challenges"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Cron Secret (Bearer Token)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CURRENCIES",
+      "item": [
+        {
+          "name": "GET /api/currencies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/currencies",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "currencies"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "GAMES",
+      "item": [
+        {
+          "name": "GET /api/games",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/games?search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "games"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/games/request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/games/request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "games",
+                "request"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "INSTITUTIONS",
+      "item": [
+        {
+          "name": "GET /api/institutions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/institutions?q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "institutions"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "NOTIFICATIONS",
+      "item": [
+        {
+          "name": "POST /api/notifications/read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ORGANIZATIONS",
+      "item": [
+        {
+          "name": "PUT /api/organizations/application",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/application",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "application"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/organizations/apply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/apply",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "apply"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizations/name-available",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/name-available?name=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizations",
+                "name-available"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ORGANIZER",
+      "item": [
+        {
+          "name": "POST /api/organizer/challenge-invites/[id]/respond",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/challenge-invites/:id/respond",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "challenge-invites",
+                ":id",
+                "respond"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/cohost-invites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/cohost-invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "cohost-invites"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/organizer/cohost-invites/[id]/respond",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/cohost-invites/:id/respond",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "cohost-invites",
+                ":id",
+                "respond"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/institution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/institution",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "institution"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/organizer/institution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/institution",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "institution"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/organizer/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/me/game-requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me/game-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me",
+                "game-requests"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/me/members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me",
+                "members"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/organizer/me/members",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me",
+                "members"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/organizer/me/members/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me/members/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me",
+                "members",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/me/tournaments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/me/tournaments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "me",
+                "tournaments"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/organizer/onboard",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/onboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "onboard"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/organizer/tier-floor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizer/tier-floor?tier=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizer",
+                "tier-floor"
+              ],
+              "query": [
+                {
+                  "key": "tier",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "ORGANIZERS",
+      "item": [
+        {
+          "name": "GET /api/organizers/[id]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizers/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "organizers",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PLANS",
+      "item": [
+        {
+          "name": "GET /api/plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans?audience=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "plans"
+              ],
+              "query": [
+                {
+                  "key": "audience",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/plans/mine",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "plans",
+                "mine"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/plans/requests",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/plans/requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "plans",
+                "requests"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "PLAYERS",
+      "item": [
+        {
+          "name": "GET /api/players/[id]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/players/me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/players/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/players/me/club",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/club",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "club"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/players/me/club",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/club",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "club"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/players/me/club-invites",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/club-invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "club-invites"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/players/me/club-invites/[id]/accept",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/club-invites/:id/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "club-invites",
+                ":id",
+                "accept"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/players/me/club-invites/[id]/decline",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/club-invites/:id/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "club-invites",
+                ":id",
+                "decline"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/players/me/institution",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/institution",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "institution"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/players/me/institution",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/institution",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "institution"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/players/me/registrations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/players/me/registrations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "me",
+                "registrations"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "REGISTRATIONS",
+      "item": [
+        {
+          "name": "GET /api/registrations/[id]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/registrations/[id]/approve",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/:id/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                ":id",
+                "approve"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/registrations/[id]/check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/registrations/[id]/disqualify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/:id/disqualify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                ":id",
+                "disqualify"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/registrations/[id]/reject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/:id/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "registrations",
+                ":id",
+                "reject"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SITE-SETTINGS",
+      "item": [
+        {
+          "name": "GET /api/site-settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/site-settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "site-settings"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "STAGE-ENTRIES",
+      "item": [
+        {
+          "name": "POST /api/stage-entries/[id]/check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stage-entries/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stage-entries",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "STAGES",
+      "item": [
+        {
+          "name": "PATCH /api/stages/[id]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/stages/[id]/advance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id/advance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id",
+                "advance"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/stages/[id]/advance",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id/advance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id",
+                "advance"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/stages/[id]/check-in",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/stages/[id]/check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/stages/[id]/room",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id/room",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id",
+                "room"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/stages/[id]/venue",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/stages/:id/venue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "stages",
+                ":id",
+                "venue"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SUGGESTED-RULES",
+      "item": [
+        {
+          "name": "GET /api/suggested-rules",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/suggested-rules?gameId=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "suggested-rules"
+              ],
+              "query": [
+                {
+                  "key": "gameId",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TEMPLATES",
+      "item": [
+        {
+          "name": "GET /api/templates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "templates"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/templates/[id]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/templates/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "templates",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/templates/[id]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/templates/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "templates",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/templates/[id]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/templates/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "templates",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TOURNAMENTS",
+      "item": [
+        {
+          "name": "GET /api/tournaments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments?game=&type=&mode=&entryType=&audienceScope=&venueType=&country=&region=&search=&page=&limit=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments"
+              ],
+              "query": [
+                {
+                  "key": "game",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "entryType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "audienceScope",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "venueType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "country",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments?game=&type=&mode=&entryType=&audienceScope=&venueType=&country=&region=&search=&page=&limit=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments"
+              ],
+              "query": [
+                {
+                  "key": "game",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "mode",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "entryType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "audienceScope",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "venueType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "country",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "region",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": []
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/tournaments/[id]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/cancel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "cancel"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]/check-in",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/check-in",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "check-in"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/click",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/click",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "click"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/club-entries",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/club-entries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "club-entries"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/tournaments/[id]/club-entries/[entryId]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/club-entries/:entryId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "club-entries",
+                ":entryId"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                },
+                {
+                  "key": "entryId",
+                  "value": "example_entryId",
+                  "description": "Path parameter entryId"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]/club-entries/options",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/club-entries/options",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "club-entries",
+                "options"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Session / Public\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]/club-entries/search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/club-entries/search?q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "club-entries",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/flag",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/flag",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "flag"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]/institutions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/institutions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/tournaments/[id]/institutions",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/tournaments/[id]/institutions",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/institutions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "institutions"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/payout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/payout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "payout"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/publish",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "publish"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "register"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]/registrations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/registrations?status=&view=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "registrations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "view",
+                  "value": "",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/registrations/manual-add",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/registrations/manual-add",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "registrations",
+                "manual-add"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/rules",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/rules",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "rules"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "PATCH /api/tournaments/[id]/rules/[ruleId]",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/rules/:ruleId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "rules",
+                ":ruleId"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                },
+                {
+                  "key": "ruleId",
+                  "value": "example_ruleId",
+                  "description": "Path parameter ruleId"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "DELETE /api/tournaments/[id]/rules/[ruleId]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/rules/:ruleId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "rules",
+                ":ruleId"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                },
+                {
+                  "key": "ruleId",
+                  "value": "example_ruleId",
+                  "description": "Path parameter ruleId"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/save-as-template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/save-as-template",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "save-as-template"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/stages",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/stages",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "stages"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "status"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Organizer (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "GET /api/tournaments/[id]/vote",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/vote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "vote"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        },
+        {
+          "name": "POST /api/tournaments/[id]/vote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tournaments/:id/vote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tournaments",
+                ":id",
+                "vote"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "example_id",
+                  "description": "Path parameter id"
+                }
+              ]
+            },
+            "description": "Auth: Authenticated User (Auth Session)\nBody fields: None detected"
+          }
+        }
+      ]
+    }
+  ]
+}

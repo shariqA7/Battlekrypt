@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
 
 interface Applicant {
   id: string;
@@ -96,10 +97,9 @@ export default function ApplicantsPanel({
       {institutional && (
         <div className="flex gap-2 mb-3 font-sans text-[12px]">
           {(["all", "mine"] as const).map((v) => (
-            <button key={v} onClick={() => setView(v)}
-              className={`px-3 py-1.5 border ${view === v ? "border-bk-gold-light text-bk-gold-light" : "border-bk-border text-bk-muted"}`}>
+            <Button key={v} size="sm" variant={view === v ? "outline" : "ghost"} onClick={() => setView(v)}>
               {v === "all" ? "All requests" : "My requests"}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -125,8 +125,8 @@ export default function ApplicantsPanel({
               )}
               {institutional && a.status === "applied" && a.institutionReview === "pending" && (
                 <div className="flex gap-2 mt-1">
-                  <button disabled={busy} onClick={() => review(a.id, true)} className="font-sans text-[11px] border border-bk-border text-bk-heading px-2 py-1 disabled:opacity-50">Approve</button>
-                  <button disabled={busy} onClick={() => review(a.id, false)} className="font-sans text-[11px] border border-bk-live text-bk-live px-2 py-1 disabled:opacity-50">Reject</button>
+                  <Button size="sm" disabled={busy} onClick={() => review(a.id, true)}>Approve</Button>
+                  <Button size="sm" variant="danger" disabled={busy} onClick={() => review(a.id, false)}>Reject</Button>
                 </div>
               )}
               {a.message && <p className="font-sans text-[12px] text-bk-body mt-1">&ldquo;{a.message}&rdquo;</p>}
