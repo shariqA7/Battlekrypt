@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { InstitutionProofLink } from "../../../tournaments/[id]/RegistrationQueue";
 
 interface Row {
@@ -40,11 +42,11 @@ export default function CoHostQueue({ initial }: { initial: Row[] }) {
       )}
       <ul className="space-y-3">
         {rows.map((r) => (
-          <li key={r.id} className="border border-bk-border p-4 font-sans text-[13px]">
+          <li key={r.id} className="bg-bk-surface border border-bk-border p-4 font-sans text-[13px]">
             <p className="text-bk-heading font-bold break-words">{r.name}</p>
-            <p className="text-bk-muted text-[12px] mt-1">
-              {r.status}
-              {r.awaitingHostPayment && " · approved by you, waiting for the host's payment check"}
+            <p className="text-bk-muted text-[12px] mt-1 flex flex-wrap items-center gap-2">
+              <Badge tone={r.status === "approved" ? "teal" : r.status === "rejected" ? "danger" : "amber"}>{r.status}</Badge>
+              {r.awaitingHostPayment && <span>Approved by you, waiting for the host&apos;s payment check</span>}
             </p>
             {r.institutionProofPath && (
               <div className="mt-1">
@@ -53,18 +55,12 @@ export default function CoHostQueue({ initial }: { initial: Row[] }) {
             )}
             {r.status === "pending" && !r.awaitingHostPayment && (
               <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => act(r.id, "approve")}
-                  className="bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[36px]"
-                >
+                <Button size="sm" onClick={() => act(r.id, "approve")}>
                   Approve
-                </button>
-                <button
-                  onClick={() => act(r.id, "reject")}
-                  className="border border-bk-live text-bk-live font-bold text-[12px] px-4 h-[36px]"
-                >
+                </Button>
+                <Button size="sm" variant="danger" onClick={() => act(r.id, "reject")}>
                   Reject
-                </button>
+                </Button>
               </div>
             )}
           </li>

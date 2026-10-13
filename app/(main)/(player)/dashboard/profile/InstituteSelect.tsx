@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
 
 interface Props {
   // Where to send the player back to (e.g. the tournament they were joining).
@@ -93,7 +95,7 @@ export default function InstituteSelect({ initial, next, activeEntries = 0 }: Pr
       </p>
 
       {!editing && initial && (
-        <div className="mt-4 border border-bk-border px-4 py-3 font-sans text-[13px]">
+        <Panel className="mt-4 px-4 py-3 font-sans text-[13px]">
           <p className="text-bk-heading font-bold">{initial.institutionName}</p>
           {initial.studentId && <p className="text-bk-muted">Student ID: {initial.studentId}</p>}
           {pinned ? (
@@ -106,14 +108,11 @@ export default function InstituteSelect({ initial, next, activeEntries = 0 }: Pr
               You can change your institute again on {unlocksAt.toLocaleDateString()}.
             </p>
           ) : (
-            <button
-              onClick={() => setEditing(true)}
-              className="mt-3 border border-bk-border text-bk-heading text-[12px] font-bold px-4 h-[36px]"
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setEditing(true)}>
               Change institute
-            </button>
+            </Button>
           )}
-        </div>
+        </Panel>
       )}
 
       {editing && (
@@ -153,25 +152,20 @@ export default function InstituteSelect({ initial, next, activeEntries = 0 }: Pr
 
           {error && <p className="text-bk-live text-[12px] mt-3">{error}</p>}
           <div className="flex gap-2 mt-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-bk-gold-light text-black font-bold text-[12px] px-5 h-[40px] disabled:opacity-50"
-            >
+            <Button type="submit" disabled={submitting}>
               Save
-            </button>
+            </Button>
             {hasInstitute && (
-              <button
-                type="button"
+              <Button
+                variant="outline"
                 onClick={() => {
                   setEditing(false);
                   setInstitutionId(initial?.institutionId ?? "");
                   setError(null);
                 }}
-                className="border border-bk-border text-bk-heading font-bold text-[12px] px-5 h-[40px]"
               >
                 Cancel
-              </button>
+              </Button>
             )}
           </div>
         </form>
@@ -192,20 +186,12 @@ export default function InstituteSelect({ initial, next, activeEntries = 0 }: Pr
               is the right one.
             </p>
             <div className="flex gap-2 mt-4">
-              <button
-                disabled={submitting}
-                onClick={() => save(true)}
-                className="bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[40px] disabled:opacity-50"
-              >
+              <Button disabled={submitting} onClick={() => save(true)}>
                 Yes, change it
-              </button>
-              <button
-                disabled={submitting}
-                onClick={() => setConfirming(false)}
-                className="border border-bk-border text-bk-heading font-bold text-[12px] px-4 h-[40px]"
-              >
+              </Button>
+              <Button variant="outline" disabled={submitting} onClick={() => setConfirming(false)}>
                 Go back
-              </button>
+              </Button>
             </div>
           </div>
         </div>

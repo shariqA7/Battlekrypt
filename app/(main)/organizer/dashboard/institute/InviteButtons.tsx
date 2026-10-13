@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, ButtonLink } from "@/components/ui/Button";
 
 export default function InviteButtons({
   id,
@@ -36,20 +37,12 @@ export default function InviteButtons({
     <div className="mt-3">
       {error && <p className="text-bk-live text-[12px] mb-2">{error}</p>}
       <div className="flex gap-2">
-        <button
-          disabled={busy}
-          onClick={() => respond(true)}
-          className="bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[38px] disabled:opacity-50"
-        >
+        <Button disabled={busy} onClick={() => respond(true)}>
           Accept
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => respond(false)}
-          className="border border-bk-border text-bk-heading font-bold text-[12px] px-4 h-[38px] disabled:opacity-50"
-        >
+        </Button>
+        <Button variant="outline" disabled={busy} onClick={() => respond(false)}>
           Decline
-        </button>
+        </Button>
       </div>
     </div>
   );

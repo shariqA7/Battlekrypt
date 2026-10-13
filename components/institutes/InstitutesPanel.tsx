@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button, ButtonLink } from "@/components/ui/Button";
+import { Panel } from "@/components/ui/Panel";
+import { Badge } from "@/components/ui/Badge";
 
 interface Linked {
   institutionId: string;
@@ -12,7 +15,7 @@ interface Linked {
 }
 
 const selectClass =
-  "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[38px]";
+  "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[44px] sm:h-[38px]";
 
 // Host-only: add co-host institutes (they approve their OWN players) or guest
 // institutes (their players may enter, the host approves them).
@@ -91,10 +94,10 @@ export default function InstitutesPanel({
   }
 
   const limitInput =
-    "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-2 h-[34px] w-[72px]";
+    "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-2 h-[40px] sm:h-[34px] w-[72px]";
 
   return (
-    <section className="mt-10 border border-bk-border p-4">
+    <Panel as="section" className="mt-10 p-4">
       <p className="font-sans font-medium text-bk-heading text-sm">Participating institutes</p>
       {!hostInstitute?.verified ? (
         <p className="font-sans text-[12px] text-bk-live mt-2">
@@ -120,13 +123,9 @@ export default function InstitutesPanel({
           placeholder="No limit"
           className={limitInput}
         />
-        <button
-          disabled={busy}
-          onClick={() => saveLimit(null, defaultInput)}
-          className="border border-bk-border text-bk-heading font-bold text-[11px] px-3 h-[34px] disabled:opacity-50"
-        >
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => saveLimit(null, defaultInput)}>
           Save
-        </button>
+        </Button>
         {hostInstituteId && usage[hostInstituteId] !== undefined && (
           <span>· {hostInstitute?.name}: {usage[hostInstituteId]} used</span>
         )}
@@ -141,10 +140,12 @@ export default function InstitutesPanel({
                 · {usage[l.institutionId] ?? 0} used
                 {(l.maxEntries ?? defaultLimit) !== null && ` of ${l.maxEntries ?? defaultLimit}`}
               </span>{" "}
-              <span className="text-bk-muted text-[11px]">
-                · {l.role === "cohost" ? "co-host" : "guest"}
-                {l.role === "cohost" && ` · ${l.status === "pending" ? "invite pending" : l.status}`}
-              </span>
+              <Badge
+                tone={l.role === "guest" ? "neutral" : l.status === "accepted" ? "teal" : l.status === "declined" ? "danger" : "amber"}
+                className="align-middle"
+              >
+                {l.role === "guest" ? "Guest" : l.status === "pending" ? "Co-host · invite pending" : `Co-host · ${l.status}`}
+              </Badge>
             </span>
             <span className="flex items-center gap-2 shrink-0">
               <input
@@ -157,20 +158,23 @@ export default function InstitutesPanel({
                 aria-label={`Entry limit for ${l.name}`}
                 className={limitInput}
               />
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 disabled={busy}
                 onClick={() => saveLimit(l.institutionId, overrides[l.institutionId] ?? "")}
-                className="border border-bk-border text-bk-heading text-[11px] px-2 h-[34px] disabled:opacity-50"
               >
                 Set
-              </button>
-            <button
-              disabled={busy}
-              onClick={() => call("DELETE", { institutionId: l.institutionId })}
-              className="text-bk-live text-[11px] underline disabled:opacity-50"
-            >
-              Remove
-            </button>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-bk-live"
+                disabled={busy}
+                onClick={() => call("DELETE", { institutionId: l.institutionId })}
+              >
+                Remove
+              </Button>
             </span>
           </li>
         ))}
@@ -193,16 +197,12 @@ export default function InstitutesPanel({
             <option value="cohost">Co-host</option>
             <option value="guest">Guest</option>
           </select>
-          <button
-            disabled={busy || !institutionId}
-            onClick={() => call("POST", { institutionId, role })}
-            className="bg-bk-gold-light text-black font-bold text-[12px] px-4 h-[38px] disabled:opacity-50"
-          >
+          <Button disabled={busy || !institutionId} onClick={() => call("POST", { institutionId, role })}>
             Add
-          </button>
+          </Button>
         </div>
       )}
       {error && <p className="text-bk-live text-[12px] mt-2">{error}</p>}
-    </section>
+    </Panel>
   );
 }

@@ -13,6 +13,7 @@ import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
 import InstitutesPanel from "@/components/institutes/InstitutesPanel";
+import { ButtonLink } from "@/components/ui/Button";
 import { listTournamentInstitutions, getInstitutionUsage } from "@/lib/services/institutions";
 
 export default async function ManageTournamentPage({
@@ -175,18 +176,12 @@ export default async function ManageTournamentPage({
         </div>
         {isInstitutionScoped && linkedInstitutes.some((l) => l.role === "cohost" && l.status === "accepted") && (
           <div className="flex gap-2 mb-3 font-sans text-[12px]">
-            <a
-              href={`/organizer/dashboard/tournaments/${id}?view=all`}
-              className={`px-3 py-1.5 border ${view === "all" ? "border-bk-gold-light text-bk-gold-light" : "border-bk-border text-bk-muted"}`}
-            >
+            <ButtonLink href={`/organizer/dashboard/tournaments/${id}?view=all`} size="sm" variant={view === "all" ? "outline" : "ghost"}>
               All requests
-            </a>
-            <a
-              href={`/organizer/dashboard/tournaments/${id}?view=mine`}
-              className={`px-3 py-1.5 border ${view === "mine" ? "border-bk-gold-light text-bk-gold-light" : "border-bk-border text-bk-muted"}`}
-            >
+            </ButtonLink>
+            <ButtonLink href={`/organizer/dashboard/tournaments/${id}?view=mine`} size="sm" variant={view === "mine" ? "outline" : "ghost"}>
               My requests
-            </a>
+            </ButtonLink>
           </div>
         )}
         <RegistrationQueue

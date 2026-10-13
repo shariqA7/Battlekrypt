@@ -628,3 +628,17 @@ export async function getInstitutionUsage(tournamentId: string): Promise<Record<
   });
   return Object.fromEntries(rows.map((r) => [r.institutionId as string, r._count._all]));
 }
+
+// Co-host invitations (tournaments + challenges) still waiting for this
+// organization's answer: shown as a count next to "My institute".
+export async function countPendingCoHostInvites(organizerId: string): Promise<number> {
+  const [tournaments, challenges] = await Promise.all([
+    prisma.tournamentInstitution.count({
+      where: { role: "cohost", status: "pending", institution: { organizerId } },
+    }),
+    prisma.challengeInstitution.count({
+      where: { role: "cohost", status: "pending", institution: { organizerId } },
+    }),
+  ]);
+  return tournaments + challenges;
+}

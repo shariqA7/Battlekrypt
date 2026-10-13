@@ -2,6 +2,9 @@ import { requireAdminPage } from "@/lib/admin-page";
 import { institutionCounts, listInstitutionsForAdmin } from "@/lib/services/institutions";
 import { Stat } from "@/components/admin/charts";
 import ReviewButtons from "./ReviewButtons";
+import { Badge } from "@/components/ui/Badge";
+import { Panel } from "@/components/ui/Panel";
+
 
 export default async function AdminInstitutionsPage() {
   await requireAdminPage();
@@ -25,12 +28,10 @@ export default async function AdminInstitutionsPage() {
 
       <div className="space-y-4">
         {institutions.map((i) => (
-          <div key={i.id} className="border border-bk-border p-4 font-sans text-[13px]">
-            <p className="text-bk-heading font-bold break-words">
-              {i.name}{" "}
-              <span className={i.verified ? "text-bk-gold-light" : "text-bk-muted"}>
-                · {i.verified ? "Verified" : "Not verified"}
-              </span>
+          <Panel key={i.id} className="p-4 font-sans text-[13px]">
+            <p className="text-bk-heading font-bold break-words flex flex-wrap items-center gap-2">
+              {i.name}
+              <Badge tone={i.verified ? "teal" : "amber"}>{i.verified ? "Verified" : "Not verified"}</Badge>
             </p>
             <p className="text-bk-muted break-words">
               {i.organizer.orgName} · {i.organizer.user.email} · {i._count.members} member
@@ -38,7 +39,7 @@ export default async function AdminInstitutionsPage() {
             </p>
             <p className="text-bk-muted text-[11px] mt-1">Registered {i.createdAt.toLocaleString()}</p>
             <ReviewButtons id={i.id} verified={i.verified} />
-          </div>
+          </Panel>
         ))}
       </div>
     </div>
