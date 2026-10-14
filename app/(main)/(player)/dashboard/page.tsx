@@ -113,10 +113,10 @@ export default async function PlayerDashboard() {
         <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">Everything you&apos;ve registered for, in one place.</p>
 
         {registrations.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
             <Stat gold value={registrations.length} label="Joined" />
             <Stat value={approved} label="Approved" />
-            <Stat value={pending} label="Pending" />
+            <Stat value={pending} label="Pending" className="col-span-2 sm:col-span-1" />
           </div>
         )}
 

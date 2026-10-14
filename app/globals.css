@@ -92,6 +92,7 @@
 
   --color-bk-border: var(--bk-border);
   --color-bk-border-nav: var(--bk-border-nav);
+  --color-bk-border-soft: var(--bk-border-soft);
 
   --color-bk-heading: var(--bk-text-heading);
   --color-bk-body: var(--bk-text-body);

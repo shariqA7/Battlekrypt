@@ -67,12 +67,13 @@ export default async function ClubDashboardPage() {
       </div>
 
       {approved && roster && (
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
           <Stat gold value={roster.teams.length} label="Teams" />
           <Stat value={roster.soloPlayers.length} label="Solo players" />
           <Stat
             value={roster.teams.reduce((n, t) => n + t.members.length, 0) + roster.soloPlayers.length}
             label="Players"
+            className="col-span-2 sm:col-span-1"
           />
         </div>
       )}

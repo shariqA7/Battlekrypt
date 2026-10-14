@@ -105,13 +105,13 @@ export default async function ManageTournamentPage({
         </div>
         <p className="font-sans text-bk-body text-sm mb-5 pl-[19px]">Manage registrations and match rooms</p>
 
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
           <Stat gold value={registrations.length} label="Registrations" />
           <Stat
             value={capacity ? `${capacity.filled}/${capacity.maxTeams}` : "—"}
             label="Slots filled"
           />
-          <Stat value={registrations.filter((r) => r.status === "pending").length} label="Pending" />
+          <Stat value={registrations.filter((r) => r.status === "pending").length} label="Pending" className="col-span-2 sm:col-span-1" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mb-8">
