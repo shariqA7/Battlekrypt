@@ -7,7 +7,7 @@ import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
-import PrizeSplitEditor, { prizeRowsToBody, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
+import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 import { buttonClass } from "@/components/ui/Button";
@@ -114,6 +114,8 @@ export default function NewTournamentPage() {
       setPrizePoolAmount(t.prizePool.amount);
       setPrizePoolCurrency(t.prizePool.currency);
     }
+    // Also replaces (or clears) any split typed before picking the template.
+    setPrizeRows(prizeRowsFromTiers(t.prizeTiers));
     if (t.audienceScope === "institution") {
       setAudienceScope("institution");
       setFreshProof(!!t.requireFreshInstitutionProof);

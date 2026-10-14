@@ -3,10 +3,11 @@
 //
 // A template holds everything EXCEPT instance-specific fields (date, room
 // credentials) — game, type, mode, capacity, entry fee structure, currency,
-// stage NAMES, its rule set, custom fields, and the prize pool amount.
+// stage NAMES, its rule set, custom fields, the prize pool amount and the
+// prize split by position.
 //
 // Snapshot rule (spec §5, same as SuggestedRule): applying a template COPIES
-// its rules and stage names onto the new tournament. Editing or deleting the
+// its rules, stage names and prize split onto the new tournament. Editing or deleting the
 // template afterward never changes a tournament already created from it.
 
 import { prisma } from "@/lib/prisma";
@@ -31,6 +32,7 @@ const MAX_TEMPLATES_PER_ORGANIZER = 100;
 const templateInclude = {
   rules: { orderBy: { position: "asc" as const } },
   stages: { orderBy: { order: "asc" as const } },
+  prizeTiers: { orderBy: { positionFrom: "asc" as const } },
 } as const;
 
 export async function listTemplates(organizerId: string) {
@@ -80,6 +82,7 @@ export async function createTemplateFromTournament(
     include: {
       rules: { orderBy: { position: "asc" } },
       stages: { orderBy: { order: "asc" } },
+      prizeTiers: { orderBy: { positionFrom: "asc" } },
     },
   });
   if (!tournament) return fail("not_found");
@@ -118,6 +121,14 @@ export async function createTemplateFromTournament(
       },
       stages: {
         create: tournament.stages.map((s, i) => ({ name: s.name, order: i })),
+      },
+      // The prize split is part of the template, copied in like the rules.
+      prizeTiers: {
+        create: tournament.prizeTiers.map((p) => ({
+          positionFrom: p.positionFrom,
+          positionTo: p.positionTo,
+          amount: p.amount,
+        })),
       },
     },
     include: templateInclude,
@@ -180,6 +191,8 @@ export interface TemplatePrefill {
     suggestedRuleId: string | null;
   }[];
   stageNames: string[];
+  // Prize split as {positionFrom, positionTo, amount} — empty when the template has none.
+  prizeTiers: { positionFrom: number; positionTo: number; amount: number }[];
 }
 
 export async function getTemplatePrefill(
@@ -225,6 +238,11 @@ export async function getTemplatePrefill(
       customFields: t.customFields,
       rules,
       stageNames: t.stages.map((s) => s.name),
+      // Only meaningful with a prize pool; without one there is nothing to split.
+      prizeTiers:
+        t.prizePoolAmount !== null
+          ? t.prizeTiers.map((p) => ({ positionFrom: p.positionFrom, positionTo: p.positionTo, amount: Number(p.amount) }))
+          : [],
     },
   };
 }

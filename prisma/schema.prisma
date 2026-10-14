@@ -273,6 +273,20 @@ model PrizeTier {
   @@index([tournamentId])
 }
 
+// A prize split as saved in a template — same shape as PrizeTier. Copied onto
+// a new tournament when the template is applied (never linked).
+model TemplatePrizeTier {
+  id         String             @id @default(uuid())
+  templateId String
+  template   TournamentTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  positionFrom Int
+  positionTo   Int // same as positionFrom for a single place
+  amount       Decimal @db.Decimal(14, 2)
+
+  @@index([templateId])
+}
+
 model OrganizerProfile {
   id     String @id @default(uuid())
   userId String @unique
@@ -551,8 +565,9 @@ model TournamentTemplate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rules  TemplateRule[]
-  stages TemplateStage[]
+  rules      TemplateRule[]
+  stages     TemplateStage[]
+  prizeTiers TemplatePrizeTier[]
 }
 
 // A rule as saved in a template — same shape as TournamentRule (spec §5's
