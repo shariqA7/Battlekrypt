@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { notifyInviteSent, notifyInviteAnswered } from "@/lib/services/institution-notifications";
 
 type Result<T> = { data: T } | { error: string };
@@ -366,32 +367,71 @@ export async function checkInstitutionGate(
     };
   }
 
-  // The host caps how many entries (solo players or teams) each institute may
-  // send: a per-institute override, else the tournament default.
-  const link = await prisma.tournamentInstitution.findUnique({
-    where: { tournamentId_institutionId: { tournamentId, institutionId } },
-    select: { maxEntries: true },
-  });
-  const limit = link?.maxEntries ?? t.maxEntriesPerInstitute ?? null;
-  if (limit !== null) {
-    const used = await prisma.registration.count({
-      where: {
-        tournamentId,
-        institutionId,
-        status: { in: ["pending", "approved"] },
-        ...(opts.excludeRegistrationId ? { id: { not: opts.excludeRegistrationId } } : {}),
-      },
-    });
-    if (used >= limit) {
-      return {
-        error: "institution_quota_full",
-        message: `Your institute has used all ${limit} of its ${limit === 1 ? "entry" : "entries"} in this tournament.`,
-      };
-    }
-  }
+  // Early, friendly answer. This check alone is NOT enough when several
+  // players enter at once: the entry itself is created through
+  // reserveInstitutionSlot, which re-checks under a lock.
+  const full = await institutionQuotaError(prisma, tournamentId, institutionId, opts.excludeRegistrationId);
+  if (full) return full;
 
   const routedInstitutionId = audience.cohostIds.has(institutionId) ? institutionId : null;
   return { ok: true, institutionId, routedInstitutionId };
+}
+
+type Db = Prisma.TransactionClient | typeof prisma;
+type QuotaFull = { error: "institution_quota_full"; message: string };
+
+// The host caps how many entries (solo players or teams) each institute may
+// send: a per-institute override, else the tournament default. Null = no cap.
+async function institutionLimit(db: Db, tournamentId: string, institutionId: string): Promise<number | null> {
+  const [link, t] = await Promise.all([
+    db.tournamentInstitution.findUnique({
+      where: { tournamentId_institutionId: { tournamentId, institutionId } },
+      select: { maxEntries: true },
+    }),
+    db.tournament.findUnique({ where: { id: tournamentId }, select: { maxEntriesPerInstitute: true } }),
+  ]);
+  return link?.maxEntries ?? t?.maxEntriesPerInstitute ?? null;
+}
+
+async function institutionQuotaError(
+  db: Db,
+  tournamentId: string,
+  institutionId: string,
+  excludeRegistrationId?: string
+): Promise<QuotaFull | null> {
+  const limit = await institutionLimit(db, tournamentId, institutionId);
+  if (limit === null) return null;
+  const used = await db.registration.count({
+    where: {
+      tournamentId,
+      institutionId,
+      status: { in: ["pending", "approved"] },
+      ...(excludeRegistrationId ? { id: { not: excludeRegistrationId } } : {}),
+    },
+  });
+  if (used < limit) return null;
+  return {
+    error: "institution_quota_full",
+    message: `Your institute has used all ${limit} of its ${limit === 1 ? "entry" : "entries"} in this tournament.`,
+  };
+}
+
+// Call this FIRST inside the transaction that creates a registration. Checking
+// the limit and then inserting are two steps, so players entering at the same
+// moment could all pass the check before any of them is saved. This takes a
+// lock held until the transaction ends, one per (tournament, institute), so
+// those entries line up one behind the other, and each re-counts after the
+// previous one has committed. Other institutes, and tournaments with no limit,
+// are never held up.
+export async function reserveInstitutionSlot(
+  tx: Prisma.TransactionClient,
+  tournamentId: string,
+  institutionId: string | null
+): Promise<QuotaFull | null> {
+  if (!institutionId) return null;
+  if ((await institutionLimit(tx, tournamentId, institutionId)) === null) return null;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${tournamentId}:${institutionId}`}, 0))`;
+  return institutionQuotaError(tx, tournamentId, institutionId);
 }
 
 // A roster edit after registering must keep the team on its one institute.

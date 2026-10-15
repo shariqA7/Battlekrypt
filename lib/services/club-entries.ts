@@ -18,7 +18,11 @@
 import { prisma } from "@/lib/prisma";
 import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
 import { checkTierEntryGate } from "@/lib/services/competitive-tiers";
-import { checkInstitutionGate, checkTeamRosterInstitution } from "@/lib/services/institutions";
+import {
+  checkInstitutionGate,
+  checkTeamRosterInstitution,
+  reserveInstitutionSlot,
+} from "@/lib/services/institutions";
 
 export const CLUB_ENTRY_ERRORS = {
   validation_error: { status: 400, message: "Invalid input." },
@@ -425,6 +429,9 @@ export async function manualAddClubTeamEntry(
   if ("error" in instGate) return fail(instGate.error, instGate.message);
 
   const registration = await prisma.$transaction(async (tx) => {
+    // Re-check the institute's entry limit under a lock (see reserveInstitutionSlot).
+    const full = await reserveInstitutionSlot(tx, tournamentId, instGate.institutionId);
+    if (full) return full;
     const teamEntry = await tx.teamEntry.create({
       data: {
         tournamentId,
@@ -448,6 +455,7 @@ export async function manualAddClubTeamEntry(
     });
   });
 
+  if ("error" in registration) return fail(registration.error, registration.message);
   await bumpRegistrationCount(tournamentId);
   return { data: registration };
 }
@@ -481,18 +489,23 @@ export async function manualAddClubSoloEntry(
   });
   if ("error" in instGate) return fail(instGate.error, instGate.message);
 
-  const registration = await prisma.registration.create({
-    data: {
-      tournamentId,
-      playerId,
-      status: "approved",
-      approvedAt: new Date(),
-      addedBy: "organizer",
-      paymentStatus,
-      routedInstitutionId: instGate.routedInstitutionId,
-      institutionId: instGate.institutionId,
-    },
+  const registration = await prisma.$transaction(async (tx) => {
+    const full = await reserveInstitutionSlot(tx, tournamentId, instGate.institutionId);
+    if (full) return full;
+    return tx.registration.create({
+      data: {
+        tournamentId,
+        playerId,
+        status: "approved",
+        approvedAt: new Date(),
+        addedBy: "organizer",
+        paymentStatus,
+        routedInstitutionId: instGate.routedInstitutionId,
+        institutionId: instGate.institutionId,
+      },
+    });
   });
+  if ("error" in registration) return fail(registration.error, registration.message);
 
   await bumpRegistrationCount(tournamentId);
   return { data: registration };
