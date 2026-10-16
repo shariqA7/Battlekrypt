@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
+import { buttonClass } from "@/components/ui/Button";
 
 type ClubCandidate = ClubTeamCandidate | ClubSoloCandidate;
 
@@ -393,12 +394,12 @@ export default function RegistrationQueue({
         return (
           <div
             key={r.id}
-            className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between"
+            className="bg-bk-surface border border-bk-border p-3 flex flex-wrap items-center justify-between gap-3"
           >
-            <div>
-              <p className="font-sans text-bk-heading text-sm">{name}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`font-sans text-[10px] uppercase tracking-[0.5px] px-1.5 py-0.5 ${STATUS_BADGE[r.status]}`}>
+            <div className="min-w-0">
+              <p className="font-sans font-bold text-bk-heading text-sm break-words">{name}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className={`font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 ${STATUS_BADGE[r.status]}`}>
                   {r.status}
                 </span>
                 {r.paymentProofUrl && (
@@ -436,7 +437,7 @@ export default function RegistrationQueue({
                     <button
                       type="button"
                       onClick={() => setCheckIn(r.id, "checked_in")}
-                      className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
+                      className={buttonClass("primary", "sm", "")}
                     >
                       Check in
                     </button>
@@ -445,7 +446,7 @@ export default function RegistrationQueue({
                     <button
                       type="button"
                       onClick={() => setCheckIn(r.id, "no_show")}
-                      className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 h-[32px]"
+                      className="inline-flex items-center justify-center h-[40px] sm:h-[34px] px-3 font-sans font-bold text-[11px] uppercase tracking-[1.2px] border border-bk-live/60 text-bk-live hover:bg-bk-live/10"
                     >
                       No-show
                     </button>
@@ -466,20 +467,20 @@ export default function RegistrationQueue({
               <div className="flex gap-2">
                 <button
                   onClick={() => handleAction(r.id, "approve")}
-                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  className={buttonClass("primary", "sm", "")}
                 >
                   Approve
                 </button>
                 <button
                   onClick={() => handleAction(r.id, "reject")}
-                  className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  className="inline-flex items-center justify-center h-[40px] sm:h-[34px] px-3 font-sans font-bold text-[11px] uppercase tracking-[1.2px] border border-bk-live/60 text-bk-live hover:bg-bk-live/10"
                 >
                   Reject
                 </button>
               </div>
             )}
             {r.status === "approved" && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <ResultInput
                   registrationId={r.id}
                   initialPlacement={r.placement}
@@ -487,7 +488,7 @@ export default function RegistrationQueue({
                 />
                 <button
                   onClick={() => openDisqualify(r.id)}
-                  className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                  className="inline-flex items-center justify-center h-[40px] sm:h-[34px] px-3 font-sans font-bold text-[11px] uppercase tracking-[1.2px] border border-bk-live/60 text-bk-live hover:bg-bk-live/10"
                 >
                   Disqualify
                 </button>

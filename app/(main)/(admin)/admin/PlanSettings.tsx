@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 // Payment instructions shown on the plans page + the master ads switch.
 export default function PlanSettings({
@@ -52,7 +53,7 @@ export default function PlanSettings({
           type="button"
           onClick={save}
           disabled={saving}
-          className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50"
+          className={buttonClass("primary", "sm", "")}
         >
           {saving ? "Saving..." : "Save"}
         </button>

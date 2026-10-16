@@ -391,7 +391,7 @@ Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_inst
 
 ### Supabase storage for ID photos
 
-Only needed if organizers use the **fresh ID photo** option. The photos live in a PRIVATE bucket, and only the host organizer and, for their own players, an accepted co-host can read them. Run this once in the SQL editor (after the migrations above, because it reads the `TournamentInstitution` table). It is safe to run again.
+Only needed if organizers use the **fresh ID photo** option. The photos live in a PRIVATE bucket, and only the host organizer, an accepted co-host (for its own players) and admins can read them. Admins open them from **Admin → ID photos**, which writes an audit-log row before every view. Run this once in the SQL editor (after the migrations above, because it reads the `TournamentInstitution` table). It is safe to run again.
 
 **Why functions?** A storage policy runs as the signed-in user, and that role usually can't read your Prisma tables directly, so a policy that queries `Registration` or `User` inline silently matches nothing and every photo link fails. Each policy below calls a small `security definer` function instead; it runs with the owner's rights, has a fixed empty `search_path`, and is only executable by signed-in users.
 
@@ -461,9 +461,27 @@ drop policy if exists "co-host institutes read proofs of their players" on stora
 create policy "co-host institutes read proofs of their players"
 on storage.objects for select to authenticated
 using (bucket_id = 'institution-proofs' and public.bk_cohosts_proof(name));
+-- 5. admins can open a photo (the app only offers this on Admin -> ID photos, and logs each view)
+create or replace function public.bk_is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (select 1 from public."User" u where u.id = auth.uid()::text and u."isAdmin");
+$$;
+revoke all on function public.bk_is_admin() from public, anon;
+grant execute on function public.bk_is_admin() to authenticated;
+
+drop policy if exists "admins read institution proofs" on storage.objects;
+create policy "admins read institution proofs"
+on storage.objects for select to authenticated
+using (bucket_id = 'institution-proofs' and public.bk_is_admin());
+```
 ```
 
-Policies on the same table combine with OR, so the host and co-host policies together give each person access through whichever one matches. Challenges don't use ID photos, so they need no storage setup.
+Policies on the same table combine with OR, so the host, co-host and admin policies together give each person access through whichever one matches. Challenges don't use ID photos, so they need no storage setup.
 
 **Check it:** register as a player from a co-host institute for a tournament that asks for a fresh ID photo, then open the photo link as the host and as the co-host. Both should work; a different organizer should get an access error.
 

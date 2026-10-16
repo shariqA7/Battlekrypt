@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 export interface AdminClaim {
   id: string;
@@ -164,16 +165,16 @@ export default function NameClaims({
                   className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2 mb-2"
                 />
                 <div className="flex gap-2">
-                  <button disabled={busy} onClick={() => decide(c.id, "uphold")} className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 disabled:opacity-50">
+                  <button disabled={busy} onClick={() => decide(c.id, "uphold")} className={buttonClass("danger", "sm", "")}>
                     Disband club &amp; ban owner
                   </button>
-                  <button disabled={busy} onClick={() => decide(c.id, "dismiss")} className="border border-bk-border text-bk-heading font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5 disabled:opacity-50">
+                  <button disabled={busy} onClick={() => decide(c.id, "dismiss")} className="border border-bk-border text-bk-heading font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5 disabled:opacity-50">
                     Dismiss claim
                   </button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => { setOpen(c.id); setError(null); }} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase tracking-[0.5px] px-3 py-1.5">
+              <button onClick={() => { setOpen(c.id); setError(null); }} className={buttonClass("primary", "sm", "mt-3")}>
                 Review
               </button>
             )}

@@ -1,4 +1,5 @@
 import { requireAdminPage } from "@/lib/admin-page";
+import { SectionHeading } from "@/components/ui/Panel";
 import {
   listPendingOrganizers,
   listPendingGameRequests,
@@ -66,8 +67,8 @@ export default async function AdminApprovalsPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Approvals</h1>
-        <p className="font-sans text-[13px] text-bk-body">Everything waiting for an admin decision.</p>
+        <SectionHeading>Approvals</SectionHeading>
+        <p className="font-sans text-[13px] text-bk-body pl-[19px]">Everything waiting for an admin decision.</p>
       </div>
 
       <OrgApplications

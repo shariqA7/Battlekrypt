@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LAUNCH_CURRENCIES } from "@/lib/money";
+import { buttonClass } from "@/components/ui/Button";
 
 interface PendingOrganizer {
   id: string;
@@ -130,13 +131,13 @@ export default function AdminQueues({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOrganizer(o.id, "approve")}
-                    className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className={buttonClass("primary", "sm", "")}
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleOrganizer(o.id, "reject")}
-                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5"
                   >
                     Reject
                   </button>
@@ -179,13 +180,13 @@ export default function AdminQueues({
                     onClick={() =>
                       approvingClub === c.id ? handleClub(c.id, "approve") : setApprovingClub(c.id)
                     }
-                    className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className={buttonClass("primary", "sm", "")}
                   >
                     {approvingClub === c.id ? "Confirm" : "Approve"}
                   </button>
                   <button
                     onClick={() => handleClub(c.id, "reject")}
-                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5"
                   >
                     Reject
                   </button>
@@ -258,13 +259,13 @@ export default function AdminQueues({
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleGameRequest(g.id, "approve")}
-                    className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className={buttonClass("primary", "sm", "")}
                   >
                     Approve
                   </button>
                   <button
                     onClick={() => handleGameRequest(g.id, "reject")}
-                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5"
+                    className="border border-bk-live text-bk-live font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5"
                   >
                     Reject
                   </button>
@@ -305,7 +306,7 @@ export default function AdminQueues({
                       </span>
                       <button
                         onClick={() => handleResolveFlag(t.id, f.id)}
-                        className="border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 py-1 whitespace-nowrap"
+                        className="border border-bk-border text-bk-body font-sans text-[10px] uppercase tracking-[0.5px] px-2 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center whitespace-nowrap"
                       >
                         Resolve
                       </button>

@@ -1,6 +1,7 @@
 import { requireAdminPage } from "@/lib/admin-page";
 import { listOrganizations } from "@/lib/services/admin-analytics";
 import { Stat } from "@/components/admin/charts";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminOrganizationsPage() {
   await requireAdminPage();
@@ -9,8 +10,8 @@ export default async function AdminOrganizationsPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Organizations</h1>
-      <div className="grid grid-cols-3 gap-3">
+      <SectionHeading>Organizations</SectionHeading>
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3">
         <Stat label="Approved" value={organizers.length} />
         <Stat label="Pending review" value={n("pending")} />
         <Stat label="Rejected (fixing)" value={n("rejected")} />

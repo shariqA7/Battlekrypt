@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 // Admin-editable text shown on the club registration form: how much the
 // registration fee is and where to send it.
@@ -42,7 +43,7 @@ export default function ClubFeeSettings({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50"
+          className={buttonClass("primary", "sm", "")}
         >
           {saving ? "Saving..." : "Save"}
         </button>

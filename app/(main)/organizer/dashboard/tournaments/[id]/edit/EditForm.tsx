@@ -8,6 +8,7 @@ import CountryPicker from "@/components/tournaments/CountryPicker";
 import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
+import { buttonClass } from "@/components/ui/Button";
 
 interface TournamentForEdit {
   id: string;
@@ -221,7 +222,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
+        className={buttonClass("primary", "lg", "w-full mt-6")}
       >
         {submitting ? "Saving..." : "Save changes"}
       </button>

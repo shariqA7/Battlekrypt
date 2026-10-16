@@ -51,7 +51,7 @@ export default function PayoutButton({
       <button
         onClick={handleConfirm}
         disabled={submitting}
-        className="text-bk-gold-light font-sans text-[11px] uppercase tracking-[0.5px] underline disabled:opacity-50"
+        className="inline-flex items-center justify-center h-[40px] sm:h-[34px] px-3 font-sans font-bold text-[11px] uppercase tracking-[1.2px] border border-bk-gold-to text-bk-gold-light hover:bg-bk-gold-from/10 disabled:opacity-50"
       >
         {submitting ? "Confirming..." : "Confirm prize payout sent"}
       </button>

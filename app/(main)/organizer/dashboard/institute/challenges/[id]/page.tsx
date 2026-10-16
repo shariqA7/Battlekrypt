@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { listApplicationsForInstitute } from "@/lib/services/challenge-institutions";
 import ChallengeCoHostQueue from "./ChallengeCoHostQueue";
+import { SectionHeading } from "@/components/ui/Panel";
 
 // A co-host institute sees ONLY the applicants of its own institute.
 export default async function ChallengeCoHostPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,9 +27,9 @@ export default async function ChallengeCoHostPage({ params }: { params: Promise<
   if ("error" in result) redirect("/organizer/dashboard/institute");
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">{challenge.title}</h1>
-      <p className="font-sans text-bk-body text-sm mb-6">
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+      <SectionHeading className="mb-3 break-words">{challenge.title}</SectionHeading>
+      <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
         Co-hosting for {challenge.posterName}. Approve or reject applicants from your own institute;
         the poster can only pick applicants an institute has approved.
       </p>

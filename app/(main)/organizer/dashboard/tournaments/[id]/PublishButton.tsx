@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 // Mirrors ALLOWED_STATUS_TRANSITIONS in lib/services/tournaments.ts — kept
 // here only to populate the dropdown with sensible options; the server is
@@ -80,11 +81,11 @@ export default function PublishButton({
       );
     }
     return (
-      <div className="text-right">
+      <div className="sm:text-right">
         <button
           onClick={handlePublish}
           disabled={submitting}
-          className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 py-2 disabled:opacity-50"
+          className={buttonClass("primary", "sm", "")}
         >
           {submitting ? "Publishing..." : "Publish"}
         </button>
@@ -104,7 +105,7 @@ export default function PublishButton({
   const options = NEXT_STATUS_OPTIONS[status] ?? [];
 
   return (
-    <div className="text-right">
+    <div className="sm:text-right">
       <div className="flex items-center gap-2">
         <span className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light bg-bk-gold-from/10 px-2.5 py-1.5">
           {status.replace("_", " ")}
@@ -126,7 +127,7 @@ export default function PublishButton({
             <button
               onClick={handleStatusChange}
               disabled={!nextStatus || submitting}
-              className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-3 py-1.5 disabled:opacity-50"
+              className={buttonClass("primary", "sm", "")}
             >
               Go
             </button>

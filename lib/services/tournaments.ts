@@ -12,7 +12,11 @@ import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
-import { checkInstitutionGate, getRegistrationActor } from "@/lib/services/institutions";
+import {
+  checkInstitutionGate,
+  getRegistrationActor,
+  reserveInstitutionSlot,
+} from "@/lib/services/institutions";
 import {
   notifyNewQueueItem,
   notifyAwaitingPayment,
@@ -472,22 +476,50 @@ export async function registerForTournament(input: RegisterInput) {
 
   // Squad/duo mode: create a TeamEntry + members. Solo: register the player directly.
   if (tournament.mode !== "solo" && input.teamMemberPlayerIds?.length) {
-    const teamEntry = await prisma.teamEntry.create({
-      data: {
-        tournamentId: input.tournamentId,
-        name: input.teamName ?? "Unnamed team",
-        members: {
-          create: [input.playerId, ...input.teamMemberPlayerIds].map((playerId) => ({
-            playerId,
-          })),
+    // One transaction: the entry limit is re-checked under a per-institute lock
+    // (see reserveInstitutionSlot) and the team + registration are saved together.
+    const created = await prisma.$transaction(async (tx) => {
+      const full = await reserveInstitutionSlot(tx, input.tournamentId, institutionGate.institutionId);
+      if (full) return full;
+      const teamEntry = await tx.teamEntry.create({
+        data: {
+          tournamentId: input.tournamentId,
+          name: input.teamName ?? "Unnamed team",
+          members: {
+            create: [input.playerId, ...input.teamMemberPlayerIds!].map((playerId) => ({
+              playerId,
+            })),
+          },
         },
-      },
+      });
+      return tx.registration.create({
+        data: {
+          tournamentId: input.tournamentId,
+          teamEntryId: teamEntry.id,
+          paymentStatus: paymentStatus ?? "unpaid",
+          paymentProofUrl: input.paymentProofUrl,
+          institutionProofPath: input.institutionProofPath,
+          routedInstitutionId: institutionGate.routedInstitutionId,
+          institutionId: institutionGate.institutionId,
+          customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
+        },
+      });
     });
-
-    const registration = await prisma.registration.create({
+    if ("error" in created) return { error: created.error, message: created.message };
+    const registration = created;
+    await bumpRegistrationCount(input.tournamentId);
+    if (institutionGate.routedInstitutionId) {
+      await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
+    }
+    return { data: registration };
+  }
+  const created = await prisma.$transaction(async (tx) => {
+    const full = await reserveInstitutionSlot(tx, input.tournamentId, institutionGate.institutionId);
+    if (full) return full;
+    return tx.registration.create({
       data: {
         tournamentId: input.tournamentId,
-        teamEntryId: teamEntry.id,
+        playerId: input.playerId,
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
         institutionProofPath: input.institutionProofPath,
@@ -496,24 +528,9 @@ export async function registerForTournament(input: RegisterInput) {
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
       },
     });
-    await bumpRegistrationCount(input.tournamentId);
-    if (institutionGate.routedInstitutionId) {
-      await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
-    }
-    return { data: registration };
-  }
-  const registration = await prisma.registration.create({
-    data: {
-      tournamentId: input.tournamentId,
-      playerId: input.playerId,
-      paymentStatus: paymentStatus ?? "unpaid",
-      paymentProofUrl: input.paymentProofUrl,
-      institutionProofPath: input.institutionProofPath,
-      routedInstitutionId: institutionGate.routedInstitutionId,
-      institutionId: institutionGate.institutionId,
-      customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
-    },
   });
+  if ("error" in created) return { error: created.error, message: created.message };
+  const registration = created;
   await bumpRegistrationCount(input.tournamentId);
 
   if (institutionGate.routedInstitutionId) {
@@ -1558,18 +1575,24 @@ export async function manualAddRegistration(
 
   // Organizer-added registrations skip the pending queue — the organizer
   // is directly vouching for this player, so it's approved immediately.
-  const registration = await prisma.registration.create({
-    data: {
-      tournamentId,
-      playerId: playerProfile.id,
-      status: "approved",
-      approvedAt: new Date(),
-      addedBy: "organizer",
-      paymentStatus,
-      routedInstitutionId: institutionGate.routedInstitutionId,
-      institutionId: institutionGate.institutionId,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const full = await reserveInstitutionSlot(tx, tournamentId, institutionGate.institutionId);
+    if (full) return full;
+    return tx.registration.create({
+      data: {
+        tournamentId,
+        playerId: playerProfile.id,
+        status: "approved",
+        approvedAt: new Date(),
+        addedBy: "organizer",
+        paymentStatus,
+        routedInstitutionId: institutionGate.routedInstitutionId,
+        institutionId: institutionGate.institutionId,
+      },
+    });
   });
+  if ("error" in created) return { error: created.error, message: created.message };
+  const registration = created;
 
   await bumpRegistrationCount(tournamentId);
   return { data: registration };

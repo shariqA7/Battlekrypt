@@ -2,6 +2,7 @@ import { requireAdminPage } from "@/lib/admin-page";
 import { listCurrencySettings } from "@/lib/services/currencies";
 import { currencyName } from "@/lib/money";
 import CurrencyToggle from "./CurrencyToggle";
+import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminCurrenciesPage() {
   await requireAdminPage();
@@ -10,8 +11,8 @@ export default async function AdminCurrenciesPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Currencies</h1>
-      <p className="font-sans text-[13px] text-bk-muted">
+      <SectionHeading>Currencies</SectionHeading>
+      <p className="font-sans text-[13px] text-bk-muted pl-[19px]">
         Choose which currencies organizers can use for entry fees and prize pools ({on} on).
         Tournaments that already use a currency keep it if you switch it off. Prize-pool tier
         floors are always checked in USD, so USD stays on.

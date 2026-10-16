@@ -5,6 +5,7 @@
 // date and room credentials) as a new, reusable template. Works at any
 // status, including after the tournament has already run.
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 export default function SaveAsTemplateButton({ tournamentId }: { tournamentId: string }) {
   const [open, setOpen] = useState(false);
@@ -38,7 +39,7 @@ export default function SaveAsTemplateButton({ tournamentId }: { tournamentId: s
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="font-sans text-bk-gold-light text-[11px] uppercase tracking-[0.5px] underline"
+        className="inline-flex items-center justify-center h-[40px] sm:h-[34px] px-3 font-sans font-bold text-[11px] uppercase tracking-[1.2px] border border-bk-gold-to text-bk-gold-light hover:bg-bk-gold-from/10"
       >
         Save as template
       </button>
@@ -46,19 +47,19 @@ export default function SaveAsTemplateButton({ tournamentId }: { tournamentId: s
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-2">
+    <form onSubmit={submit} className="flex flex-wrap items-center gap-2">
       <input
         required
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Template name"
-        className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[30px]"
+        className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[34px]"
       />
       <button
         type="submit"
         disabled={busy}
-        className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1.5 disabled:opacity-50"
+        className={buttonClass("primary", "sm", "")}
       >
         Save
       </button>

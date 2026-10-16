@@ -7,9 +7,11 @@ import FileUpload from "@/components/ui/FileUpload";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
-import PrizeSplitEditor, { prizeRowsToBody, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
+import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
+import { buttonClass } from "@/components/ui/Button";
+import { Panel, SectionHeading } from "@/components/ui/Panel";
 
 interface Game {
   id: string;
@@ -20,6 +22,14 @@ interface TemplateSummary {
   id: string;
   name: string;
   game: { name: string };
+}
+
+function FormGroup({ title, first = false }: { title: string; first?: boolean }) {
+  return (
+    <h2 className={`${first ? "mt-0" : "mt-10"} mb-1 border-l-[3px] border-bk-gold-from pl-3 font-sans font-bold text-[16px] text-bk-heading`}>
+      {title}
+    </h2>
+  );
 }
 
 export default function NewTournamentPage() {
@@ -104,6 +114,8 @@ export default function NewTournamentPage() {
       setPrizePoolAmount(t.prizePool.amount);
       setPrizePoolCurrency(t.prizePool.currency);
     }
+    // Also replaces (or clears) any split typed before picking the template.
+    setPrizeRows(prizeRowsFromTiers(t.prizeTiers));
     if (t.audienceScope === "institution") {
       setAudienceScope("institution");
       setFreshProof(!!t.requireFreshInstitutionProof);
@@ -202,11 +214,9 @@ export default function NewTournamentPage() {
 
   return (
     <>
-      <main className="flex-1 px-6 py-10 max-w-lg mx-auto w-full">
-        <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
-          New tournament
-        </h1>
-        <p className="font-sans text-bk-body text-sm mb-6">
+      <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+        <SectionHeading className="mb-3">New tournament</SectionHeading>
+        <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
           Creates a draft — you can publish it once it&apos;s ready.
         </p>
 
@@ -237,7 +247,10 @@ export default function NewTournamentPage() {
           </div>
         )}
 
+        <Panel className="p-5 sm:p-6">
         <form onSubmit={handleSubmit}>
+          <FormGroup title="Basics" first />
+
           <label className={labelClass}>Game</label>
           <select
             required
@@ -284,6 +297,8 @@ export default function NewTournamentPage() {
             className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
             placeholder="What players should know before joining"
           />
+
+          <FormGroup title="Format &amp; capacity" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -362,6 +377,8 @@ export default function NewTournamentPage() {
             </div>
           </div>
 
+          <FormGroup title="Registration" />
+
           <label className={labelClass}>Custom registration fields (optional)</label>
           <div className="flex flex-col gap-2">
             {customFields.map((field, i) => (
@@ -412,6 +429,8 @@ export default function NewTournamentPage() {
               + Add field
             </button>
           </div>
+
+          <FormGroup title="Entry &amp; prizes" />
 
           <label className={labelClass}>Entry</label>
           <div className="flex gap-2">
@@ -478,6 +497,8 @@ export default function NewTournamentPage() {
             <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
           </div>
 
+          <FormGroup title="Venue &amp; audience" />
+
           <CountryPicker value={country} onChange={setCountry} defaultLabel="My organization's country" />
 
           <VenuePicker value={venue} onChange={setVenue} />
@@ -491,7 +512,7 @@ export default function NewTournamentPage() {
             }}
           />
 
-          <label className={labelClass}>Rules</label>
+          <FormGroup title="Rules" />
           <RulesEditor gameId={gameId} rules={rules} onChange={setRules} />
 
           {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
@@ -499,11 +520,12 @@ export default function NewTournamentPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 mt-6 disabled:opacity-50"
+            className={buttonClass("primary", "lg", "w-full mt-6")}
           >
             {submitting ? "Creating..." : "Create draft"}
           </button>
         </form>
+        </Panel>
       </main>
     </>
   );

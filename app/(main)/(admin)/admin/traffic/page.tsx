@@ -3,6 +3,7 @@ import { requireAdminPage } from "@/lib/admin-page";
 import { getTraffic } from "@/lib/services/admin-analytics";
 import { countryName } from "@/lib/geo";
 import { ColumnChart, BarList, Stat, Panel } from "@/components/admin/charts";
+import { SectionHeading } from "@/components/ui/Panel";
 
 const RANGES = [7, 30, 90];
 
@@ -20,8 +21,8 @@ export default async function AdminTrafficPage({
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Traffic</h1>
-          <p className="font-sans text-[13px] text-bk-body">Who visits, from where and on what. One row per session.</p>
+          <SectionHeading>Traffic</SectionHeading>
+          <p className="font-sans text-[13px] text-bk-body pl-[19px]">Who visits, from where and on what. One row per session.</p>
         </div>
         <div className="flex gap-3 font-sans text-[12px]">
           {RANGES.map((r) => (
@@ -32,7 +33,7 @@ export default async function AdminTrafficPage({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3">
         <Stat label="Sessions" value={t.total} />
         <Stat label="Signed in" value={t.signedIn} hint={`${t.total ? Math.round((t.signedIn / t.total) * 100) : 0}% of sessions`} />
         <Stat label="Unique IPs" value={t.uniqueIps} />

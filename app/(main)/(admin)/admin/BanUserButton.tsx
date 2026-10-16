@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 const DURATIONS = [
   { label: "1 day", value: "1" },
@@ -57,7 +58,7 @@ export default function BanUserButton({ userId, name }: { userId: string; name: 
       <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="Reason (the user will see this)" className="bg-bk-bg border border-bk-border text-bk-heading text-[12px] px-2 py-1" />
       {error && <p className="font-sans text-[11px] text-bk-live">{error}</p>}
       <div className="flex gap-2">
-        <button disabled={busy} onClick={submit} className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase px-2.5 py-1 disabled:opacity-50">Ban</button>
+        <button disabled={busy} onClick={submit} className={buttonClass("danger", "sm", "")}>Ban</button>
         <button onClick={() => setOpen(false)} className="font-sans text-[12px] text-bk-muted underline">Cancel</button>
       </div>
     </div>

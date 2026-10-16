@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 interface PendingTournament {
   id: string;
@@ -90,7 +91,7 @@ export default function TierReviewQueue({
                 <button
                   onClick={() => approve(t.id)}
                   disabled={busyId === t.id}
-                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase tracking-[0.5px] px-2 py-1.5 disabled:opacity-50"
+                  className={buttonClass("primary", "sm", "")}
                 >
                   Approve
                 </button>

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { listRegistrations } from "@/lib/services/tournaments";
 import CoHostQueue from "./CoHostQueue";
+import { SectionHeading } from "@/components/ui/Panel";
 
 // A co-host institute sees ONLY the registrations routed to its own institute.
 export default async function CoHostQueuePage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,9 +27,9 @@ export default async function CoHostQueuePage({ params }: { params: Promise<{ id
   if ("error" in result) redirect("/organizer/dashboard/institute");
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
-      <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">{tournament.name}</h1>
-      <p className="font-sans text-bk-body text-sm mb-6">
+    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+      <SectionHeading className="mb-3 break-words">{tournament.name}</SectionHeading>
+      <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
         Co-hosting for {tournament.organizer.orgName}. You can approve or reject players from your
         own institute. {tournament.entryType === "paid" && "The host confirms entry-fee payments."}
       </p>

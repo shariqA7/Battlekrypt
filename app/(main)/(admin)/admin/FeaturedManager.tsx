@@ -104,7 +104,7 @@ export default function FeaturedManager({
                 {s.isActive ? "Hide" : "Show"}
               </button>
               <button type="button" disabled={busy}
-                className="border border-bk-border text-bk-body font-sans text-[11px] uppercase px-3 py-1.5 disabled:opacity-50"
+                className="border border-bk-border text-bk-body font-sans text-[11px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5 disabled:opacity-50"
                 onClick={() => run(() => call(`/api/admin/featured/slides/${s.id}`, "DELETE"))}>
                 Delete
               </button>
@@ -143,7 +143,7 @@ export default function FeaturedManager({
             <div key={f.tournamentId} className="bg-bk-surface border border-bk-border p-3 flex items-center justify-between gap-3">
               <p className="font-sans text-[13px] text-bk-heading">{f.name}</p>
               <button type="button" disabled={busy}
-                className="border border-bk-border text-bk-body font-sans text-[11px] uppercase px-3 py-1.5 disabled:opacity-50"
+                className="border border-bk-border text-bk-body font-sans text-[11px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5 disabled:opacity-50"
                 onClick={() => run(() => call(`/api/admin/featured/tournaments?tournamentId=${f.tournamentId}`, "DELETE"))}>
                 Remove
               </button>

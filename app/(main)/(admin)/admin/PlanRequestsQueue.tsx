@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
 
 export interface PendingPlanRequest {
   id: string;
@@ -78,7 +79,7 @@ export default function PlanRequestsQueue({ initial }: { initial: PendingPlanReq
                   type="button"
                   disabled={busy === r.id}
                   onClick={() => act(r.id, "approve")}
-                  className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5 disabled:opacity-50"
+                  className={buttonClass("primary", "sm", "")}
                 >
                   Approve
                 </button>
@@ -86,7 +87,7 @@ export default function PlanRequestsQueue({ initial }: { initial: PendingPlanReq
                   type="button"
                   disabled={busy === r.id}
                   onClick={() => act(r.id, "reject")}
-                  className="border border-bk-border text-bk-body font-sans text-[11px] uppercase px-3 py-1.5 disabled:opacity-50"
+                  className="border border-bk-border text-bk-body font-sans text-[11px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5 disabled:opacity-50"
                 >
                   Reject
                 </button>

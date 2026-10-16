@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toLocalInput } from "@/components/tournaments/VenuePicker";
+import { buttonClass } from "@/components/ui/Button";
 
 type CheckIn = "pending" | "checked_in" | "no_show";
 
@@ -184,7 +185,7 @@ function StageCard({
         type="button"
         disabled={busy}
         onClick={saveVenue}
-        className="mt-3 w-full sm:w-auto bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] tracking-[0.5px] uppercase px-4 h-[40px] disabled:opacity-50"
+        className={buttonClass("primary", "sm", "mt-3 w-full sm:w-auto")}
       >
         Save venue
       </button>
@@ -208,7 +209,7 @@ function StageCard({
                 type="button"
                 disabled={busy}
                 onClick={saveRoom}
-                className="sm:col-span-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase py-2.5 disabled:opacity-50"
+                className={buttonClass("primary", "sm", "sm:col-span-3")}
               >
                 Save room details
               </button>
@@ -272,7 +273,7 @@ function StageCard({
                     {entry.checkInStatus === "checked_in" ? "Checked in" : entry.checkInStatus === "no_show" ? "No-show" : "Not here yet"}
                   </span>
                   {entry.checkInStatus !== "checked_in" && (
-                    <button type="button" onClick={() => setCheck(entry.id, "checked_in")} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[10px] uppercase px-2.5 h-[30px]">
+                    <button type="button" onClick={() => setCheck(entry.id, "checked_in")} className={buttonClass("primary", "sm", "")}>
                       Check in
                     </button>
                   )}

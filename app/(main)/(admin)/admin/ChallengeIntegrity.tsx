@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { buttonClass } from "@/components/ui/Button";
 
 export interface AdminReportedChallenge {
   id: string;
@@ -114,13 +115,13 @@ export default function ChallengeIntegrity({
                   </select>
                   {error && <p className="font-sans text-[12px] text-bk-live">{error}</p>}
                   <div className="flex flex-wrap gap-3">
-                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-reports/${c.id}/resolve`, { action: "remove", note, ban }, () => setReports((p) => p.filter((x) => x.id !== c.id)))} className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Remove challenge</button>
-                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-reports/${c.id}/resolve`, { action: "dismiss", note, ban }, () => setReports((p) => p.filter((x) => x.id !== c.id)))} className="border border-bk-border text-bk-heading font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Dismiss reports</button>
+                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-reports/${c.id}/resolve`, { action: "remove", note, ban }, () => setReports((p) => p.filter((x) => x.id !== c.id)))} className={buttonClass("danger", "sm", "")}>Remove challenge</button>
+                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-reports/${c.id}/resolve`, { action: "dismiss", note, ban }, () => setReports((p) => p.filter((x) => x.id !== c.id)))} className="border border-bk-border text-bk-heading font-sans font-bold text-[11px] uppercase px-4 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center disabled:opacity-50">Dismiss reports</button>
                     <button onClick={() => setOpen(null)} className="font-sans text-[12px] text-bk-muted underline">Cancel</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setOpen(c.id); setError(null); }} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5">Review</button>
+                <button onClick={() => { setOpen(c.id); setError(null); }} className={buttonClass("primary", "sm", "mt-3")}>Review</button>
               )}
             </div>
           ))}
@@ -148,13 +149,13 @@ export default function ChallengeIntegrity({
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className={area} placeholder="Your note" />
                   {error && <p className="font-sans text-[12px] text-bk-live">{error}</p>}
                   <div className="flex flex-wrap gap-3">
-                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "dismiss", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className="bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">Looks fine</button>
-                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "fail_entry", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className="bg-bk-live text-white font-sans font-bold text-[11px] uppercase px-4 py-2 disabled:opacity-50">End this entry</button>
+                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "dismiss", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className={buttonClass("primary", "sm", "")}>Looks fine</button>
+                    <button disabled={busy} onClick={() => post(`/api/admin/challenge-flags/${f.id}/resolve`, { action: "fail_entry", note }, () => setFlagList((p) => p.filter((x) => x.id !== f.id)))} className={buttonClass("danger", "sm", "")}>End this entry</button>
                     <button onClick={() => setOpen(null)} className="font-sans text-[12px] text-bk-muted underline">Cancel</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => { setOpen(f.id); setError(null); }} className="mt-3 bg-bk-primary text-bk-on-primary font-sans font-bold text-[11px] uppercase px-3 py-1.5">Review</button>
+                <button onClick={() => { setOpen(f.id); setError(null); }} className={buttonClass("primary", "sm", "mt-3")}>Review</button>
               )}
             </div>
           ))}
