@@ -1,6 +1,7 @@
 // GET /api/tournaments/:id — full tournament detail, public
 // PATCH /api/tournaments/:id — organizer edits a draft
 import { isAgeRequirement } from "@/lib/age";
+import { parentalConsentEnabled } from "@/lib/consent-config";
 import { NextResponse } from "next/server";
 import { getTournamentById, updateTournament } from "@/lib/services/tournaments";
 import { requireOrganizer } from "@/lib/auth-helpers";
@@ -82,6 +83,13 @@ export async function PATCH(
     return moneyError("minAge must be 13, 16 or 18.");
   }
 
+  if (body.requireParentalConsent !== undefined && typeof body.requireParentalConsent !== "boolean") {
+    return moneyError("requireParentalConsent must be true or false.");
+  }
+  if (body.requireParentalConsent === true && !parentalConsentEnabled()) {
+    return moneyError("Parental consent isn't switched on for this site yet.");
+  }
+
   const tiers = body.prizeTiers === undefined ? { ok: true as const, tiers: undefined } : parsePrizeTiers(body.prizeTiers);
   if (!tiers.ok) return moneyError(tiers.message);
 
@@ -102,6 +110,7 @@ export async function PATCH(
     competitiveTier: body.competitiveTier,
     audienceScope: body.audienceScope,
     minAge: body.minAge,
+    requireParentalConsent: body.requireParentalConsent,
     requireFreshInstitutionProof:
       typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
     ...venue.value,

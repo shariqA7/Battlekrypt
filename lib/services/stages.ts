@@ -1,3 +1,4 @@
+import { checkConsentGate } from "@/lib/services/parental-consent";
 import { prisma } from "@/lib/prisma";
 import type { CheckInStatus, VenueType } from "@prisma/client";
 import { checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
@@ -234,6 +235,8 @@ export async function stageSelfCheckIn(stageId: string, playerId: string, code: 
   const entry = await findMyStageEntry(stageId, stage.tournamentId, playerId);
   if (!entry) return { error: "not_advanced", message: "Your entry hasn't advanced to this stage." };
   if (entry.checkInStatus === "checked_in") return { data: { status: "checked_in" } };
+  const consent = await checkConsentGate(stage.tournamentId, playerId);
+  if ("error" in consent) return { error: consent.error, message: consent.message };
 
   const now = new Date();
   if (stage.checkInOpensAt && now < stage.checkInOpensAt) return { error: "not_open", message: "Check-in hasn't opened yet." };

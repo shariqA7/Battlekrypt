@@ -63,6 +63,7 @@ export default function NewTournamentPage() {
   const [country, setCountry] = useState("__default");
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>("open");
   const [minAge, setMinAge] = useState<number>(13);
+  const [requireConsent, setRequireConsent] = useState(false);
   const [freshProof, setFreshProof] = useState(false);
   const [rules, setRules] = useState<EditableRule[]>([]);
   const [customFields, setCustomFields] = useState<
@@ -174,6 +175,7 @@ export default function NewTournamentPage() {
         country: country === "__default" ? undefined : country,
         audienceScope,
         minAge,
+        requireParentalConsent: requireConsent && minAge < 18,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
         customFields: customFields.length > 0 ? customFields : undefined,
         rules: rules.map((r) => ({
@@ -515,7 +517,15 @@ export default function NewTournamentPage() {
             }}
           />
 
-          <AgePicker value={minAge} onChange={setMinAge} />
+          <AgePicker
+            value={minAge}
+            onChange={(a) => {
+              setMinAge(a);
+              if (a >= 18) setRequireConsent(false);
+            }}
+            requireConsent={requireConsent}
+            onConsentChange={setRequireConsent}
+          />
 
           <FormGroup title="Rules" />
           <RulesEditor gameId={gameId} rules={rules} onChange={setRules} />

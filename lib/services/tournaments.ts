@@ -6,6 +6,7 @@
 // route handlers give mobile/external clients the identical logic.
 // Business rules live here ONCE, not duplicated between a page and a route.
 
+import { checkConsentGate } from "@/lib/services/parental-consent";
 import { checkAgeGate } from "@/lib/services/age-gate";
 import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
 import { prisma } from "@/lib/prisma";
@@ -173,6 +174,7 @@ export interface CreateTournamentInput {
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
   minAge?: number; // 13 | 16 | 18
+  requireParentalConsent?: boolean; // under-18 players need a guardian's consent
   venueType?: VenueType;
   country?: string | null;
   prizeTiers?: PrizeTierInput[];
@@ -218,6 +220,8 @@ export async function createTournament(input: CreateTournamentInput) {
       competitiveTier: input.competitiveTier ?? "none",
       audienceScope: input.audienceScope ?? "open",
       minAge: input.minAge ?? 13,
+      // 18+ events have no minors, so consent can only apply below 18.
+      requireParentalConsent: !!input.requireParentalConsent && (input.minAge ?? 13) < 18,
       venueType: input.venueType ?? "online",
       country: input.country ?? null,
       // Venue details only mean something for LAN.
@@ -706,6 +710,10 @@ export async function getRoomForPlayer(stageId: string, playerId: string) {
   });
   if (!registration) return { error: "not_registered" as const };
 
+  // Under-18 players need a guardian's consent first when the tournament asks for it.
+  const consent = await checkConsentGate(stage.tournamentId, playerId);
+  if ("error" in consent) return { error: consent.error, message: consent.message };
+
   // LAN tournaments (and LAN stages of a hybrid one) have no room
   // credentials — players check in on site.
   if (stage.tournament.venueType === "lan") return { error: "lan_no_room" as const };
@@ -898,6 +906,7 @@ export interface UpdateTournamentInput {
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
   minAge?: number; // 13 | 16 | 18
+  requireParentalConsent?: boolean; // under-18 players need a guardian's consent
   venueType?: VenueType;
   country?: string | null;
   prizeTiers?: PrizeTierInput[];
@@ -986,7 +995,12 @@ export async function updateTournament(
 
   // Same promise for the age limit: raising it could strand registered
   // players and lowering it changes who they agreed to play against.
-  if (data.minAge !== undefined && data.minAge !== tournament.minAge && (await getActiveRegistrationCount(tournamentId)) > 0) {
+  // 18+ events have no minors, so consent can only apply below 18.
+  if ((data.minAge ?? tournament.minAge) >= 18) data.requireParentalConsent = false;
+  const ageChanged =
+    (data.minAge !== undefined && data.minAge !== tournament.minAge) ||
+    (data.requireParentalConsent !== undefined && data.requireParentalConsent !== tournament.requireParentalConsent);
+  if (ageChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
     return { error: "age_locked" as const };
   }
 

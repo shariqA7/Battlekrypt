@@ -28,6 +28,7 @@ interface TournamentForEdit {
   competitiveTier: CompetitiveTierValue;
   audienceScope: AudienceScopeValue;
   minAge: number;
+  requireParentalConsent: boolean;
   requireFreshInstitutionProof: boolean;
   venueType: "online" | "lan" | "hybrid";
   country: string | null;
@@ -73,6 +74,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>(tournament.audienceScope);
   const [freshProof, setFreshProof] = useState(tournament.requireFreshInstitutionProof);
   const [minAge, setMinAge] = useState<number>(tournament.minAge);
+  const [requireConsent, setRequireConsent] = useState<boolean>(tournament.requireParentalConsent);
   const [startAt, setStartAt] = useState(
     tournament.startAt ? new Date(tournament.startAt).toISOString().slice(0, 16) : ""
   );
@@ -107,6 +109,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         country: country || null,
         audienceScope,
         minAge,
+        requireParentalConsent: requireConsent && minAge < 18,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
       }),
     });
@@ -221,7 +224,15 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         }}
       />
 
-      <AgePicker value={minAge} onChange={setMinAge} />
+      <AgePicker
+        value={minAge}
+        onChange={(a) => {
+          setMinAge(a);
+          if (a >= 18) setRequireConsent(false);
+        }}
+        requireConsent={requireConsent}
+        onConsentChange={setRequireConsent}
+      />
 
       {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
 

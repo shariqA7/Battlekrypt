@@ -10,6 +10,10 @@ import LocalDate from "@/components/ui/LocalDate";
 import Stat from "@/components/ui/Stat";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/Button";
+import ConsentPanel from "@/components/consent/ConsentPanel";
+import { parentalConsentEnabled } from "@/lib/consent-config";
+import { consentNeeded } from "@/lib/consent";
+import { getConsentStateForPlayer } from "@/lib/services/parental-consent";
 import { redirect } from "next/navigation";
 
 import AdSlot from "@/components/ui/AdSlot";
@@ -87,6 +91,14 @@ export default async function PlayerDashboard() {
       ])
     : [[], [], null];
 
+  // One consent state for the player; shown under each registration that asks for it.
+  const consent =
+    parentalConsentEnabled() && playerProfile?.birthDate && registrations.some((r) => r.tournament.requireParentalConsent)
+      ? await getConsentStateForPlayer(playerProfile.id)
+      : null;
+  const needsConsent = (r: Reg) =>
+    !!consent && consentNeeded(r.tournament, playerProfile?.birthDate, true) && !["completed", "cancelled"].includes(r.tournament.status);
+
   const name = playerProfile?.user.displayName ?? `${playerProfile?.firstName ?? ""} ${playerProfile?.lastName ?? ""}`.trim();
 
   const isPast = (r: Reg) => r.tournament.status === "completed" || r.tournament.status === "cancelled";
@@ -141,7 +153,17 @@ export default async function PlayerDashboard() {
             {current.length > 0 && (
               <div className="flex flex-col gap-3">
                 {current.map((r) => (
-                  <RegistrationCard key={r.id} r={r} />
+                  <div key={r.id} className="flex flex-col gap-2">
+                    <RegistrationCard r={r} />
+                    {needsConsent(r) && consent && (
+                      <ConsentPanel
+                        state={consent.state}
+                        validUntil={consent.validUntil?.toISOString() ?? null}
+                        guardianEmailMasked={consent.guardianEmailMasked}
+                        requestedFor={r.tournament.name}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             )}
