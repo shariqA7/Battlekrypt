@@ -118,6 +118,9 @@ model PlayerProfile {
   country       String?
   city          String?
   age           Int?
+  // Date of birth as the player declared it (date only). Set once, never edited by the
+  // player afterwards; `age` above is kept in step with it for older screens.
+  birthDate     DateTime?     @db.Date
   gender        String?
   hobbies       String?
   favoriteGames String[] @default([])
@@ -929,6 +932,9 @@ model Tournament {
   checkInCode     String?
 
   audienceScope                AudienceScope @default(open)
+  // Youngest allowed player: 13 (the platform floor), 16 or 18. Checked per player at
+  // every way of entering; locked once anyone has registered.
+  minAge                       Int           @default(13)
   // Institution-only tournaments only: also ask the registering player for a
   // fresh ID photo with THIS registration, on top of their verified profile.
   requireFreshInstitutionProof Boolean       @default(false)

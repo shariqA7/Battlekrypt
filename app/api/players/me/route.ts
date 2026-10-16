@@ -60,7 +60,7 @@ export async function PATCH(request: Request) {
     region: body.region,
     country: body.country,
     city: body.city,
-    age: body.age,
+    birthDate: body.birthDate,
     gender: body.gender,
     hobbies: body.hobbies,
     favoriteGames: body.favoriteGames,

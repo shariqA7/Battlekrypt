@@ -78,6 +78,7 @@ export default async function TournamentDetailPage({
             {tournament.venueType === "lan" && <Badge tone="neutral">LAN · {tournament.venueCity}</Badge>}
             {tournament.venueType === "hybrid" && <Badge tone="neutral">Hybrid · online + LAN</Badge>}
             {tournament.audienceScope === "institution" && <Badge tone="amber">Students only</Badge>}
+            {tournament.minAge > 13 && <Badge tone="amber">{tournament.minAge}+ only</Badge>}
             {tournament.country && <Badge tone="neutral">{countryName(tournament.country)}</Badge>}
           </div>
 

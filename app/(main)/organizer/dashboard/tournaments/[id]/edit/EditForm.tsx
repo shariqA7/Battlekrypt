@@ -7,6 +7,7 @@ import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/
 import CountryPicker from "@/components/tournaments/CountryPicker";
 import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
+import AgePicker from "@/components/tournaments/AgePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 import { buttonClass } from "@/components/ui/Button";
 
@@ -26,6 +27,7 @@ interface TournamentForEdit {
   prizeTiers?: { positionFrom: number; positionTo: number; amount: unknown }[];
   competitiveTier: CompetitiveTierValue;
   audienceScope: AudienceScopeValue;
+  minAge: number;
   requireFreshInstitutionProof: boolean;
   venueType: "online" | "lan" | "hybrid";
   country: string | null;
@@ -70,6 +72,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   });
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>(tournament.audienceScope);
   const [freshProof, setFreshProof] = useState(tournament.requireFreshInstitutionProof);
+  const [minAge, setMinAge] = useState<number>(tournament.minAge);
   const [startAt, setStartAt] = useState(
     tournament.startAt ? new Date(tournament.startAt).toISOString().slice(0, 16) : ""
   );
@@ -103,6 +106,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         ...venueToBody(venue),
         country: country || null,
         audienceScope,
+        minAge,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
       }),
     });
@@ -216,6 +220,8 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           setFreshProof(f);
         }}
       />
+
+      <AgePicker value={minAge} onChange={setMinAge} />
 
       {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}
 

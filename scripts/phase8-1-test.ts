@@ -24,7 +24,7 @@ async function main() {
   ]});
   const [org1, org2, org3] = await Promise.all(["o1", "o2", "o3"].map((u) =>
     prisma.organizerProfile.create({ data: { userId: u, orgName: `Org ${u}` } })));
-  const prof = await prisma.playerProfile.create({ data: { userId: "p1", firstName: "P", lastName: "One" } });
+  const prof = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: "p1", firstName: "P", lastName: "One" } });
 
   // validation
   ok("validation: institute required", "errors" in validateInstitution({ institutionId: "" }));
@@ -83,7 +83,7 @@ async function main() {
   ok("immediately locked again", err(await setPlayerInstitution("p1", { institutionId: fast.data.id, studentId: null, acknowledged: true }, new Date(t1.getTime() + DAY))) === "change_locked");
 
   // legacy rows (free text, never linked) can pick an institute freely
-  const p2 = await prisma.playerProfile.create({ data: { userId: "p2", firstName: "P", lastName: "Two" } });
+  const p2 = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: "p2", firstName: "P", lastName: "Two" } });
   await prisma.playerInstitution.create({ data: { playerId: p2.id, institutionName: "Some College", idImagePath: "p2/id.jpg" } });
   const legacy = await setPlayerInstitution("p2", { institutionId: fast.data.id, studentId: null, acknowledged: false });
   ok("legacy free-text row: first real pick needs no wait or confirmation", "data" in legacy && (await getInstitutionForUser("p2"))?.institutionId === fast.data.id);

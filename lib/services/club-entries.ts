@@ -15,6 +15,7 @@
 // The club's PERMANENT roster (ClubRoster/ClubTeam) is untouched by any of
 // this and stays editable any time.
 
+import { checkAgeGate } from "@/lib/services/age-gate";
 import { prisma } from "@/lib/prisma";
 import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
 import { checkTierEntryGate } from "@/lib/services/competitive-tiers";
@@ -56,6 +57,8 @@ export const CLUB_ENTRY_ERRORS = {
   not_club_entry: { status: 400, message: "This entry isn't linked to your club." },
   forbidden: { status: 403, message: "You don't own this tournament." },
   tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
+  age_restricted: { status: 403, message: "A player doesn't meet this tournament's minimum age." },
+  birth_date_required: { status: 403, message: "A player needs to add their date of birth first." },
   institution_required: {
     status: 403,
     message: "This tournament is for verified students only.",
@@ -418,6 +421,10 @@ export async function manualAddClubTeamEntry(
   });
   if (alreadyIn) return fail("already_registered");
 
+  // Same age gate as self-registration, for every member of the team.
+  const ageGate = await checkAgeGate(tournamentId, ids);
+  if ("error" in ageGate) return fail(ageGate.error, ageGate.message);
+
   // Same tier entry gate as self-registration (spec §9), checked against
   // the club TEAM's rating (not any one member's) — see checkTierEntryGate.
   const gate = await checkTierEntryGate(tournamentId, { clubTeamId });
@@ -479,6 +486,9 @@ export async function manualAddClubSoloEntry(
     where: { tournamentId, playerId, status: { in: ["pending", "approved"] } },
   });
   if (existing) return fail("already_registered");
+
+  const ageGate = await checkAgeGate(tournamentId, [playerId], { selfPlayerId: playerId });
+  if ("error" in ageGate) return fail(ageGate.error, ageGate.message);
 
   const gate = await checkTierEntryGate(tournamentId, { playerId });
   if ("error" in gate && gate.error === "tier_gate") return fail("tier_gate", gate.message);

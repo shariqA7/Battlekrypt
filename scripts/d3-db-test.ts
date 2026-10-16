@@ -14,7 +14,7 @@ async function main() {
     { id: "p1", email: "p1@x.com", displayName: "P1" },
   ]});
   const org = await prisma.organizerProfile.create({ data: { userId: "org", orgName: "OrgCo" } });
-  const p1 = await prisma.playerProfile.create({ data: { userId: "p1" } });
+  const p1 = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: "p1" } });
   const game = await prisma.game.create({ data: { name: "G" } });
   const base = { organizerId: org.id, gameId: game.id, type: "tournament", mode: "solo", maxTeams: 20, format: "single_elimination", entryType: "free" } as const;
 

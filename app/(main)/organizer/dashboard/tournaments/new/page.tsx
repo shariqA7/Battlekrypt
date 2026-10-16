@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
+import AgePicker from "@/components/tournaments/AgePicker";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
@@ -61,6 +62,7 @@ export default function NewTournamentPage() {
   // "__default" = leave it to the server (the organizer's own country).
   const [country, setCountry] = useState("__default");
   const [audienceScope, setAudienceScope] = useState<AudienceScopeValue>("open");
+  const [minAge, setMinAge] = useState<number>(13);
   const [freshProof, setFreshProof] = useState(false);
   const [rules, setRules] = useState<EditableRule[]>([]);
   const [customFields, setCustomFields] = useState<
@@ -171,6 +173,7 @@ export default function NewTournamentPage() {
         ...venueToBody(venue),
         country: country === "__default" ? undefined : country,
         audienceScope,
+        minAge,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
         customFields: customFields.length > 0 ? customFields : undefined,
         rules: rules.map((r) => ({
@@ -511,6 +514,8 @@ export default function NewTournamentPage() {
               setFreshProof(f);
             }}
           />
+
+          <AgePicker value={minAge} onChange={setMinAge} />
 
           <FormGroup title="Rules" />
           <RulesEditor gameId={gameId} rules={rules} onChange={setRules} />

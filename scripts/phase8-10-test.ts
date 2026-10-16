@@ -25,7 +25,7 @@ async function main() {
   await setInstitutionVerified(inst.data.id, "adm", true);
   const prof: string[] = [];
   for (let i = 0; i < PLAYERS; i++) {
-    const p = await prisma.playerProfile.create({ data: { userId: `p${i}`, firstName: `p${i}`, lastName: "x", planCode: "player_basic" } });
+    const p = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: `p${i}`, firstName: `p${i}`, lastName: "x", planCode: "player_basic" } });
     prof.push(p.id);
     await setPlayerInstitution(`p${i}`, { institutionId: inst.data.id, studentId: null, acknowledged: false }, new Date(Date.now() - 30 * DAY));
   }
@@ -79,7 +79,7 @@ async function main() {
   const soloPlayers: string[] = [];
   for (let i = 0; i < PLAYERS; i++) {
     await prisma.user.create({ data: { id: `s${i}`, email: `s${i}@x.com`, displayName: `s${i}` } });
-    const p = await prisma.playerProfile.create({ data: { userId: `s${i}`, firstName: `s${i}`, lastName: "x", planCode: "player_basic" } });
+    const p = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: `s${i}`, firstName: `s${i}`, lastName: "x", planCode: "player_basic" } });
     await setPlayerInstitution(`s${i}`, { institutionId: inst.data.id, studentId: null, acknowledged: false }, new Date(Date.now() - 30 * DAY));
     await prisma.clubRoster.create({ data: { clubId: club.id, playerId: p.id, gameId: game.id, teamId: null } });
     soloPlayers.push(p.id);
@@ -99,7 +99,7 @@ async function main() {
     for (let m = 0; m < 2; m++) {
       const u = `t${k}${m}`;
       await prisma.user.create({ data: { id: u, email: `${u}@x.com`, displayName: u } });
-      const p = await prisma.playerProfile.create({ data: { userId: u, firstName: u, lastName: "x", planCode: "player_basic" } });
+      const p = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: u, firstName: u, lastName: "x", planCode: "player_basic" } });
       await setPlayerInstitution(u, { institutionId: inst.data.id, studentId: null, acknowledged: false }, new Date(Date.now() - 30 * DAY));
       await prisma.clubRoster.create({ data: { clubId: club.id, playerId: p.id, gameId: game.id, teamId: team.id } });
       members.push(p.id);
@@ -119,7 +119,7 @@ async function main() {
   if ("data" in inst2) {
     await setInstitutionVerified(inst2.data.id, "adm", true);
     await prisma.user.create({ data: { id: "q1", email: "q1@x.com", displayName: "q1" } });
-    const q = await prisma.playerProfile.create({ data: { userId: "q1", firstName: "q", lastName: "q", planCode: "player_basic" } });
+    const q = await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: "q1", firstName: "q", lastName: "q", planCode: "player_basic" } });
     await setPlayerInstitution("q1", { institutionId: inst2.data.id, studentId: null, acknowledged: false }, new Date(Date.now() - 30 * DAY));
     const t = await prisma.tournament.create({ data: { ...base, slug: "two-inst", name: "Two", maxEntriesPerInstitute: 1 } });
     await prisma.tournamentInstitution.create({ data: { tournamentId: t.id, institutionId: inst2.data.id, role: "guest", status: "accepted" } });

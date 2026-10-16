@@ -4,6 +4,7 @@ import { parseVenue } from "@/lib/venue-input";
 import { parsePrizeTiers, checkAgainstPool } from "@/lib/services/prize-tiers";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { isCountryCode, isRegionKey, countryFromText } from "@/lib/geo-data";
+import { isAgeRequirement } from "@/lib/age";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -128,6 +129,10 @@ export async function POST(request: Request) {
     return moneyError("audienceScope must be open or institution.");
   }
 
+  if (body.minAge !== undefined && !isAgeRequirement(body.minAge)) {
+    return moneyError("minAge must be 13, 16 or 18.");
+  }
+
   const venue = parseVenue(body);
   if (!venue.ok) return moneyError(venue.message);
 
@@ -151,6 +156,7 @@ export async function POST(request: Request) {
     prizePoolCurrency: money.prizePool?.currency,
     competitiveTier: body.competitiveTier,
     audienceScope: body.audienceScope,
+    minAge: body.minAge,
     requireFreshInstitutionProof: body.requireFreshInstitutionProof === true,
     ...venue.value,
     country,

@@ -112,6 +112,15 @@ export default async function PlayerDashboard() {
         </div>
         <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">Everything you&apos;ve registered for, in one place.</p>
 
+        {playerProfile && !playerProfile.birthDate && (
+          <div className="bg-bk-amber/[0.12] text-bk-amber font-sans text-[12px] px-3 py-2 mb-6 flex flex-wrap items-center justify-between gap-2">
+            <span>Add your date of birth to join tournaments.</span>
+            <Link href="/dashboard/profile" className="font-bold underline">
+              Open profile settings
+            </Link>
+          </div>
+        )}
+
         {registrations.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
             <Stat gold value={registrations.length} label="Joined" />

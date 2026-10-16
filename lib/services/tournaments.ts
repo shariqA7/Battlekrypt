@@ -6,6 +6,8 @@
 // route handlers give mobile/external clients the identical logic.
 // Business rules live here ONCE, not duplicated between a page and a route.
 
+import { checkAgeGate } from "@/lib/services/age-gate";
+import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
 import { prisma } from "@/lib/prisma";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
@@ -170,6 +172,7 @@ export interface CreateTournamentInput {
   competitiveTier?: CompetitiveTier;
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
+  minAge?: number; // 13 | 16 | 18
   venueType?: VenueType;
   country?: string | null;
   prizeTiers?: PrizeTierInput[];
@@ -214,6 +217,7 @@ export async function createTournament(input: CreateTournamentInput) {
       prizePoolCurrency: input.prizePoolCurrency,
       competitiveTier: input.competitiveTier ?? "none",
       audienceScope: input.audienceScope ?? "open",
+      minAge: input.minAge ?? 13,
       venueType: input.venueType ?? "online",
       country: input.country ?? null,
       // Venue details only mean something for LAN.
@@ -436,6 +440,11 @@ export async function registerForTournament(input: RegisterInput) {
     },
   });
   if (existing) return { error: "already_registered" as const };
+
+  // Age gate: every player on this entry needs a date of birth on file and must
+  // meet the tournament's minimum age (13 / 16 / 18).
+  const ageGate = await checkAgeGate(input.tournamentId, allPlayerIds, { selfPlayerId: input.playerId });
+  if ("error" in ageGate) return { error: ageGate.error, message: ageGate.message };
 
   // Competitive-tier entry gate (spec §9) — a B/A/S/National tournament
   // requires the registering player (or, for a club team, the team itself)
@@ -888,6 +897,7 @@ export interface UpdateTournamentInput {
   competitiveTier?: CompetitiveTier;
   audienceScope?: AudienceScope;
   requireFreshInstitutionProof?: boolean;
+  minAge?: number; // 13 | 16 | 18
   venueType?: VenueType;
   country?: string | null;
   prizeTiers?: PrizeTierInput[];
@@ -972,6 +982,12 @@ export async function updateTournament(
       data.requireFreshInstitutionProof !== tournament.requireFreshInstitutionProof);
   if (scopeChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
     return { error: "audience_locked" as const };
+  }
+
+  // Same promise for the age limit: raising it could strand registered
+  // players and lowering it changes who they agreed to play against.
+  if (data.minAge !== undefined && data.minAge !== tournament.minAge && (await getActiveRegistrationCount(tournamentId)) > 0) {
+    return { error: "age_locked" as const };
   }
 
   // Online <-> LAN changes what players are promised (room credentials vs.
@@ -1100,7 +1116,8 @@ export interface UpdatePlayerProfileInput {
   region?: string;
   country?: string;
   city?: string;
-  age?: number;
+  // YYYY-MM-DD. Only used the first time; once saved it can't be changed here.
+  birthDate?: string;
   gender?: string;
   hobbies?: string;
   favoriteGames?: string[];
@@ -1109,6 +1126,28 @@ export interface UpdatePlayerProfileInput {
 export async function updatePlayerProfile(userId: string, input: UpdatePlayerProfileInput) {
   if (!input.firstName?.trim() || !input.lastName?.trim()) {
     return { error: "validation_error" as const, message: "First and last name are required." };
+  }
+
+  // Date of birth: asked for until it is saved, then locked so it can't be
+  // changed to get into an older tournament. (Support can correct a mistake.)
+  const current = await prisma.playerProfile.findUnique({ where: { userId }, select: { birthDate: true } });
+  let birthDate = current?.birthDate ?? null;
+  if (!birthDate) {
+    if (!input.birthDate) {
+      return { error: "birth_date_required" as const, message: "Enter your date of birth." };
+    }
+    const parsed = parseBirthDate(input.birthDate);
+    if (!parsed) {
+      return { error: "validation_error" as const, message: "Enter a valid date of birth." };
+    }
+    // Under the platform floor: say so and keep nothing, so no date is stored.
+    if (ageOn(parsed) < PLATFORM_MIN_AGE) {
+      return {
+        error: "under_age" as const,
+        message: `BattleKrypt is for players aged ${PLATFORM_MIN_AGE} and over.`,
+      };
+    }
+    birthDate = parsed;
   }
 
   const displayName = `${input.firstName.trim()} ${input.lastName.trim()}`;
@@ -1130,7 +1169,8 @@ export async function updatePlayerProfile(userId: string, input: UpdatePlayerPro
         region: input.region || null,
         country: input.country || null,
         city: input.city || null,
-        age: input.age ?? null,
+        birthDate,
+        age: ageOn(birthDate), // kept in step for older screens
         gender: input.gender || null,
         hobbies: input.hobbies || null,
         favoriteGames: input.favoriteGames ?? [],
@@ -1552,6 +1592,11 @@ export async function manualAddRegistration(
     },
   });
   if (existing) return { error: "already_registered" as const };
+
+  // Same age gate as self-registration: an organizer can't add a player who is
+  // under the tournament's minimum age, or who hasn't given a date of birth.
+  const ageGate = await checkAgeGate(tournamentId, [playerProfile.id], { selfPlayerId: playerProfile.id });
+  if ("error" in ageGate) return { error: ageGate.error, message: ageGate.message };
 
   // Same tier entry gate as self-registration (spec §9) — manual-add
   // overrides the registration window/roster-lock, not competitive

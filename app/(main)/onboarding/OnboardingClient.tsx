@@ -18,7 +18,7 @@ interface OnboardingClientProps {
   initialRegion: string;
   initialCountry: string;
   initialCity: string;
-  initialAge?: number;
+  initialBirthDate?: string;
   initialGender: string;
   initialHobbies: string;
   initialFavoriteGames: string[];

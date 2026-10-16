@@ -21,7 +21,7 @@ async function main() {
 
   const mkPlayer = async (id: string, name: string, email: string) => {
     await prisma.user.create({ data: { id, email, displayName: name } });
-    return prisma.playerProfile.create({ data: { userId: id, firstName: name, lastName: "x" } });
+    return prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: id, firstName: name, lastName: "x" } });
   };
   const alice = await mkPlayer("alice", "Alice Khan", "alice@students.edu");
   const bob = await mkPlayer("bob", "Bob Ali", "bob@students.edu");

@@ -23,6 +23,7 @@ type CardTournament = {
   venueType?: string | null;
   venueCity?: string | null;
   audienceScope?: string | null;
+  minAge?: number | null;
   country?: string | null;
   game: { name: string };
 };
@@ -45,6 +46,7 @@ export default function TournamentCard({ t }: { t: CardTournament }) {
   const tags = [
     t.venueType === "lan" ? `LAN${t.venueCity ? ` · ${t.venueCity}` : ""}` : t.venueType === "hybrid" ? "Hybrid" : null,
     t.audienceScope === "institution" ? "Students only" : null,
+    t.minAge && t.minAge > 13 ? `${t.minAge}+` : null,
     t.country ? countryName(t.country) : null,
   ].filter(Boolean);
 
