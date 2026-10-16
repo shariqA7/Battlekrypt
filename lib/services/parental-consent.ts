@@ -215,7 +215,11 @@ export async function decideConsent(
 
 // Used before room details and check-in: a player who needs consent for this
 // tournament and doesn't have a valid one is held back.
-export async function checkConsentGate(tournamentId: string, playerId: string) {
+export type ConsentGateResult =
+  | { ok: true }
+  | { error: "consent_required"; message: string };
+
+export async function checkConsentGate(tournamentId: string, playerId: string): Promise<ConsentGateResult> {
   if (!parentalConsentEnabled()) return { ok: true as const };
   const t = await prisma.tournament.findUnique({
     where: { id: tournamentId },
