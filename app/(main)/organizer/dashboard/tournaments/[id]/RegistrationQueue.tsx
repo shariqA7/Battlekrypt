@@ -115,18 +115,29 @@ const STATUS_BADGE: Record<string, string> = {
   disqualified: "bg-bk-live/15 text-bk-live",
 };
 
+// Organizer's "Parental consent" column. Only the status is shown, never who the guardian is.
+const CONSENT_CHIP = {
+  approved: { label: "Consent: approved", cls: "bg-bk-teal/[0.15] text-bk-teal" },
+  pending: { label: "Consent: pending parent", cls: "bg-bk-amber/[0.15] text-bk-amber" },
+  declined: { label: "Consent: declined", cls: "bg-bk-live/[0.15] text-bk-live" },
+  not_required: { label: "Consent: not required", cls: "bg-bk-surface-hover text-bk-muted" },
+} as const;
+
 export default function RegistrationQueue({
   tournamentId,
   initialRegistrations,
   mode,
   isLan = false,
   rules,
+  consent = null,
 }: {
   tournamentId: string;
   initialRegistrations: Registration[];
   mode: string;
   isLan?: boolean;
   rules: TournamentRuleOption[];
+  // registrationId -> consent status, or null when this tournament doesn't ask for it.
+  consent?: Record<string, "not_required" | "approved" | "pending" | "declined"> | null;
 }) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   // Which registration's disqualify panel is open, if any — replaces a
@@ -402,6 +413,14 @@ export default function RegistrationQueue({
                 <span className={`font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 ${STATUS_BADGE[r.status]}`}>
                   {r.status}
                 </span>
+                {consent && consent[r.id] && (
+                  <span
+                    title="Parental consent (players under 18)"
+                    className={`font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 ${CONSENT_CHIP[consent[r.id]].cls}`}
+                  >
+                    {CONSENT_CHIP[consent[r.id]].label}
+                  </span>
+                )}
                 {r.paymentProofUrl && (
                   <a
                     href={r.paymentProofUrl}

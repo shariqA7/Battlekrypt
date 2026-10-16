@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   const result = await stageSelfCheckIn(id, auth.player.id, code);
   if ("error" in result) {
-    const status = result.error === "not_found" ? 404 : result.error === "wrong_code" ? 400 : result.error === "not_advanced" ? 403 : 409;
+    const status = result.error === "not_found" ? 404 : result.error === "wrong_code" ? 400 : result.error === "not_advanced" || result.error === "consent_required" ? 403 : 409;
     return NextResponse.json({ error: { code: result.error, message: result.message ?? "Couldn't check in." } }, { status });
   }
   return NextResponse.json(result.data);

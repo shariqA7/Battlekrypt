@@ -1,5 +1,6 @@
 "use client";
 
+import { latestAllowedBirthDate } from "@/lib/age";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/ui/FileUpload";
@@ -13,7 +14,8 @@ interface ProfileFormProps {
   initialRegion: string;
   initialCountry: string;
   initialCity: string;
-  initialAge?: number;
+  // YYYY-MM-DD or empty. Locked once saved.
+  initialBirthDate?: string;
   initialGender: string;
   initialHobbies: string;
   initialFavoriteGames: string[];
@@ -33,7 +35,7 @@ export default function ProfileForm({
   initialRegion,
   initialCountry,
   initialCity,
-  initialAge,
+  initialBirthDate = "",
   initialGender,
   initialHobbies,
   initialFavoriteGames,
@@ -48,7 +50,7 @@ export default function ProfileForm({
   const [region, setRegion] = useState(initialRegion);
   const [country, setCountry] = useState(initialCountry);
   const [city, setCity] = useState(initialCity);
-  const [age, setAge] = useState(initialAge ?? "");
+  const [birthDate, setBirthDate] = useState(initialBirthDate);
   const [gender, setGender] = useState(initialGender);
   const [hobbies, setHobbies] = useState(initialHobbies);
   const [favoriteGamesText, setFavoriteGamesText] = useState(initialFavoriteGames.join(", "));
@@ -75,7 +77,7 @@ export default function ProfileForm({
         region: region || undefined,
         country: country || undefined,
         city: city || undefined,
-        age: age || undefined,
+        birthDate: initialBirthDate ? undefined : birthDate || undefined,
         gender: gender || undefined,
         hobbies: hobbies || undefined,
         favoriteGames: favoriteGamesText
@@ -169,14 +171,22 @@ export default function ProfileForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className={labelClass}>Age</label>
+          <label className={labelClass}>Date of birth</label>
           <input
-            type="number"
-            min={0}
-            value={age}
-            onChange={(e) => setAge(e.target.value ? Number(e.target.value) : "")}
-            className={inputClass}
+            type="date"
+            required={!initialBirthDate}
+            disabled={!!initialBirthDate}
+            min="1900-01-01"
+            max={latestAllowedBirthDate()}
+            value={birthDate}
+            onChange={(e) => setBirthDate(e.target.value)}
+            className={`${inputClass} disabled:opacity-60`}
           />
+          <p className="font-sans text-bk-muted text-[11px] mt-1">
+            {initialBirthDate
+              ? "Locked once saved. Contact support to correct a mistake."
+              : "You must be 13 or over. It can't be changed after you save, and it decides which tournaments you can join."}
+          </p>
         </div>
         <div>
           <label className={labelClass}>Gender</label>

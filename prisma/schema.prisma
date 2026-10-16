@@ -118,6 +118,9 @@ model PlayerProfile {
   country       String?
   city          String?
   age           Int?
+  // Date of birth as the player declared it (date only). Set once, never edited by the
+  // player afterwards; `age` above is kept in step with it for older screens.
+  birthDate     DateTime?     @db.Date
   gender        String?
   hobbies       String?
   favoriteGames String[] @default([])
@@ -128,6 +131,7 @@ model PlayerProfile {
   clubInvites     ClubInvite[]
   tournamentVotes TournamentVote[]
   gameRatings     PlayerGameRating[]
+  parentalConsents ParentalConsent[]
   institution     PlayerInstitution?
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
@@ -929,6 +933,12 @@ model Tournament {
   checkInCode     String?
 
   audienceScope                AudienceScope @default(open)
+  // Youngest allowed player: 13 (the platform floor), 16 or 18. Checked per player at
+  // every way of entering; locked once anyone has registered.
+  minAge                       Int           @default(13)
+  // Players under 18 need a parent or guardian's consent (valid 1 year) before they get
+  // room details or can check in. Only used when the platform switch is on.
+  requireParentalConsent       Boolean       @default(false)
   // Institution-only tournaments only: also ask the registering player for a
   // fresh ID photo with THIS registration, on top of their verified profile.
   requireFreshInstitutionProof Boolean       @default(false)
@@ -1727,4 +1737,44 @@ model ChallengeInstitution {
 
   @@unique([challengeId, institutionId])
   @@index([institutionId, status])
+}
+
+enum ParentalConsentStatus {
+  pending
+  approved
+  declined
+  revoked
+  superseded
+}
+
+// A guardian's consent for one player. Covers every tournament that asks for
+// parental consent until `validUntil` (one year after approval). The token in the
+// email link is stored only as a hash. The waiver text the guardian saw is kept
+// word for word with the signature.
+model ParentalConsent {
+  id       String        @id @default(uuid())
+  playerId String
+  player   PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  guardianEmail String
+  tokenHash     String                @unique
+  status        ParentalConsentStatus @default(pending)
+
+  // Context for the email only ("…to play in X"); the consent itself isn't tied to it.
+  requestedFor String?
+
+  sentAt        DateTime @default(now())
+  linkExpiresAt DateTime
+  decidedAt     DateTime?
+  validUntil    DateTime?
+
+  signedName      String?
+  waiverVersion   String?
+  waiverText      String?  @db.Text
+  signedIp        String?
+  signedUserAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([playerId, status])
 }

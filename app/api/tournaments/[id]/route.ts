@@ -1,5 +1,7 @@
 // GET /api/tournaments/:id — full tournament detail, public
 // PATCH /api/tournaments/:id — organizer edits a draft
+import { isAgeRequirement } from "@/lib/age";
+import { parentalConsentEnabled } from "@/lib/consent-config";
 import { NextResponse } from "next/server";
 import { getTournamentById, updateTournament } from "@/lib/services/tournaments";
 import { requireOrganizer } from "@/lib/auth-helpers";
@@ -77,6 +79,17 @@ export async function PATCH(
     return moneyError("audienceScope must be open or institution.");
   }
 
+  if (body.minAge !== undefined && !isAgeRequirement(body.minAge)) {
+    return moneyError("minAge must be 13, 16 or 18.");
+  }
+
+  if (body.requireParentalConsent !== undefined && typeof body.requireParentalConsent !== "boolean") {
+    return moneyError("requireParentalConsent must be true or false.");
+  }
+  if (body.requireParentalConsent === true && !parentalConsentEnabled()) {
+    return moneyError("Parental consent isn't switched on for this site yet.");
+  }
+
   const tiers = body.prizeTiers === undefined ? { ok: true as const, tiers: undefined } : parsePrizeTiers(body.prizeTiers);
   if (!tiers.ok) return moneyError(tiers.message);
 
@@ -96,6 +109,8 @@ export async function PATCH(
     prizePoolCurrency: prize.value?.currency,
     competitiveTier: body.competitiveTier,
     audienceScope: body.audienceScope,
+    minAge: body.minAge,
+    requireParentalConsent: body.requireParentalConsent,
     requireFreshInstitutionProof:
       typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
     ...venue.value,
@@ -163,6 +178,17 @@ export async function PATCH(
         error: {
           code: "audience_locked",
           message: "Players have already registered, so who can enter can no longer be changed.",
+        },
+      },
+      { status: 409 }
+    );
+  }
+  if (result.error === "age_locked") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "age_locked",
+          message: "Players have already registered, so the age requirement can no longer be changed.",
         },
       },
       { status: 409 }

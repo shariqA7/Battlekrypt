@@ -1,3 +1,4 @@
+import { parentalConsentEnabled } from "@/lib/consent-config";
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
 import { countryName } from "@/lib/geo-data";
 import { toPublicTournament } from "@/lib/services/venue";
@@ -78,6 +79,8 @@ export default async function TournamentDetailPage({
             {tournament.venueType === "lan" && <Badge tone="neutral">LAN · {tournament.venueCity}</Badge>}
             {tournament.venueType === "hybrid" && <Badge tone="neutral">Hybrid · online + LAN</Badge>}
             {tournament.audienceScope === "institution" && <Badge tone="amber">Students only</Badge>}
+            {tournament.minAge > 13 && <Badge tone="amber">{tournament.minAge}+ only</Badge>}
+            {parentalConsentEnabled() && tournament.requireParentalConsent && <Badge tone="neutral">Under 18: parental consent</Badge>}
             {tournament.country && <Badge tone="neutral">{countryName(tournament.country)}</Badge>}
           </div>
 

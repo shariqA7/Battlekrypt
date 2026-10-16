@@ -26,7 +26,7 @@ async function main() {
   }
   const prof: Record<string, string> = {};
   for (const [u, i] of [["f1", "fast"], ["f2", "fast"], ["f3", "fast"], ["f4", "fast"], ["c1", "comsats"], ["c2", "comsats"]] as const) {
-    prof[u] = (await prisma.playerProfile.create({ data: { userId: u, firstName: u, lastName: "x" } })).id;
+    prof[u] = (await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: u, firstName: u, lastName: "x" } })).id;
     await setPlayerInstitution(u, { institutionId: inst[i], studentId: null, acknowledged: false }, new Date(Date.now() - 30 * DAY));
   }
   const game = await prisma.game.create({ data: { name: "G" } });

@@ -21,7 +21,7 @@ async function main() {
   const org = await prisma.organizerProfile.create({ data: { userId: "org", orgName: "OrgCo" } });
   const other = await prisma.organizerProfile.create({ data: { userId: "oth", orgName: "Other" } });
   const pl: Record<string, string> = {};
-  for (const x of ["a", "b", "c", "d"]) pl[x] = (await prisma.playerProfile.create({ data: { userId: x } })).id;
+  for (const x of ["a", "b", "c", "d"]) pl[x] = (await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: x } })).id;
   const game = await prisma.game.create({ data: { name: "G" } });
   const base = { organizerId: org.id, gameId: game.id, type: "tournament", mode: "solo", maxTeams: 20, format: "single_elimination", entryType: "free" } as const;
   const hyb = await prisma.tournament.create({ data: { ...base, slug: "hyb", name: "Hyb", venueType: "hybrid" } });

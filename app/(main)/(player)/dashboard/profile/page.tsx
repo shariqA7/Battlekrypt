@@ -38,7 +38,7 @@ export default async function PlayerProfileSettingsPage({
         initialRegion={profile?.region ?? ""}
         initialCountry={profile?.country ?? ""}
         initialCity={profile?.city ?? ""}
-        initialAge={profile?.age ?? undefined}
+        initialBirthDate={profile?.birthDate ? profile.birthDate.toISOString().slice(0, 10) : ""}
         initialGender={profile?.gender ?? ""}
         initialHobbies={profile?.hobbies ?? ""}
         initialFavoriteGames={profile?.favoriteGames ?? []}

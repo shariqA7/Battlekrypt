@@ -3,6 +3,10 @@ import { formatMoney } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import JoinForm from "./JoinForm";
+import ConsentPanel from "@/components/consent/ConsentPanel";
+import { parentalConsentEnabled } from "@/lib/consent-config";
+import { consentNeeded } from "@/lib/consent";
+import { getConsentStateForPlayer } from "@/lib/services/parental-consent";
 import ClubEntryPanel from "./ClubEntryPanel";
 import { prisma } from "@/lib/prisma";
 import { checkInstitutionGate } from "@/lib/services/institutions";
@@ -29,6 +33,14 @@ export default async function JoinTournamentPage({
   // Institution-only: the player's institute must be one taking part. If not,
   // the block links to the profile page (pick/change institute) and brings the
   // player straight back.
+  // Under-18 players need a guardian's consent when this tournament asks for it.
+  // They can still register; room details and check-in unlock after approval.
+  let consent: Awaited<ReturnType<typeof getConsentStateForPlayer>> | null = null;
+  if (parentalConsentEnabled() && full.requireParentalConsent) {
+    const me = await prisma.playerProfile.findUnique({ where: { userId: user.id }, select: { id: true, birthDate: true } });
+    if (me && consentNeeded(full, me.birthDate, true)) consent = await getConsentStateForPlayer(me.id);
+  }
+
   let needsVerification = false;
   if (tournament.audienceScope === "institution") {
     const player = await prisma.playerProfile.findUnique({ where: { userId: user.id } });
@@ -56,6 +68,16 @@ export default async function JoinTournamentPage({
           <p className="font-sans text-[11px] uppercase tracking-[0.5px] text-bk-gold-light mb-4">
             Participating institutes only
           </p>
+        )}
+        {consent && (
+          <div className="mb-4">
+            <ConsentPanel
+              state={consent.state}
+              validUntil={consent.validUntil?.toISOString() ?? null}
+              guardianEmailMasked={consent.guardianEmailMasked}
+              requestedFor={tournament.name}
+            />
+          </div>
         )}
         <ClubEntryPanel tournamentId={tournament.id} />
         {needsVerification ? (

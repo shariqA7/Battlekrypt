@@ -34,7 +34,7 @@ async function main() {
   const prof: Record<string, string> = {};
   const memberOf: [string, string | null][] = [["f1", "fast"], ["f2", "fast"], ["c1", "comsats"], ["c2", "comsats"], ["c3", "comsats"], ["l1", "lums"], ["n1", null]];
   for (const [u, i] of memberOf) {
-    prof[u] = (await prisma.playerProfile.create({ data: { userId: u, firstName: u, lastName: "x", planCode: "player_basic" } })).id;
+    prof[u] = (await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: u, firstName: u, lastName: "x", planCode: "player_basic" } })).id;
     if (i) {
       await setInstitutionVerified(inst[i], "adm", true).catch(() => null);
     }
@@ -96,7 +96,7 @@ async function main() {
 
   // ---------- teams: ONE institute
   await prisma.user.update({ where: { id: "clubowner" }, data: {} });
-  await prisma.playerProfile.create({ data: { userId: "clubowner", firstName: "o", lastName: "o" } }).catch(() => null);
+  await prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: "clubowner", firstName: "o", lastName: "o" } }).catch(() => null);
   const club = await prisma.clubProfile.create({ data: { userId: "clubowner", clubName: "Club", subscriptionPlanCode: "club_pro" } });
   const mixedTeam = await prisma.clubTeam.create({ data: { clubId: club.id, gameId: game.id, name: "Mixed" } });
   const comsatsTeam = await prisma.clubTeam.create({ data: { clubId: club.id, gameId: game.id, name: "ComsatsOnly" } });

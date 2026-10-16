@@ -4,6 +4,7 @@ import { checkInCounts } from "@/lib/services/venue";
 import { listRegistrations, getTournamentById, getTournamentCapacity } from "@/lib/services/tournaments";
 import { redirect, notFound } from "next/navigation";
 import RegistrationQueue from "./RegistrationQueue";
+import { consentStatusesForTournament } from "@/lib/services/parental-consent";
 import StageManager from "./StageManager";
 import HybridStageManager from "./HybridStageManager";
 import { listStageEntries } from "@/lib/services/stages";
@@ -63,6 +64,8 @@ export default async function ManageTournamentPage({
     redirect("/organizer/dashboard");
   }
   const registrations = result.data;
+  // Parental consent status per registration (null when this tournament doesn't ask for it).
+  const consentStatuses = await consentStatusesForTournament(id);
   const capacity = await getTournamentCapacity(id);
   const isInstitutionScoped = tournament.audienceScope === "institution";
   const linkedInstitutes = isInstitutionScoped ? await listTournamentInstitutions(id) : [];
@@ -216,6 +219,7 @@ export default async function ManageTournamentPage({
           mode={tournament.mode}
           isLan={isLan}
           rules={tournament.rules.map((r) => ({ id: r.id, title: r.title, description: r.description }))}
+          consent={consentStatuses}
         />
       </main>
     </>

@@ -1,4 +1,5 @@
 import { randomInt } from "crypto";
+import { checkConsentGate } from "@/lib/services/parental-consent";
 import { prisma } from "@/lib/prisma";
 import type { CheckInStatus, VenueType } from "@prisma/client";
 
@@ -116,6 +117,8 @@ export async function selfCheckIn(
   const reg = await findMyRegistration(tournamentId, playerId);
   if (!reg) return { error: "not_registered", message: "You're not approved for this tournament." };
   if (reg.checkInStatus === "checked_in") return { data: { status: "checked_in" } };
+  const consent = await checkConsentGate(tournamentId, playerId);
+  if ("error" in consent) return { error: consent.error, message: consent.message };
 
   const now = new Date();
   if (t.checkInOpensAt && now < t.checkInOpensAt) {

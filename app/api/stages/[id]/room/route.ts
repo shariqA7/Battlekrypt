@@ -51,6 +51,12 @@ export async function GET(
       { status: 403 }
     );
   }
+  if (result.error === "consent_required") {
+    return NextResponse.json(
+      { error: { code: "consent_required", message: "message" in result ? result.message : "Parental consent is required." } },
+      { status: 403 }
+    );
+  }
   if (result.error === "lan_no_room") {
     return NextResponse.json(
       { error: { code: "lan_no_room", message: "This is a LAN event — check in at the venue instead of using a room." } },

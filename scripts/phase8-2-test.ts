@@ -20,7 +20,7 @@ async function main() {
   ]});
   const org = await prisma.organizerProfile.create({ data: { userId: "org", orgName: "FAST Esports" } });
   const org2 = await prisma.organizerProfile.create({ data: { userId: "org2", orgName: "COMSATS Esports" } });
-  const mk = (u: string) => prisma.playerProfile.create({ data: { userId: u, firstName: u, lastName: "x" } });
+  const mk = (u: string) => prisma.playerProfile.create({ data: { birthDate: new Date("2000-01-01"), userId: u, firstName: u, lastName: "x" } });
   const [s1, s2, x1, n1] = [await mk("s1"), await mk("s2"), await mk("x1"), await mk("n1")];
 
   const fast = await createInstitution(org.id, "FAST University");

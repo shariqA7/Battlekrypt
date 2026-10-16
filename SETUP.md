@@ -542,3 +542,34 @@ Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261008010000_d3_p
 - **Main button:** "Enter now" while registration is open; otherwise a disabled label ("Full", "Registration closed", "Live now", "Completed", "Cancelled").
 - **Prize distribution:** organizers split the prize pool by finishing place in the create/edit forms ("From place", optional "To", and what each team in that range wins). The split can't overlap places or exceed the prize pool, needs a prize pool, and — like the pool and tier — is locked once players have registered. The panel only appears when a split exists.
 - Not included yet: templates don't copy the prize split, and the page doesn't track payouts per place.
+
+## Parental consent and email (off until you turn it on)
+
+Players under 18 can need a parent or guardian's consent for tournaments that ask for it. It is **off by default**: nothing is gated and the organizer option is hidden.
+
+### Environment variables
+
+| Variable | What it does |
+|---|---|
+| `NEXT_PUBLIC_PARENTAL_CONSENT_ENABLED` | Set to `true` to switch the feature on. Leave unset or `false` to keep it off. Restart / rebuild after changing it. |
+| `RESEND_API_KEY` | Your Resend API key. Without it, development logs the email to the console and production refuses to send. |
+| `EMAIL_FROM` | Sender, for example `BattleKrypt <notifications@yourdomain.com>`. Defaults to Resend's test sender `onboarding@resend.dev`. |
+| `EMAIL_TEST_TO` | While set, **every** email goes to this address instead (with the real recipient shown in the subject). Use your own Resend account email until a domain is verified. |
+| `EMAIL_REPLY_TO` | Optional reply-to address (a Gmail is fine until you have a business mailbox). |
+| `NEXT_PUBLIC_SITE_URL` | Your public URL, for example `https://battlekrypt.com`, used in the emailed links. Falls back to the request URL. |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | Already used by the footer; the waiver tells guardians to write here to withdraw consent. |
+
+### Before real parents can get emails
+
+1. Buy a domain and add it in Resend (use a subdomain such as `notifications.yourdomain.com`), then add the DNS records Resend shows. Without a verified domain Resend only delivers to your own account email.
+2. Set `EMAIL_FROM` to an address on that domain and remove `EMAIL_TEST_TO`.
+3. Have a lawyer review the waiver in `lib/consent-waiver.ts` and the Terms and Privacy Policy.
+4. Set `NEXT_PUBLIC_PARENTAL_CONSENT_ENABLED=true`.
+
+### Testing without a domain
+
+Set `RESEND_API_KEY` and `EMAIL_TEST_TO=<your Resend account email>` and switch the feature on. Every guardian email arrives in your own inbox with a "Test mode" note naming the intended recipient, so you can click the link and sign it yourself.
+
+### Tests
+
+`npx tsx scripts/consent-test.ts` (no database needed) and `npx tsx scripts/consent-db-test.ts` (needs a database with all migrations).

@@ -73,7 +73,8 @@ export const updatePlayerProfileSchema = z.object({
   region: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   city: z.string().max(100).optional(),
-  age: z.number().int().min(0).max(150).optional(),
+  // YYYY-MM-DD. Required until it has been saved once; after that it is locked.
+  birthDate: z.string().max(10).optional(),
   gender: z.string().max(30).optional(),
   hobbies: z.string().max(1000).optional(),
   favoriteGames: z.array(z.string()).optional(),
