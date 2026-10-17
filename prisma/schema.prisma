@@ -214,7 +214,15 @@ model PlayerInstitution {
 
   institutionName String // snapshot of the name (legacy: what the player typed)
   studentId       String? // the number printed on the ID, if the player wants to add it
-  idImagePath     String? // LEGACY (8.1 admin review) — unused for new memberships
+
+  // The player's STORED student ID card: added once, reused by every tournament
+  // that asks for a student ID, and kept until the player removes it themself.
+  // The photo is a path in the private "institution-proofs" bucket
+  // (<userId>/<file>). It belongs to the institute it was uploaded for.
+  idImagePath     String?
+  idInstitutionId String? // the institute this ID was added for (stale if the player switches institute)
+  idExpiresAt     DateTime? @db.Date // the card's printed expiry date; null = the card has none
+  idUploadedAt    DateTime?
 
   // LEGACY 8.1 admin-review fields. New memberships are created "approved";
   // the institute, not the admin, decides entry per tournament.

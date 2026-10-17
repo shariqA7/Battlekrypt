@@ -361,9 +361,9 @@ Players verify their institution once on **Dashboard → Profile settings**; adm
 
 Run `npx prisma migrate dev` to apply `20261002210000_phase8_2_audience_scope`.
 
-Organizers choose **Everyone / Students only** when creating or editing a draft (and optionally ask for a fresh ID photo per registration). It's saved in templates too. Once active registrations exist, the setting can't change.
+Organizers choose **Everyone / Students only** when creating or editing a draft (and optionally require a valid student ID: see **Student ID** below). It's saved in templates too. Once active registrations exist, the setting can't change.
 
-**Supabase setup** (only if you use the "fresh ID photo" option): see **Supabase storage for ID photos** in the next section. It is one block that covers the host and co-hosts.
+**Supabase setup** (only if you require a student ID): see **Supabase storage for ID photos** in the next section. It is one block that covers the host and co-hosts.
 
 ## Institutes and co-hosts (replaces the admin-reviewed student verification)
 
@@ -389,9 +389,18 @@ Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_inst
 - The host can cap applications per institute (a default plus per-institute overrides). Rejected, withdrawn and not-selected applications free the slot.
 - A live challenge application (including a club team's, for every player on its roster) also stops a player changing institute.
 
+### Student ID (stored once, reused everywhere)
+
+A player adds their student ID **once** on **Profile → My student ID**: a photo, the expiry date printed on the card (or "my card has no expiry date"), and optionally the student number. It's kept until the player removes it, so they never upload it again when joining tournaments. They only add a new one when it expires (or after switching institute, since the card belongs to the institute it was added for).
+
+- A tournament that **requires a student ID** attaches the player's stored one to the entry automatically. If it's missing or expired, the join page sends the player to their profile and brings them back afterwards.
+- The host, an accepted co-host (for its own players) and admins can open the photo from the entry. Admins use **Admin → ID photos**, which logs every view.
+- The player can remove it any time, except while one of their entries in a running tournament still uses it (the host needs it to review the entry).
+- A card is valid **through** its printed expiry date (compared in UTC). The profile warns 30 days ahead.
+
 ### Supabase storage for ID photos
 
-Only needed if organizers use the **fresh ID photo** option. The photos live in a PRIVATE bucket, and only the host organizer, an accepted co-host (for its own players) and admins can read them. Admins open them from **Admin → ID photos**, which writes an audit-log row before every view. Run this once in the SQL editor (after the migrations above, because it reads the `TournamentInstitution` table). It is safe to run again.
+Only needed if organizers require a student ID. The photos live in a PRIVATE bucket, and only the player themself, the host organizer, an accepted co-host (for its own players) and admins can read them. Admins open them from **Admin → ID photos**, which writes an audit-log row before every view. Run this once in the SQL editor (after the migrations above, because it reads the `TournamentInstitution` table). It is safe to run again.
 
 **Why functions?** A storage policy runs as the signed-in user, and that role usually can't read your Prisma tables directly, so a policy that queries `Registration` or `User` inline silently matches nothing and every photo link fails. Each policy below calls a small `security definer` function instead; it runs with the owner's rights, has a fixed empty `search_path`, and is only executable by signed-in users.
 
@@ -478,12 +487,23 @@ drop policy if exists "admins read institution proofs" on storage.objects;
 create policy "admins read institution proofs"
 on storage.objects for select to authenticated
 using (bucket_id = 'institution-proofs' and public.bk_is_admin());
+
+-- 6. a player can open and delete their OWN stored student ID (their own folder only)
+drop policy if exists "players read own institution proof" on storage.objects;
+create policy "players read own institution proof"
+on storage.objects for select to authenticated
+using (bucket_id = 'institution-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists "players delete own institution proof" on storage.objects;
+create policy "players delete own institution proof"
+on storage.objects for delete to authenticated
+using (bucket_id = 'institution-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
 ```
 ```
 
 Policies on the same table combine with OR, so the host, co-host and admin policies together give each person access through whichever one matches. Challenges don't use ID photos, so they need no storage setup.
 
-**Check it:** register as a player from a co-host institute for a tournament that asks for a fresh ID photo, then open the photo link as the host and as the co-host. Both should work; a different organizer should get an access error.
+**Check it:** as a player from a co-host institute, add your student ID on your profile, join a tournament that requires one, then open the photo link as the host and as the co-host. Both should work; a different organizer should get an access error.
 
 ## Phase 8.3 — LAN venues and check-in
 

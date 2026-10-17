@@ -3,6 +3,7 @@
 import { prisma } from "../lib/prisma";
 import { registerForTournament, manualAddRegistration, updateTournament, listTournaments, publishTournament } from "../lib/services/tournaments";
 import { createInstitution, setInstitutionVerified, setPlayerInstitution, addTournamentInstitution, isOwnProofPath } from "../lib/services/institutions";
+import { saveStudentId } from "../lib/services/student-id";
 
 let fails = 0;
 const ok = (name: string, cond: boolean) => { console.log(`${cond ? "PASS" : "FAIL"} ${name}`); if (!cond) fails++; };
@@ -53,9 +54,11 @@ async function main() {
   ok("inst: guest institute's player can now join, host handles them", !err(rx) && "data" in rx && rx.data?.routedInstitutionId === null);
 
   // fresh proof
-  ok("fresh: member but no proof blocked", err(await registerForTournament({ tournamentId: fresh.id, playerId: s1.id })) === "institution_proof_required");
-  const withProof = await registerForTournament({ tournamentId: fresh.id, playerId: s1.id, institutionProofPath: "s1/proof.jpg" });
-  ok("fresh: with proof ok and path stored", !err(withProof) && "data" in withProof && withProof.data?.institutionProofPath === "s1/proof.jpg");
+  ok("fresh: a member with no stored student ID is blocked", err(await registerForTournament({ tournamentId: fresh.id, playerId: s1.id })) === "institution_id_required");
+  const stored = await saveStudentId("s1", { path: "s1/proof.jpg", expiresAt: null, noExpiry: true });
+  ok("the player adds their ID once in their profile", "data" in stored);
+  const withProof = await registerForTournament({ tournamentId: fresh.id, playerId: s1.id });
+  ok("fresh: with a stored ID, joining needs no upload and attaches it", !err(withProof) && "data" in withProof && withProof.data?.institutionProofPath === "s1/proof.jpg");
   ok("fresh: skipping proof does NOT skip membership", err(await registerForTournament({ tournamentId: fresh.id, playerId: n1.id, skipInstitutionProof: true })) === "institution_required");
 
   // squad: every member must belong to a participating institute

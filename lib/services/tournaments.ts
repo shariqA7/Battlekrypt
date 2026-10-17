@@ -395,7 +395,6 @@ export interface RegisterInput {
   clubTeamId?: string;
   // Private-bucket path of the per-tournament ID photo (institution-only
   // tournaments that ask for fresh proof).
-  institutionProofPath?: string;
   // Club entries skip the per-tournament ID photo (members are verified).
   skipInstitutionProof?: boolean;
 }
@@ -468,7 +467,6 @@ export async function registerForTournament(input: RegisterInput) {
   // to attach fresh proof. Applies to club entries too, since they register
   // through this function.
   const institutionGate = await checkInstitutionGate(input.tournamentId, allPlayerIds, {
-    proofPath: input.institutionProofPath,
     skipProof: input.skipInstitutionProof,
     selfPlayerId: input.playerId,
   });
@@ -511,7 +509,7 @@ export async function registerForTournament(input: RegisterInput) {
           teamEntryId: teamEntry.id,
           paymentStatus: paymentStatus ?? "unpaid",
           paymentProofUrl: input.paymentProofUrl,
-          institutionProofPath: input.institutionProofPath,
+          institutionProofPath: institutionGate.proofPath,
           routedInstitutionId: institutionGate.routedInstitutionId,
           institutionId: institutionGate.institutionId,
           customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
@@ -535,7 +533,7 @@ export async function registerForTournament(input: RegisterInput) {
         playerId: input.playerId,
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
-        institutionProofPath: input.institutionProofPath,
+        institutionProofPath: institutionGate.proofPath,
         routedInstitutionId: institutionGate.routedInstitutionId,
         institutionId: institutionGate.institutionId,
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,

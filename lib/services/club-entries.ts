@@ -63,7 +63,8 @@ export const CLUB_ENTRY_ERRORS = {
     status: 403,
     message: "This tournament is for verified students only.",
   },
-  institution_proof_required: { status: 400, message: "Fresh ID proof is required." },
+  institution_id_required: { status: 400, message: "A student ID is required." },
+  institution_id_expired: { status: 400, message: "The student ID has expired." },
   institution_mixed_team: {
     status: 400,
     message: "All players in a team must belong to the same institute.",

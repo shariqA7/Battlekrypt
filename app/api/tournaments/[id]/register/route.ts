@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { registerForTournament } from "@/lib/services/tournaments";
 import { ensureUserRecord } from "@/lib/ensure-user";
 import { banGuard } from "@/lib/services/bans";
-import { isOwnProofPath } from "@/lib/services/institutions";
 
 export async function POST(
   request: Request,
@@ -52,10 +51,6 @@ export async function POST(
     paymentProofUrl: body.paymentProofUrl,
     teamName: body.teamName,
     teamMemberPlayerIds: body.teamMemberPlayerIds,
-    // Only accepted from the registering user's own folder of the private bucket.
-    institutionProofPath: isOwnProofPath(body.institutionProofPath, user.id)
-      ? body.institutionProofPath
-      : undefined,
   });
 
   const errorMap: Record<string, { status: number; message: string }> = {
@@ -68,7 +63,8 @@ export async function POST(
     birth_date_required: { status: 403, message: "Add your date of birth in Profile settings first." },
     tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
     institution_required: { status: 403, message: "This tournament is for verified students only." },
-    institution_proof_required: { status: 400, message: "A fresh photo of your student ID is required." },
+    institution_id_required: { status: 403, message: "Add your student ID in your profile to enter this tournament." },
+    institution_id_expired: { status: 403, message: "Your student ID has expired. Add your new ID in your profile." },
     institution_mixed_team: { status: 400, message: "All players in a team must belong to the same institute." },
     institution_quota_full: { status: 409, message: "Your institute has no entries left in this tournament." },
   };
