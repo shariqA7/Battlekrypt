@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
 import InstituteSelect from "./InstituteSelect";
+import StudentIdCard from "./StudentIdCard";
+import { getStudentId, getOwnStudentIdPath } from "@/lib/services/student-id";
 import { institutionChangeUnlocksAt, countActiveEntries } from "@/lib/services/institutions";
 import { getInstitutionForUser } from "@/lib/services/institutions";
 
@@ -24,6 +26,8 @@ export default async function PlayerProfileSettingsPage({
   const profile = await getPlayerProfileByUserId(user.id);
   const institution = profile ? await getInstitutionForUser(user.id) : null;
   const activeEntries = profile ? (await countActiveEntries(profile.id, user.id)).total : 0;
+  const studentId = institution?.institutionId ? await getStudentId(user.id) : null;
+  const photoPath = studentId ? await getOwnStudentIdPath(user.id) : null;
 
   return (
     <main className="flex-1 px-5 sm:px-6 py-10 max-w-xl mx-auto w-full">
@@ -60,6 +64,19 @@ export default async function PlayerProfileSettingsPage({
                 }
               : null
           }
+        />
+      )}
+      {profile && studentId && (
+        <StudentIdCard
+          userId={user.id}
+          next={safeNext}
+          initial={{
+            status: studentId.status,
+            expiresAt: studentId.expiresAt ? studentId.expiresAt.toISOString().slice(0, 10) : null,
+            daysLeft: studentId.daysLeft,
+            studentId: studentId.studentId,
+            photoPath,
+          }}
         />
       )}
     </main>

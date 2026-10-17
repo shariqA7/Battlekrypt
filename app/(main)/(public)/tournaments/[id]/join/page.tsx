@@ -11,6 +11,8 @@ import ClubEntryPanel from "./ClubEntryPanel";
 import { prisma } from "@/lib/prisma";
 import { checkInstitutionGate } from "@/lib/services/institutions";
 import { toPublicTournament } from "@/lib/services/venue";
+import { getStudentId } from "@/lib/services/student-id";
+import { isUsableStudentId } from "@/lib/student-id-status";
 
 export default async function JoinTournamentPage({
   params,
@@ -48,6 +50,13 @@ export default async function JoinTournamentPage({
       !player ||
       "error" in (await checkInstitutionGate(full.id, [player.id], { skipProof: true, selfPlayerId: player.id }));
   }
+
+  // The tournament asks for a student ID: the one stored on the player's profile
+  // is attached automatically. If it's missing or expired, send them to add it.
+  const idRequired = tournament.audienceScope === "institution" && full.requireFreshInstitutionProof;
+  const storedId = idRequired && !needsVerification ? await getStudentId(user.id) : null;
+  const idUsable = !idRequired || needsVerification || (storedId ? isUsableStudentId(storedId.status) : false);
+  const profileLink = `/dashboard/profile?next=${encodeURIComponent(`/tournaments/${tournament.slug}/join`)}`;
 
   return (
     <>
@@ -96,12 +105,35 @@ export default async function JoinTournamentPage({
               Open profile
             </a>
           </div>
+        ) : !idUsable ? (
+          <div className="border border-bk-gold-light/40 bg-bk-bg px-4 py-4 mt-4">
+            <p className="font-sans text-[13px] text-bk-heading font-bold mb-1">
+              {storedId?.status === "expired" ? "Your student ID has expired" : "This tournament needs your student ID"}
+            </p>
+            <p className="font-sans text-[12px] text-bk-muted mb-3">
+              {storedId?.status === "expired"
+                ? `It expired on ${storedId.expiresAt?.toISOString().slice(0, 10)}. Add your new ID and you'll come straight back here.`
+                : storedId?.status === "other_institute"
+                  ? "Your stored ID is from your previous institute. Add your current one and you'll come straight back here."
+                  : "Add it once in your profile. It's then used for every tournament that asks for one, until it expires."}
+            </p>
+            <a
+              href={profileLink}
+              className="block sm:inline-block text-center bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-3"
+            >
+              {storedId?.status === "expired" || storedId?.status === "other_institute" ? "Add my new student ID" : "Add my student ID"}
+            </a>
+          </div>
         ) : (
-          <JoinForm
-            tournamentId={tournament.id}
-            tournament={tournament}
-            userId={user.id}
-          />
+          <>
+            {idRequired && storedId && (
+              <p className="font-sans text-[12px] text-bk-muted mt-4">
+                Your student ID{storedId.expiresAt ? ` (valid until ${storedId.expiresAt.toISOString().slice(0, 10)})` : ""} will
+                be attached to your entry. The organizer can see it; nobody else can.
+              </p>
+            )}
+            <JoinForm tournamentId={tournament.id} tournament={tournament} />
+          </>
         )}
       </main>
     </>

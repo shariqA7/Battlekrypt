@@ -39,8 +39,8 @@ export default function AudiencePicker({
       {scope === "institution" && (
         <>
           <p className="font-sans text-[11px] text-bk-muted mt-2">
-            Only players with a verified institution can register — every player on a team
-            entry must be verified.
+            Only players from the participating institutes can register, and every player on a team
+            must be from the same institute.
           </p>
           <label className="flex items-start gap-2 mt-3 font-sans text-[12px] text-bk-body">
             <input
@@ -49,7 +49,10 @@ export default function AudiencePicker({
               onChange={(e) => onChange("institution", e.target.checked)}
               className="mt-0.5"
             />
-            <span>Also ask for a fresh photo of their student ID when they register</span>
+            <span>
+              Also require a valid student ID. Players add it once to their profile and it&apos;s attached to
+              every entry automatically; you can open it from the entry.
+            </span>
           </label>
         </>
       )}

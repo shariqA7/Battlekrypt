@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { studentIdStatus, isUsableStudentId } from "@/lib/student-id-status";
 import type { Prisma } from "@prisma/client";
 import { notifyInviteSent, notifyInviteAnswered } from "@/lib/services/institution-notifications";
 
@@ -310,11 +311,18 @@ export async function evaluateMembership(
 }
 
 export type InstitutionGateResult =
-  | { ok: true; institutionId: string | null; routedInstitutionId: string | null }
+  | {
+      ok: true;
+      institutionId: string | null;
+      routedInstitutionId: string | null;
+      // The registering player's stored student ID photo, when the tournament asks for one.
+      proofPath: string | null;
+    }
   | {
       error:
         | "institution_required"
-        | "institution_proof_required"
+        | "institution_id_required"
+        | "institution_id_expired"
         | "institution_mixed_team"
         | "institution_quota_full";
       message: string;
@@ -332,7 +340,7 @@ export async function checkInstitutionGate(
   tournamentId: string,
   playerIds: string[],
   opts: {
-    proofPath?: string | null;
+    // Organizer manual-add vouches for the player, so no stored ID is needed.
     skipProof?: boolean;
     selfPlayerId?: string;
     // Re-checking an entry that already exists (don't count it against the quota).
@@ -349,7 +357,7 @@ export async function checkInstitutionGate(
     },
   });
   if (!t || t.audienceScope !== "institution") {
-    return { ok: true, institutionId: null, routedInstitutionId: null };
+    return { ok: true, institutionId: null, routedInstitutionId: null, proofPath: null };
   }
 
   const audience = await loadAudience(tournamentId, t.organizerId);
@@ -360,11 +368,32 @@ export async function checkInstitutionGate(
   if ("error" in member) return member;
   const institutionId = member.institutionId;
 
-  if (t.requireFreshInstitutionProof && !opts.skipProof && !opts.proofPath) {
-    return {
-      error: "institution_proof_required",
-      message: "This organizer needs a fresh photo of your student ID for this tournament.",
-    };
+  // The tournament asks for a student ID: use the one stored on the player's
+  // profile (added once, valid until its printed expiry date).
+  let proofPath: string | null = null;
+  if (t.requireFreshInstitutionProof && !opts.skipProof) {
+    const mine = opts.selfPlayerId
+      ? await prisma.playerInstitution.findUnique({
+          where: { playerId: opts.selfPlayerId },
+          select: { idImagePath: true, idInstitutionId: true, idExpiresAt: true, institutionId: true },
+        })
+      : null;
+    const id = mine ? studentIdStatus(mine) : { status: "none" as const, expiresAt: null };
+    if (!mine || !isUsableStudentId(id.status)) {
+      return id.status === "expired"
+        ? {
+            error: "institution_id_expired",
+            message: `Your student ID expired on ${id.expiresAt?.toISOString().slice(0, 10)}. Add your new ID in your profile.`,
+          }
+        : {
+            error: "institution_id_required",
+            message:
+              id.status === "other_institute"
+                ? "Your stored student ID is from a different institute. Add your current ID in your profile."
+                : "This tournament needs your student ID. Add it once in your profile and it will be used for every tournament.",
+          };
+    }
+    proofPath = mine.idImagePath;
   }
 
   // Early, friendly answer. This check alone is NOT enough when several
@@ -374,7 +403,7 @@ export async function checkInstitutionGate(
   if (full) return full;
 
   const routedInstitutionId = audience.cohostIds.has(institutionId) ? institutionId : null;
-  return { ok: true, institutionId, routedInstitutionId };
+  return { ok: true, institutionId, routedInstitutionId, proofPath };
 }
 
 type Db = Prisma.TransactionClient | typeof prisma;
