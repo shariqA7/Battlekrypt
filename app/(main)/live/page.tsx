@@ -1,3 +1,4 @@
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import Link from "next/link";
 import { Suspense } from "react";
 import { listTournaments } from "@/lib/services/tournaments";
@@ -16,9 +17,10 @@ export default async function LivePage({
 }) {
   const params = await searchParams;
   const organizerId = params.organizerId || undefined;
+  const region = await getViewerRegion();
 
   const [{ data: tournaments }, organizer] = await Promise.all([
-    listTournaments({ status: "in_progress", game: params.game || undefined, organizerId, limit: 50 }),
+    listTournaments({ status: "in_progress", game: params.game || undefined, organizerId, limit: 50, viewerCountry: region.showAll ? undefined : region.country }),
     organizerId
       ? prisma.organizerProfile.findUnique({ where: { id: organizerId }, select: { orgName: true } })
       : Promise.resolve(null),

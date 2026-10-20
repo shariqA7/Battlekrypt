@@ -16,6 +16,7 @@
 import { prisma } from "@/lib/prisma";
 import type { ClubRosterRole } from "@prisma/client";
 import { getClubLimits } from "@/lib/club-limits";
+import { gameRosterCap } from "@/lib/game-rules";
 
 // ------------------------------------------------------------
 // Errors
@@ -61,6 +62,10 @@ export const CLUB_ERRORS = {
     message: "Substitutes are available on paid club plans.",
   },
   paid_coach: { status: 403, message: "Setting a coach is available on paid club plans." },
+  // The game's own roster rules (lib/game-catalog.ts), on top of the club's plan limits.
+  game_no_substitutes: { status: 409, message: "This game doesn't allow substitutes." },
+  game_no_coach: { status: 409, message: "This game doesn't have a coach slot." },
+  game_roster_full: { status: 409, message: "That team already has the most players this game allows." },
   not_in_club: { status: 404, message: "You are not on a club roster." },
   conflict: { status: 409, message: "Something changed while saving — please try again." },
 } as const;
@@ -286,6 +291,7 @@ export async function createTeam(
 
   const game = await prisma.game.findFirst({ where: { id: input.gameId, isApproved: true } });
   if (!game) return fail("game_not_found");
+  if (coachName && !game.allowsCoach) return fail("game_no_coach", `${game.name} doesn't have a coach slot.`);
 
   if (await exceedsGameLimit(prisma, club.id, game.id, limits.maxGames)) {
     return fail("game_limit");
@@ -334,6 +340,8 @@ export async function updateTeam(
       const coach = cleanName(input.coachName, 2, 60);
       if (!coach) return fail("validation_error", "Coach name must be 2–60 characters.");
       if (!(await getClubLimits(club)).canSetCoach) return fail("paid_coach");
+      const teamGame = await prisma.game.findUnique({ where: { id: team.gameId }, select: { name: true, allowsCoach: true } });
+      if (teamGame && !teamGame.allowsCoach) return fail("game_no_coach", `${teamGame.name} doesn't have a coach slot.`);
       data.coachName = coach;
     }
   }
@@ -406,6 +414,10 @@ export async function sendInvite(
   if (role === "substitute" && limits.maxSubstitutesPerTeam === 0) {
     return fail("paid_substitutes");
   }
+  // Some games don't allow substitutes at all (for example Fortnite duos).
+  if (team && role === "substitute" && gameRosterCap(game, "substitute") === 0) {
+    return fail("game_no_substitutes", `${game.name} doesn't allow substitutes.`);
+  }
 
   // One club per person, and a club can't move someone between its own games
   // or teams by inviting — it must remove them first.
@@ -422,8 +434,19 @@ export async function sendInvite(
       prisma.clubRoster.count({ where: { teamId: team.id, role } }),
       prisma.clubInvite.count({ where: { teamId: team.id, role, status: "pending" } }),
     ]);
-    const cap = role === "player" ? limits.maxPlayersPerTeam : limits.maxSubstitutesPerTeam;
-    if (members + pending >= cap) return fail("team_full");
+    const planCap = role === "player" ? limits.maxPlayersPerTeam : limits.maxSubstitutesPerTeam;
+    // The stricter of the plan limit and the game's own limit applies.
+    const gameCap = gameRosterCap(game, role);
+    const cap = Math.min(planCap, gameCap ?? Infinity);
+    if (members + pending >= cap) {
+      if (gameCap !== null && gameCap < planCap) {
+        return fail(
+          "game_roster_full",
+          `${game.name} teams can have at most ${gameCap} ${role === "player" ? "players" : `substitute${gameCap === 1 ? "" : "s"}`}.`
+        );
+      }
+      return fail("team_full");
+    }
   } else {
     // A solo invite opens a new game for the club if it has nothing there yet.
     if (await exceedsGameLimit(prisma, club.id, game.id, limits.maxGames)) {
@@ -526,9 +549,18 @@ export async function acceptInvite(playerId: string, inviteId: string) {
         const filled = await tx.clubRoster.count({
           where: { teamId: invite.teamId, role: invite.role, playerId: { not: playerId } },
         });
-        const cap =
+        const planCap =
           invite.role === "player" ? limits.maxPlayersPerTeam : limits.maxSubstitutesPerTeam;
-        if (filled >= cap) return fail("team_full");
+        // The game's own roster rules apply too (re-checked here: they may have changed since the invite).
+        const inviteGame = await tx.game.findUnique({ where: { id: invite.gameId } });
+        const gameCap = inviteGame ? gameRosterCap(inviteGame, invite.role) : null;
+        if (invite.role === "substitute" && gameCap === 0) {
+          return fail("game_no_substitutes", `${inviteGame?.name ?? "This game"} doesn't allow substitutes.`);
+        }
+        const cap = Math.min(planCap, gameCap ?? Infinity);
+        if (filled >= cap) {
+          return gameCap !== null && gameCap < planCap ? fail("game_roster_full") : fail("team_full");
+        }
       } else if (limits.maxEntriesPerGame !== null) {
         const c = await countEntries(tx, invite.clubId, invite.gameId, {
           excludePlayerId: playerId,

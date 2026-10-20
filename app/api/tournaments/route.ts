@@ -1,5 +1,6 @@
 // GET  /api/tournaments  — public browse/search/filter
 // POST /api/tournaments  — organizer creates a draft tournament
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import { parseVenue } from "@/lib/venue-input";
 import { parsePrizeTiers, checkAgainstPool } from "@/lib/services/prize-tiers";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
@@ -26,7 +27,9 @@ function moneyError(message: string) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
+  const region = await getViewerRegion();
   const result = await listTournaments({
+    viewerCountry: region.showAll ? undefined : region.country,
     game: searchParams.get("game") ?? undefined,
     type: (searchParams.get("type") as never) ?? undefined,
     mode: (searchParams.get("mode") as never) ?? undefined,
