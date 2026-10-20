@@ -70,6 +70,25 @@ model Game {
   isApproved Boolean  @default(true)
   createdAt  DateTime @default(now())
 
+  // Display group and roster rules (see lib/game-catalog.ts). All optional: a game with no
+  // rules (for example one added through "Request a game") has no limits beyond a club's plan.
+  genre          String? // FPS / Shooters, MOBA, Battle Royale, ...
+  format         String? // multiplayer | one_on_one | free_for_all | both
+  teamSizeMin    Int? // players who actually play ...
+  teamSizeMax    Int? // ... as a range only where the format varies
+  maxSubstitutes Int?
+  allowsCoach    Boolean @default(true)
+  rosterNotes    String?
+
+  // Regional versions. Some games are blocked in a country and replaced there by a
+  // local version (for example India). `onlyInCountries`: only people in those countries
+  // see this game (empty = everyone). `blockedInCountries`: people in those countries
+  // don't see it. ISO codes, e.g. "IN". `localVersionOf` names the global game a local
+  // version stands in for (shown to admins).
+  onlyInCountries    String[] @default([])
+  blockedInCountries String[] @default([])
+  localVersionOf     String?
+
   tournaments   Tournament[]
   gameRequests  GameRequest[]
   clubRosters   ClubRoster[]

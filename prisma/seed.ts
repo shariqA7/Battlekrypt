@@ -3,6 +3,7 @@
 // "Request a Game" flow rather than pre-loading all 24 EWC titles.
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { GAME_CATALOG } from "../lib/game-catalog";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -146,6 +147,27 @@ async function main() {
     });
   }
   console.log(`Seeded ${LAUNCH_GAMES.length} games.`);
+
+  // Genres and roster rules (lib/game-catalog.ts). A missing game is added; one that already
+  // exists keeps its name and platform category, and only its still-empty rule columns are filled.
+  for (const x of GAME_CATALOG) {
+    const rules = {
+      genre: x.genre,
+      format: x.format,
+      teamSizeMin: x.teamSizeMin,
+      teamSizeMax: x.teamSizeMax,
+      maxSubstitutes: x.maxSubstitutes,
+      allowsCoach: x.allowsCoach,
+      rosterNotes: x.notes,
+    };
+    const existing = await prisma.game.findUnique({ where: { name: x.name } });
+    if (!existing) {
+      await prisma.game.create({ data: { name: x.name, category: x.category, ...rules } });
+    } else if (existing.genre === null) {
+      await prisma.game.update({ where: { id: existing.id }, data: rules });
+    }
+  }
+  console.log(`Checked ${GAME_CATALOG.length} catalog games.`);
   await seedSuggestedRules();
   await seedTierSettings();
 }

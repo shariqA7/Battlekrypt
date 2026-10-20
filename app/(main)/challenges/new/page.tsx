@@ -1,3 +1,5 @@
+import { gameVisibilityWhere } from "@/lib/game-region";
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -12,9 +14,10 @@ export default async function NewChallengePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectTo=/challenges/new");
 
+  const region = await getViewerRegion();
   const [roles, games] = await Promise.all([
     getPosterRoles(user.id),
-    prisma.game.findMany({ where: { isApproved: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.game.findMany({ where: { isApproved: true, ...(region.showAll ? {} : gameVisibilityWhere(region.country)) }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (

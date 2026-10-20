@@ -1,3 +1,4 @@
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import { listTournaments } from "@/lib/services/tournaments";
 import TournamentCard from "@/components/tournaments/TournamentCard";
 import { ButtonLink } from "@/components/ui/Button";
@@ -5,9 +6,12 @@ import { SectionHeading } from "@/components/ui/Panel";
 import Link from "next/link";
 
 export default async function Home() {
+  // Hide tournaments of games that aren't available where this visitor is.
+  const region = await getViewerRegion();
+  const viewerCountry = region.showAll ? undefined : region.country;
   const [{ data: live }, { data: upcoming }] = await Promise.all([
-    listTournaments({ status: "in_progress", limit: 3 }),
-    listTournaments({ status: "published", limit: 6 }),
+    listTournaments({ status: "in_progress", limit: 3, viewerCountry }),
+    listTournaments({ status: "published", limit: 6, viewerCountry }),
   ]);
 
   return (

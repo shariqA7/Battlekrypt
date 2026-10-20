@@ -6,6 +6,7 @@
 // route handlers give mobile/external clients the identical logic.
 // Business rules live here ONCE, not duplicated between a page and a route.
 
+import { gameVisibilityWhere } from "@/lib/game-region";
 import { checkConsentGate } from "@/lib/services/parental-consent";
 import { checkAgeGate } from "@/lib/services/age-gate";
 import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
@@ -59,6 +60,9 @@ export interface TournamentListFilters {
   status?: TournamentStatus;
   search?: string;
   page?: number;
+  // Hide tournaments of games that aren't shown in this country (see lib/game-region.ts).
+  // undefined = no filtering (admins, internal callers); null = country unknown.
+  viewerCountry?: string | null;
   limit?: number;
 }
 
@@ -108,6 +112,11 @@ export async function listTournaments(filters: TournamentListFilters) {
       name: { contains: filters.search, mode: "insensitive" },
     }),
   };
+
+  if (filters.viewerCountry !== undefined) {
+    const existing = where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : [];
+    where.AND = [...existing, { game: gameVisibilityWhere(filters.viewerCountry) }];
+  }
 
   const [data, total] = await Promise.all([
     prisma.tournament.findMany({

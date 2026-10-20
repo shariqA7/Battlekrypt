@@ -603,3 +603,37 @@ Set `RESEND_API_KEY` and `EMAIL_TEST_TO=<your Resend account email>` and switch 
 ### Tests
 
 `npx tsx scripts/consent-test.ts` (no database needed) and `npx tsx scripts/consent-db-test.ts` (needs a database with all migrations).
+
+## Games, genres and roster rules
+
+The 24 launch games, their genre and their roster rules (players on the field, most substitutes, coach slot) live in `lib/game-catalog.ts`. `npx prisma migrate deploy` (migration `20261020000000_game_rules`) adds any of them that are missing and fills in the rules; `npx prisma db seed` does the same on a fresh database. Neither one renames, recategorises or removes a game that already exists, and neither overwrites rules that have already been filled in.
+
+Where the rules are used:
+- **Games page:** games are grouped by genre, with a line such as "5 players + 1 sub".
+- **Create tournament:** picking a game pre-fills team mode and team size (players + substitutes). Organizers can still change both.
+- **Club teams:** a team can't hold more players or substitutes than the game allows (the stricter of that and the club's plan limit applies), and a game with no coach slot (Chess) can't have a coach named.
+- A game with no rules (for example one added through "Request a game", or BGMI) has no limits beyond a club's plan and appears under "Other games".
+
+To change a rule later, edit the game in `lib/game-catalog.ts` for new databases, and update the `Game` row in the database for the live one.
+
+## Regional game versions (India and others)
+
+Some games are blocked in a country and replaced there by a local version. The site shows each visitor only the version that applies to them, using three columns on `Game`: `onlyInCountries` (only people in those countries see the game), `blockedInCountries` (people in those countries don't see it) and `localVersionOf` (which global game a local version stands in for, for admins).
+
+What is set up now (India, checked October 2026), in `lib/game-regions.ts`:
+
+| Global game (hidden in India) | India's version (shown only in India) |
+|---|---|
+| Mobile Legends: Bang Bang | Moba Legends: 5v5! |
+| Free Fire | Free Fire MAX |
+| PUBG Mobile | BGMI |
+
+Honor of Kings launched in India on 11 March 2026, so it is shown everywhere. "Free Fire India" has been announced but has not launched; add it in `lib/game-regions.ts` when it does.
+
+- **Who counts as being in a country:** the country on their player profile; then their organization's country; then where their request came from (Vercel's country header). Unknown visitors see the global versions and never a local one.
+- **Where it applies:** the Games page, home, tournament browse, Live, the game pickers (create tournament, challenges, club teams, filters) and the public tournament list API.
+- **Admins** see every game, with each country's local versions listed under that country, and can use "Preview as India" on the Games page to see what a visitor there sees.
+- **Direct links still work:** someone who opens a tournament link for a game that isn't listed for them can still view it. This change hides games from lists and pickers; it does not block anyone.
+- **Adding another country:** add the entries to `BLOCKED_RULES` and `LOCAL_VERSIONS` in `lib/game-regions.ts`, run `npx tsx scripts/gen-region-migration.ts` to produce a new migration, and run the tests.
+
+Tests: `npx tsx scripts/game-region-test.ts` (no database needed).

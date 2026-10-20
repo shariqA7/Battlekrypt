@@ -1,3 +1,5 @@
+import { gameVisibilityWhere } from "@/lib/game-region";
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { listOpenChallenges } from "@/lib/services/challenges";
@@ -9,9 +11,10 @@ export default async function ChallengesPage({
   searchParams: Promise<{ game?: string }>;
 }) {
   const { game } = await searchParams;
+  const region = await getViewerRegion();
   const [challenges, games] = await Promise.all([
     listOpenChallenges({ gameId: game }),
-    prisma.game.findMany({ where: { isApproved: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.game.findMany({ where: { isApproved: true, ...(region.showAll ? {} : gameVisibilityWhere(region.country)) }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (

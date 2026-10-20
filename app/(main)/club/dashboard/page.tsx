@@ -1,3 +1,5 @@
+import { gameVisibilityWhere } from "@/lib/game-region";
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -35,10 +37,11 @@ export default async function ClubDashboardPage() {
   // Clubs are active from the moment they're created; only a disbanded club
   // (after an upheld name claim) is shut down.
   const approved = club.status === "approved";
+  const region = await getViewerRegion();
   const [games, roster, invites] = approved
     ? await Promise.all([
         prisma.game.findMany({
-          where: { isApproved: true },
+          where: { isApproved: true, ...(region.showAll ? {} : gameVisibilityWhere(region.country)) },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         }),

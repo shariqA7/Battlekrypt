@@ -1,3 +1,4 @@
+import { getViewerRegion } from "@/lib/services/viewer-region";
 import { listTournaments } from "@/lib/services/tournaments";
 import { Suspense } from "react";
 import { isCountryCode, isRegionKey } from "@/lib/geo-data";
@@ -12,7 +13,9 @@ export default async function TournamentsPage({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const params = await searchParams;
+  const region = await getViewerRegion();
   const { data: tournaments, total } = await listTournaments({
+    viewerCountry: region.showAll ? undefined : region.country,
     game: params.game || undefined,
     search: params.search || undefined,
     type: (params.type || undefined) as never,

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import FileUpload from "@/components/ui/FileUpload";
+import { describeRules, tournamentDefaults, type GameRules } from "@/lib/game-rules";
 import AgePicker from "@/components/tournaments/AgePicker";
 import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEditor";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
@@ -14,9 +15,10 @@ import AudiencePicker, { type AudienceScopeValue } from "@/components/tournament
 import { buttonClass } from "@/components/ui/Button";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
 
-interface Game {
+interface Game extends GameRules {
   id: string;
   name: string;
+  rosterNotes?: string | null;
 }
 
 interface TemplateSummary {
@@ -40,6 +42,7 @@ export default function NewTournamentPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const [gameId, setGameId] = useState("");
+  const selectedGame = games.find((x) => x.id === gameId);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
@@ -260,7 +263,16 @@ export default function NewTournamentPage() {
           <select
             required
             value={gameId}
-            onChange={(e) => setGameId(e.target.value)}
+            onChange={(e) => {
+              setGameId(e.target.value);
+              // Pre-fill team mode and size from the game's roster rules (still editable).
+              const picked = games.find((x) => x.id === e.target.value);
+              const d = picked ? tournamentDefaults(picked) : null;
+              if (d) {
+                setMode(d.mode);
+                setMaxTeamSize(d.maxTeamSize);
+              }
+            }}
             className={inputClass}
           >
             <option value="">Select a game</option>
@@ -270,6 +282,12 @@ export default function NewTournamentPage() {
               </option>
             ))}
           </select>
+          {selectedGame && describeRules(selectedGame) && (
+            <p className="font-sans text-bk-muted text-[11px] mt-1.5">
+              <span className="font-mono text-bk-body">{describeRules(selectedGame)}</span>
+              {selectedGame.rosterNotes ? `. ${selectedGame.rosterNotes}` : ""} Team mode and size were pre-filled; you can change them below.
+            </p>
+          )}
           <a
             href="/organizer/dashboard/games"
             className="text-bk-gold-light text-[11px] font-sans underline mt-1.5 inline-block"
