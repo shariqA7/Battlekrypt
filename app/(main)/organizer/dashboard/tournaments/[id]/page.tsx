@@ -14,6 +14,7 @@ import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
 import InstitutesPanel from "@/components/institutes/InstitutesPanel";
+import NoShowPolicyPanel from "@/components/penalties/NoShowPolicyPanel";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import Stat from "@/components/ui/Stat";
@@ -67,6 +68,8 @@ export default async function ManageTournamentPage({
   // Parental consent status per registration (null when this tournament doesn't ask for it).
   const consentStatuses = await consentStatusesForTournament(id);
   const capacity = await getTournamentCapacity(id);
+  const myInstitutionId =
+    (await prisma.institution.findUnique({ where: { organizerId: organizerProfile.id }, select: { id: true } }))?.id ?? null;
   const isInstitutionScoped = tournament.audienceScope === "institution";
   const linkedInstitutes = isInstitutionScoped ? await listTournamentInstitutions(id) : [];
   const instituteUsage = isInstitutionScoped ? await getInstitutionUsage(id) : {};
@@ -191,6 +194,11 @@ export default async function ManageTournamentPage({
           locked={!["draft", "published", "registration_open"].includes(tournament.status)}
         />
 
+        <NoShowPolicyPanel
+          tournamentId={id}
+          initial={{ penalty: tournament.noShowPenalty, points: tournament.noShowPenaltyPoints }}
+        />
+
         <div className="flex flex-wrap items-baseline justify-between gap-2 mt-10 mb-3">
           <p className="font-sans font-bold text-bk-heading text-base">
             Registrations ({registrations.length})
@@ -213,13 +221,15 @@ export default async function ManageTournamentPage({
           </div>
         )}
         <RegistrationQueue
-          key={view}
+          key={`${view}:${registrations.map((r) => `${r.id}.${r.status}.${r.penalties.map((p) => p.id).join("+")}`).join("|")}`}
           tournamentId={id}
           initialRegistrations={registrations}
           mode={tournament.mode}
           isLan={isLan}
           rules={tournament.rules.map((r) => ({ id: r.id, title: r.title, description: r.description }))}
           consent={consentStatuses}
+          noShowPolicy={{ penalty: tournament.noShowPenalty, points: tournament.noShowPenaltyPoints }}
+          myInstitutionId={myInstitutionId}
         />
       </main>
     </>

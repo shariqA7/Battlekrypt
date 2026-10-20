@@ -120,19 +120,19 @@ model PlayerProfile {
   age           Int?
   // Date of birth as the player declared it (date only). Set once, never edited by the
   // player afterwards; `age` above is kept in step with it for older screens.
-  birthDate     DateTime?     @db.Date
+  birthDate     DateTime? @db.Date
   gender        String?
   hobbies       String?
-  favoriteGames String[] @default([])
+  favoriteGames String[]  @default([])
 
-  registrations   Registration[]
-  teamMemberships TeamMember[]
-  clubRoster      ClubRoster?
-  clubInvites     ClubInvite[]
-  tournamentVotes TournamentVote[]
-  gameRatings     PlayerGameRating[]
+  registrations    Registration[]
+  teamMemberships  TeamMember[]
+  clubRoster       ClubRoster?
+  clubInvites      ClubInvite[]
+  tournamentVotes  TournamentVote[]
+  gameRatings      PlayerGameRating[]
   parentalConsents ParentalConsent[]
-  institution     PlayerInstitution?
+  institution      PlayerInstitution?
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
   // is treated as free at read time (lib/plans.ts), no cron needed.
@@ -980,6 +980,10 @@ model Tournament {
   institutions           TournamentInstitution[]
   // Default cap on entries per institute (institution-only tournaments). Null = no cap.
   maxEntriesPerInstitute Int?
+  // What happens to an entry reported as a no-show (decided by the organizer).
+  noShowPenalty          NoShowPenalty           @default(none)
+  noShowPenaltyPoints    Int? // only for point_deduction
+  penalties              Penalty[]
   flags                  TournamentFlag[]
   teamEntries            TeamEntry[]
   votes                  TournamentVote[]
@@ -1186,9 +1190,13 @@ model Registration {
   stageEntries    StageEntry[]
   addedBy         AddedBy       @default(self)
 
-  disqualifiedRuleId String?
-  disqualifiedRule   TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
-  disqualifiedReason String?
+  disqualifiedRuleId          String?
+  disqualifiedRule            TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
+  disqualifiedReason          String?
+  disqualifiedAt              DateTime?
+  disqualifiedByUserId        String?
+  disqualifiedByInstitutionId String? // the host's or a co-host institute's id, when one of them did it
+  penalties                   Penalty[]
 
   customFieldResponses Json?
 
@@ -1705,6 +1713,7 @@ model Institution {
   challengeLinks              ChallengeInstitution[]
   challengeApplications       ChallengeApplication[]  @relation("ChallengeAppEntry")
   routedChallengeApplications ChallengeApplication[]  @relation("ChallengeAppRouted")
+  penaltiesIssued             Penalty[]               @relation("PenaltyIssuer")
 
   @@index([verified])
 }
@@ -1771,18 +1780,69 @@ model ParentalConsent {
   // Context for the email only ("…to play in X"); the consent itself isn't tied to it.
   requestedFor String?
 
-  sentAt        DateTime @default(now())
+  sentAt        DateTime  @default(now())
   linkExpiresAt DateTime
   decidedAt     DateTime?
   validUntil    DateTime?
 
   signedName      String?
   waiverVersion   String?
-  waiverText      String?  @db.Text
+  waiverText      String? @db.Text
   signedIp        String?
   signedUserAgent String?
 
   createdAt DateTime @default(now())
 
   @@index([playerId, status])
+}
+
+// ------------------------------------------------------------
+// PENALTIES — what happens to an entry that cheats or doesn't show up
+// ------------------------------------------------------------
+
+enum PenaltyKind {
+  warning
+  point_deduction
+  disqualification
+}
+
+enum PenaltyCause {
+  cheating
+  no_show
+  other
+}
+
+// What the organizer chose to do with a no-show. "none" = just record it.
+enum NoShowPenalty {
+  none
+  warning
+  point_deduction
+  disqualification
+}
+
+// One consequence applied to one entry. Disqualification ALSO sets the entry's
+// status; warnings and point deductions are recorded here (points are shown to
+// the organizer, who enters standings by hand). Revoking keeps the row.
+model Penalty {
+  id             String       @id @default(uuid())
+  registrationId String
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  tournamentId   String
+  tournament     Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  kind   PenaltyKind
+  points Int? // only for point_deduction
+  cause  PenaltyCause
+  reason String
+
+  issuedByUserId        String
+  issuedByInstitutionId String?
+  issuedByInstitution   Institution? @relation("PenaltyIssuer", fields: [issuedByInstitutionId], references: [id], onDelete: SetNull)
+  createdAt             DateTime     @default(now())
+
+  revokedAt       DateTime?
+  revokedByUserId String?
+
+  @@index([registrationId])
+  @@index([tournamentId, createdAt])
 }

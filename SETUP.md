@@ -389,6 +389,16 @@ Run `npx prisma migrate deploy` (or `migrate dev`) to apply `20261007000000_inst
 - The host can cap applications per institute (a default plus per-institute overrides). Rejected, withdrawn and not-selected applications free the slot.
 - A live challenge application (including a club team's, for every player on its roster) also stops a player changing institute.
 
+### Cheating and no-shows
+
+- **Cheating = disqualification.** The host organizer can disqualify any entry; an accepted co-host institute can disqualify entries from **its own** institute. A reason is required and the player is told. A disqualified entry leaves the tournament and frees its slot (including the institute's entry limit).
+- **No-shows: the organizer decides the penalty.** On the tournament page, **No-show penalty** sets it: no automatic penalty, a warning, a point deduction (you choose the points) or disqualification. It is applied automatically when a no-show is marked at on-site check-in, and it is what a co-host institute applies when it uses **Report no-show**. A co-host can never choose a different penalty; the host can choose one for a single case.
+- **Point deductions are recorded** next to the entry. They don't change standings by themselves, because standings are entered by hand.
+- Co-hosts can also mark **their own** entries as checked in or no-show at an on-site tournament.
+- **Every consequence is logged** (who, when, why, which institute). A penalty can be **revoked**: the host can revoke any, a co-host only the ones it issued. Revoking a disqualification puts the entry back (approved again, or pending if it was never approved). Un-marking an on-site no-show takes its penalty back too.
+- The player is notified of each penalty and each revoke; the host is told when a co-host acts, and a co-host is told when the host acts on its player.
+- Challenges keep their own dispute and report flow; this applies to tournaments.
+
 ### Student ID (stored once, reused everywhere)
 
 A player adds their student ID **once** on **Profile → My student ID**: a photo, the expiry date printed on the card (or "my card has no expiry date"), and optionally the student number. It's kept until the player removes it, so they never upload it again when joining tournaments. They only add a new one when it expires (or after switching institute, since the card belongs to the institute it was added for).

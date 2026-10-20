@@ -20,6 +20,7 @@ import {
   getRegistrationActor,
   reserveInstitutionSlot,
 } from "@/lib/services/institutions";
+import { listActivePenalties } from "@/lib/services/penalties";
 import {
   notifyNewQueueItem,
   notifyAwaitingPayment,
@@ -595,8 +596,12 @@ export async function listRegistrations(
     },
     orderBy: { registeredAt: "asc" },
   });
+  const penalties = await listActivePenalties(registrations.map((r) => r.id));
 
-  return { data: registrations, role };
+  return {
+    data: registrations.map((r) => ({ ...r, penalties: penalties.get(r.id) ?? [] })),
+    role,
+  };
 }
 
 // Host: may act on any registration. Co-host: only on registrations routed to
@@ -1393,38 +1398,9 @@ export async function getRegistrationById(
   return { data: registration };
 }
 
-export async function disqualifyRegistration(
-  registrationId: string,
-  organizerId: string,
-  reason: string,
-  ruleId?: string
-) {
-  const registration = await prisma.registration.findUnique({
-    where: { id: registrationId },
-    include: { tournament: true },
-  });
-  if (!registration) return { error: "not_found" as const };
-  if (registration.tournament.organizerId !== organizerId) return { error: "forbidden" as const };
-
-  // A cited rule must actually belong to this tournament — otherwise the
-  // disqualification's audit trail could point at someone else's rule.
-  if (ruleId) {
-    const rule = await prisma.tournamentRule.findUnique({ where: { id: ruleId } });
-    if (!rule || rule.tournamentId !== registration.tournamentId) {
-      return { error: "invalid_rule" as const };
-    }
-  }
-
-  const updated = await prisma.registration.update({
-    where: { id: registrationId },
-    data: {
-      status: "disqualified",
-      disqualifiedReason: reason,
-      disqualifiedRuleId: ruleId,
-    },
-  });
-  return { data: updated };
-}
+// Disqualifying (and the other penalties) live in penalties.ts: the host can act
+// on any entry, a co-host institute on its own. Re-exported for existing imports.
+export { disqualifyRegistration } from "@/lib/services/penalties";
 
 // ------------------------------------------------------------
 // MODERATION — lightweight flag/report stub
