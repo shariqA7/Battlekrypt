@@ -155,3 +155,91 @@ export function notifyApplicantApproved(applicantUserId: string, challengeId: st
   });
 }
 
+
+// ---------------------------------------------------------------
+// Penalties (cheating / no-shows)
+// ---------------------------------------------------------------
+
+const penaltyTitle = (kind: string, points: number | null, name: string) =>
+  kind === "disqualification"
+    ? `You were disqualified from "${name}"`
+    : kind === "point_deduction"
+      ? `${points} point${points === 1 ? "" : "s"} deducted in "${name}"`
+      : `You received a warning in "${name}"`;
+
+// Tell the entrant, and the other side of the host/co-host pair, what happened.
+export function notifyPenaltyIssued(penaltyId: string) {
+  return safely("penalty", async () => {
+    const p = await prisma.penalty.findUnique({
+      where: { id: penaltyId },
+      select: {
+        kind: true,
+        points: true,
+        reason: true,
+        issuedByUserId: true,
+        issuedByInstitutionId: true,
+        registration: {
+          select: {
+            routedInstitutionId: true,
+            player: { select: { userId: true } },
+            tournament: { select: { id: true, name: true, organizer: { select: { userId: true } } } },
+          },
+        },
+      },
+    });
+    if (!p) return;
+    const t = p.registration.tournament;
+    const hostUserId = t.organizer.userId;
+
+    // The entrant. (Team/club entries have no single account behind them.)
+    if (p.registration.player) {
+      await notify(p.registration.player.userId, {
+        type: "penalty_issued",
+        title: penaltyTitle(p.kind, p.points, t.name),
+        body: p.reason,
+        href: `/tournaments/${t.id}`,
+      });
+    }
+    const what = p.kind === "disqualification" ? "disqualified" : p.kind === "point_deduction" ? "penalised" : "warned";
+    // A co-host acted: the host should know.
+    if (p.issuedByUserId !== hostUserId) {
+      const inst = p.issuedByInstitutionId ? await instituteOwner(p.issuedByInstitutionId) : null;
+      await notify(hostUserId, {
+        type: "penalty_by_cohost",
+        title: `${inst?.name ?? "A co-host institute"} ${what} an entry in "${t.name}"`,
+        body: p.reason,
+        href: `/organizer/dashboard/tournaments/${t.id}`,
+      });
+    } else if (p.registration.routedInstitutionId) {
+      // The host acted on a co-host's player: that institute should know.
+      const inst = await instituteOwner(p.registration.routedInstitutionId);
+      if (inst) {
+        await notify(inst.organizer.userId, {
+          type: "penalty_on_your_player",
+          title: `The organizer ${what} a player from your institute in "${t.name}"`,
+          body: p.reason,
+          href: `/organizer/dashboard/institute/tournaments/${t.id}`,
+        });
+      }
+    }
+  });
+}
+
+export function notifyPenaltyRevoked(penaltyId: string) {
+  return safely("penalty revoked", async () => {
+    const p = await prisma.penalty.findUnique({
+      where: { id: penaltyId },
+      select: {
+        kind: true,
+        registration: { select: { player: { select: { userId: true } }, tournament: { select: { id: true, name: true } } } },
+      },
+    });
+    if (!p?.registration.player) return;
+    await notify(p.registration.player.userId, {
+      type: "penalty_revoked",
+      title: `A penalty in "${p.registration.tournament.name}" was withdrawn`,
+      body: p.kind === "disqualification" ? "You're back in the tournament." : undefined,
+      href: `/tournaments/${p.registration.tournament.id}`,
+    });
+  });
+}

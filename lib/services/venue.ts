@@ -1,6 +1,8 @@
 import { randomInt } from "crypto";
 import { checkConsentGate } from "@/lib/services/parental-consent";
 import { prisma } from "@/lib/prisma";
+import { getRegistrationActor } from "@/lib/services/institutions";
+import { applyNoShowPolicy, revokeNoShowPenalties } from "@/lib/services/penalties";
 import type { CheckInStatus, VenueType } from "@prisma/client";
 
 // ------------------------------------------------------------
@@ -160,12 +162,27 @@ export async function setCheckInStatus(
     include: { tournament: true },
   });
   if (!reg) return { error: "not_found" };
-  if (reg.tournament.organizerId !== organizerId) return { error: "forbidden" };
+  // The host, or an accepted co-host for entries from its own institute.
+  const actor = await getRegistrationActor(
+    reg.tournamentId,
+    reg.tournament.organizerId,
+    organizerId,
+    reg.routedInstitutionId
+  );
+  if (!actor) return { error: "forbidden" };
   if (reg.tournament.venueType !== "lan") return { error: "not_lan", message: "This tournament has no on-site check-in." };
-  if (reg.status !== "approved") return { error: "not_approved", message: "Only approved entries can check in." };
   if (["completed", "cancelled"].includes(reg.tournament.status)) {
     return { error: "closed", message: "This tournament is over." };
   }
+
+  // Un-marking a no-show takes back the penalty it caused (which can put a
+  // disqualified entry back in), so do that before the "approved" check.
+  let status0 = reg.status;
+  if (reg.checkInStatus === "no_show" && status !== "no_show") {
+    await revokeNoShowPenalties(registrationId, organizerId);
+    status0 = (await prisma.registration.findUniqueOrThrow({ where: { id: registrationId }, select: { status: true } })).status;
+  }
+  if (status0 !== "approved") return { error: "not_approved", message: "Only approved entries can check in." };
 
   await prisma.registration.update({
     where: { id: registrationId },
@@ -176,6 +193,8 @@ export async function setCheckInStatus(
       checkInAttempts: 0,
     },
   });
+  // Marking a no-show applies the penalty the ORGANIZER set for this tournament.
+  if (status === "no_show" && reg.checkInStatus !== "no_show") await applyNoShowPolicy(registrationId, organizerId);
   return { data: { status } };
 }
 

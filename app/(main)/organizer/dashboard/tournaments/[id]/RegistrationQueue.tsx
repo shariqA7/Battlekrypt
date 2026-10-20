@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
 import { buttonClass } from "@/components/ui/Button";
+import PenaltyControls, { type NoShowPolicy, type PenaltyRow } from "@/components/penalties/PenaltyControls";
 
 type ClubCandidate = ClubTeamCandidate | ClubSoloCandidate;
 
@@ -19,6 +20,8 @@ interface Registration {
   checkInStatus: "pending" | "checked_in" | "no_show";
   placement: number | null;
   points: number | null;
+  // Standing penalties (cheating / no-show) on this entry.
+  penalties?: PenaltyRow[];
   player: { user: { displayName: string } } | null;
   teamEntry: { name: string; members: unknown[] } | null;
 }
@@ -130,7 +133,8 @@ export default function RegistrationQueue({
   isLan = false,
   rules,
   consent = null,
-}: {
+  noShowPolicy,
+  myInstitutionId,}: {
   tournamentId: string;
   initialRegistrations: Registration[];
   mode: string;
@@ -138,6 +142,9 @@ export default function RegistrationQueue({
   rules: TournamentRuleOption[];
   // registrationId -> consent status, or null when this tournament doesn't ask for it.
   consent?: Record<string, "not_required" | "approved" | "pending" | "declined"> | null;
+  noShowPolicy: NoShowPolicy;
+  // The host's own institute, if it has one (a penalty it issued can be revoked by it).
+  myInstitutionId: string | null;
 }) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   // Which registration's disqualify panel is open, if any — replaces a
@@ -512,6 +519,17 @@ export default function RegistrationQueue({
                   Disqualify
                 </button>
               </div>
+            )}
+            {(r.status === "approved" || r.status === "disqualified") && (
+              <PenaltyControls
+                registrationId={r.id}
+                status={r.status}
+                role="host"
+                myInstitutionId={myInstitutionId}
+                policy={noShowPolicy}
+                penalties={r.penalties ?? []}
+                allowDisqualify={false}
+              />
             )}
           </div>
         );

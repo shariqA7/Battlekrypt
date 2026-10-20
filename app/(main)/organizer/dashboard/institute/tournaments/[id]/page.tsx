@@ -19,10 +19,12 @@ export default async function CoHostQueuePage({ params }: { params: Promise<{ id
 
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    select: { name: true, entryType: true, organizer: { select: { orgName: true } } },
+    select: { name: true, entryType: true, noShowPenalty: true, noShowPenaltyPoints: true, organizer: { select: { orgName: true } } },
   });
   if (!tournament) notFound();
 
+  const myInstitutionId =
+    (await prisma.institution.findUnique({ where: { organizerId: organizer.id }, select: { id: true } }))?.id ?? null;
   const result = await listRegistrations(id, organizer.id);
   if ("error" in result) redirect("/organizer/dashboard/institute");
 
@@ -31,15 +33,19 @@ export default async function CoHostQueuePage({ params }: { params: Promise<{ id
       <SectionHeading className="mb-3 break-words">{tournament.name}</SectionHeading>
       <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
         Co-hosting for {tournament.organizer.orgName}. You can approve or reject players from your
-        own institute. {tournament.entryType === "paid" && "The host confirms entry-fee payments."}
+        own institute, and disqualify or report a no-show for them (cheating is disqualification; the organizer decides the no-show penalty). {tournament.entryType === "paid" && "The host confirms entry-fee payments."}
       </p>
       <CoHostQueue
+        key={result.data.map((r) => `${r.id}.${r.status}.${r.penalties.map((p) => p.id).join("+")}`).join("|")}
+        noShowPolicy={{ penalty: tournament.noShowPenalty, points: tournament.noShowPenaltyPoints }}
+        myInstitutionId={myInstitutionId}
         initial={result.data.map((r) => ({
           id: r.id,
           status: r.status,
           name: r.teamEntry?.name ?? r.player?.user.displayName ?? "Unknown",
           institutionProofPath: r.institutionProofPath,
           awaitingHostPayment: !!r.institutionApprovedAt && r.status === "pending",
+          penalties: r.penalties,
         }))}
       />
     </main>

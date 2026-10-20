@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import PenaltyControls, { type NoShowPolicy, type PenaltyRow } from "@/components/penalties/PenaltyControls";
 import { InstitutionProofLink } from "../../../tournaments/[id]/RegistrationQueue";
 
 interface Row {
@@ -11,9 +12,18 @@ interface Row {
   name: string;
   institutionProofPath: string | null;
   awaitingHostPayment: boolean;
+  penalties: PenaltyRow[];
 }
 
-export default function CoHostQueue({ initial }: { initial: Row[] }) {
+export default function CoHostQueue({
+  initial,
+  noShowPolicy,
+  myInstitutionId,
+}: {
+  initial: Row[];
+  noShowPolicy: NoShowPolicy;
+  myInstitutionId: string | null;
+}) {
   const [rows, setRows] = useState(initial);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +55,7 @@ export default function CoHostQueue({ initial }: { initial: Row[] }) {
           <li key={r.id} className="bg-bk-surface border border-bk-border p-4 font-sans text-[13px]">
             <p className="text-bk-heading font-bold break-words">{r.name}</p>
             <p className="text-bk-muted text-[12px] mt-1 flex flex-wrap items-center gap-2">
-              <Badge tone={r.status === "approved" ? "teal" : r.status === "rejected" ? "danger" : "amber"}>{r.status}</Badge>
+              <Badge tone={r.status === "approved" ? "teal" : r.status === "rejected" || r.status === "disqualified" ? "danger" : "amber"}>{r.status}</Badge>
               {r.awaitingHostPayment && <span>Approved by you, waiting for the host&apos;s payment check</span>}
             </p>
             {r.institutionProofPath && (
@@ -62,6 +72,16 @@ export default function CoHostQueue({ initial }: { initial: Row[] }) {
                   Reject
                 </Button>
               </div>
+            )}
+            {(r.status === "approved" || r.status === "disqualified") && (
+              <PenaltyControls
+                registrationId={r.id}
+                status={r.status}
+                role="cohost"
+                myInstitutionId={myInstitutionId}
+                policy={noShowPolicy}
+                penalties={r.penalties}
+              />
             )}
           </li>
         ))}
