@@ -55,3 +55,46 @@ export const LOCAL_VERSIONS: LocalVersion[] = [
     notes: "Battlegrounds Mobile India, India's version of PUBG Mobile. Same 4-player squads and rosters as PUBG Mobile.",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// East and Southeast Asia (added October 2026). The sources for these are older than the India
+// ones above, so each is worth re-checking before relying on it: PUBG Mobile has had its own
+// version in China ("Game for Peace", Tencent), Korea and Japan ("PUBG Mobile KRJP", Krafton),
+// Vietnam ("PUBG Mobile VN", VNG) and Taiwan ("PUBG Mobile TW", HotCool); and the global
+// Honor of Kings has not been offered in Thailand, Vietnam or Taiwan, where Garena runs
+// Arena of Valor instead.
+// ---------------------------------------------------------------------------
+
+// Extra countries for games that are already hidden somewhere (PUBG Mobile also stays hidden in India).
+export const EAST_ASIA_BLOCKED: BlockedRule[] = [
+  { name: "PUBG Mobile", blockedIn: ["CN", "KR", "JP", "VN", "TW"] },
+  { name: "Honor of Kings", blockedIn: ["TH", "VN", "TW"] },
+];
+
+const pubgLocal = (name: string, onlyIn: string[], notes: string): LocalVersion => ({
+  name, localVersionOf: "PUBG Mobile", onlyIn, genre: "Battle Royale", category: "mobile",
+  format: "multiplayer", teamSizeMin: 4, teamSizeMax: 4, maxSubstitutes: 2, existing: false, notes,
+});
+
+export const EAST_ASIA_LOCAL: LocalVersion[] = [
+  pubgLocal("Game for Peace", ["CN"], "China's version of PUBG Mobile, published by Tencent. Same 4-player squads and rosters as PUBG Mobile."),
+  pubgLocal("PUBG Mobile KRJP", ["KR", "JP"], "The Korea and Japan version of PUBG Mobile, published by Krafton. Same 4-player squads and rosters."),
+  pubgLocal("PUBG Mobile VN", ["VN"], "Vietnam's version of PUBG Mobile, published by VNG. Same 4-player squads and rosters."),
+  pubgLocal("PUBG Mobile TW", ["TW"], "Taiwan's version of PUBG Mobile. Same 4-player squads and rosters."),
+  {
+    name: "Arena of Valor", localVersionOf: "Honor of Kings", onlyIn: ["TH", "VN", "TW"], genre: "MOBA", category: "mobile",
+    format: "multiplayer", teamSizeMin: 5, teamSizeMax: 5, maxSubstitutes: 2, existing: false,
+    notes: "Garena's version of the Tencent MOBA for Thailand, Vietnam and Taiwan, where Honor of Kings is not offered. Same 5v5 format and rosters.",
+  },
+];
+
+// Everything, merged: a game blocked in several countries lists them all.
+export const ALL_BLOCKED_RULES: BlockedRule[] = (() => {
+  const byName = new Map<string, Set<string>>();
+  for (const r of [...BLOCKED_RULES, ...EAST_ASIA_BLOCKED]) {
+    byName.set(r.name, new Set([...(byName.get(r.name) ?? []), ...r.blockedIn]));
+  }
+  return [...byName.entries()].map(([name, set]) => ({ name, blockedIn: [...set] }));
+})();
+
+export const ALL_LOCAL_VERSIONS: LocalVersion[] = [...LOCAL_VERSIONS, ...EAST_ASIA_LOCAL];

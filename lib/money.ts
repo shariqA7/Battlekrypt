@@ -64,6 +64,12 @@ const CATALOG = {
   // Africa
   ZAR: { symbol: "R", space: true, indian: false, name: "South African Rand" },
   NGN: { symbol: "₦", space: false, indian: false, name: "Nigerian Naira" },
+  // East Asia. Added after the rest so every existing currency keeps its position.
+  // CNY and JPY both use the yen/yuan sign, so China's carries a "CN" prefix.
+  CNY: { symbol: "CN¥", space: false, indian: false, name: "Chinese Yuan" },
+  JPY: { symbol: "¥", space: false, indian: false, name: "Japanese Yen" },
+  KRW: { symbol: "₩", space: false, indian: false, name: "South Korean Won" },
+  TWD: { symbol: "NT$", space: false, indian: false, name: "New Taiwan Dollar" },
 } as const satisfies Record<string, CurrencyStyle>;
 
 export type CurrencyCode = keyof typeof CATALOG;
@@ -72,6 +78,9 @@ export const SUPPORTED_CURRENCIES = Object.keys(CATALOG) as CurrencyCode[];
 // What's switched on until an admin changes it (and what a fresh database is
 // seeded with): the five launch currencies.
 export const LAUNCH_CURRENCIES: CurrencyCode[] = ["PKR", "USD", "INR", "SAR", "AED"];
+
+// Currencies with no minor unit: prizes and fees are whole numbers ("¥1,500", never "¥1,500.50").
+export const ZERO_DECIMAL_CURRENCIES: readonly CurrencyCode[] = ["JPY", "KRW", "VND"];
 
 export function isSupportedCurrency(value: unknown): value is CurrencyCode {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(CATALOG, value);
@@ -237,6 +246,10 @@ export function parseMoney(input: unknown, label: string): MoneyParseResult {
   // Refuse more than two decimals instead of letting the database round it.
   if (Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) {
     return { ok: false, message: `${label} amount can have at most 2 decimal places.` };
+  }
+  // Yen, won and dong have no cents.
+  if (ZERO_DECIMAL_CURRENCIES.includes(currency) && !Number.isInteger(amount)) {
+    return { ok: false, message: `${label} in ${currency} must be a whole number.` };
   }
 
   return { ok: true, value: { amount, currency } };
