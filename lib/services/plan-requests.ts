@@ -16,7 +16,8 @@ import {
   validateLimitsInput,
   type EffectivePlan,
 } from "@/lib/plans";
-import { LAUNCH_CURRENCIES } from "@/lib/money";
+import { isSupportedCurrency, ZERO_DECIMAL_CURRENCIES } from "@/lib/money";
+import { currenciesNotEnabled } from "@/lib/services/currencies";
 
 export const PLAN_REQUEST_ERRORS = {
   validation_error: { status: 400, message: "Invalid request." },
@@ -360,8 +361,18 @@ export async function updatePlan(code: string, adminId: string, input: UpdatePla
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) {
       return fail("validation_error", "Enter a valid price.");
     }
-    if (typeof currency !== "string" || !(LAUNCH_CURRENCIES as readonly string[]).includes(currency)) {
+    if (typeof currency !== "string" || !isSupportedCurrency(currency)) {
       return fail("validation_error", "Unsupported currency.");
+    }
+    // Any catalog currency that is switched on in /admin/currencies; a plan already priced in
+    // another one can keep it.
+    if (currency !== plan.priceCurrency) {
+      const off = await currenciesNotEnabled([currency]);
+      if (off) return fail("validation_error", off);
+    }
+    // Yen, won and dong have no cents.
+    if ((ZERO_DECIMAL_CURRENCIES as readonly string[]).includes(currency) && !Number.isInteger(amount)) {
+      return fail("validation_error", `A price in ${currency} must be a whole number.`);
     }
     data.priceAmount = Math.round(amount * 100) / 100;
     data.priceCurrency = currency;

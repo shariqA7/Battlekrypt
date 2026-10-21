@@ -637,3 +637,26 @@ Honor of Kings launched in India on 11 March 2026, so it is shown everywhere. "F
 - **Adding another country:** add the entries to `BLOCKED_RULES` and `LOCAL_VERSIONS` in `lib/game-regions.ts`, run `npx tsx scripts/gen-region-migration.ts` to produce a new migration, and run the tests.
 
 Tests: `npx tsx scripts/game-region-test.ts` (no database needed).
+
+## East and Southeast Asia: regional games, countries and currencies
+
+**Regional game versions** (added to the India set above; see `lib/game-regions.ts`). The sources for these are older than the India ones, so re-check each before relying on it.
+
+| Hidden in | Global game | Shown only in | Local version |
+|---|---|---|---|
+| China, South Korea, Japan, Vietnam, Taiwan (and India) | PUBG Mobile | China | Game for Peace |
+| | | South Korea, Japan | PUBG Mobile KRJP |
+| | | Vietnam | PUBG Mobile VN |
+| | | Taiwan | PUBG Mobile TW |
+| Thailand, Vietnam, Taiwan | Honor of Kings | Thailand, Vietnam, Taiwan | Arena of Valor |
+
+Thailand still sees the global PUBG Mobile. Nothing else changes for visitors elsewhere.
+
+**Countries.** Taiwan was added (East Asia). China, Japan, South Korea, Thailand and Vietnam were already listed.
+
+**Currencies.** Four were added to the catalog in `lib/money.ts`: CNY (`CN¥`), JPY (`¥`), KRW (`₩`) and TWD (`NT$`). THB and VND were already in the catalog. All six are switched on for organizers by migration `20261021000000_east_asia_currencies` (you can switch any of them off again in Admin, Currencies). Each country now suggests its own currency in the create-tournament form.
+- **Whole numbers only for JPY, KRW and VND** (no cents): the server refuses 1500.50 in those currencies. CNY and TWD keep two decimals.
+- **Tier prize-pool floors** for these currencies convert to USD through the same live exchange-rate service as the rest.
+- **Plans** can now be priced in any currency that is switched on, not only the original five.
+
+Tests: `npx tsx scripts/east-asia-currency-test.ts` and `npx tsx scripts/game-region-test.ts` (neither needs a database). Migrations: `20261021000000_east_asia_currencies` and `20261021010000_east_asia_game_regions`.

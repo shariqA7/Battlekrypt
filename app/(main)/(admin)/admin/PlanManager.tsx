@@ -15,7 +15,6 @@ export interface AdminPlan {
   isActive: boolean;
 }
 
-const CURRENCIES = ["PKR", "USD", "INR", "SAR", "AED"];
 
 // Human labels + input kind for each limit key (mirrors LIMIT_KEYS in
 // lib/plans.ts). "limit" fields: empty = unlimited.
@@ -41,7 +40,9 @@ const LABELS: Record<string, { label: string; kind: "limit" | "count" | "flag" }
 const input =
   "bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[30px]";
 
-function PlanRow({ initial }: { initial: AdminPlan }) {
+// `currencies` are the ones switched on in /admin/currencies; a plan already priced in
+// another currency keeps it in the list so saving never silently changes it.
+function PlanRow({ initial, currencies }: { initial: AdminPlan; currencies: string[] }) {
   const [plan, setPlan] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -106,7 +107,7 @@ function PlanRow({ initial }: { initial: AdminPlan }) {
               onChange={(e) => setPlan({ ...plan, priceCurrency: e.target.value })}
               aria-label="Currency"
             >
-              {CURRENCIES.map((c) => (
+              {(initial.priceCurrency && !currencies.includes(initial.priceCurrency) ? [...currencies, initial.priceCurrency] : currencies).map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
@@ -182,7 +183,7 @@ function PlanRow({ initial }: { initial: AdminPlan }) {
 // Edit price, duration, on-sale flag and every limit of each plan. Empty
 // number = unlimited (for the limits that allow it). Changes apply
 // immediately to everyone on that plan.
-export default function PlanManager({ initialPlans }: { initialPlans: AdminPlan[] }) {
+export default function PlanManager({ initialPlans, currencies }: { initialPlans: AdminPlan[]; currencies: string[] }) {
   return (
     <section>
       <p className="font-sans font-medium text-bk-heading text-sm mb-1">Subscription plans</p>
@@ -190,7 +191,7 @@ export default function PlanManager({ initialPlans }: { initialPlans: AdminPlan[
         Changes apply immediately to everyone on the plan. Empty limit = unlimited.
       </p>
       {initialPlans.map((p) => (
-        <PlanRow key={p.code} initial={p} />
+        <PlanRow key={p.code} initial={p} currencies={currencies} />
       ))}
     </section>
   );
