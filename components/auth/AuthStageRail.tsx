@@ -5,19 +5,21 @@
 // — Sign in → Complete profile → Play — so a returning user (who skips
 // straight from step 1 to their destination) never sees it at all.
 interface AuthStageRailProps {
-  step: 1 | 2;
+  step: 1 | 2 | 3;
+  // Defaults to the sign-in sequence; the sign-up page passes its own.
+  labels?: readonly string[];
 }
 
 const STEPS = ["Sign in", "Complete profile", "Play"];
 
-export default function AuthStageRail({ step }: AuthStageRailProps) {
+export default function AuthStageRail({ step, labels = STEPS }: AuthStageRailProps) {
   return (
     <div className="flex items-start w-full max-w-[380px] mb-8" aria-label="Sign-up progress">
-      {STEPS.map((label, i) => {
+      {labels.map((label, i) => {
         const stepNum = i + 1;
         const done = stepNum < step;
         const active = stepNum === step;
-        const isLast = i === STEPS.length - 1;
+        const isLast = i === labels.length - 1;
 
         return (
           <div key={label} className={`flex items-center ${isLast ? "" : "flex-1"}`}>

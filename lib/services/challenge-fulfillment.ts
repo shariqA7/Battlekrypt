@@ -15,6 +15,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 import { notify } from "@/lib/services/notifications";
+import { getPayoutSummary, getPayoutText } from "@/lib/services/payout-methods";
 import { banUser } from "@/lib/services/bans";
 import {
   addHours, cleanText, cleanUrls, optionalText, canReportNotPaid, challengeOutcome,
@@ -233,6 +234,25 @@ export async function submitPayoutDetails(
   entryId: string,
   details: unknown
 ): Promise<{ data: { id: string } } | Failure> {
+  // Cash prizes for a player under 18 always go to their guardian's saved account, never
+  // to anything the child types. Adults can type details or use their saved method.
+  const entry = await prisma.challengeApplication.findUnique({
+    where: { id: entryId },
+    select: { challenge: { select: { prizeType: true } } },
+  });
+  if (entry?.challenge.prizeType === "cash") {
+    const me = await prisma.playerProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (me) {
+      const summary = await getPayoutSummary(me.id);
+      if (summary.minor || (!(typeof details === "string" && details.trim()) && summary.usable)) {
+        const saved = await getPayoutText(me.id);
+        if (saved) details = saved;
+        else if (summary.minor) {
+          return fail("guardian_payout_required", "Your parent or guardian hasn't added where prizes are paid yet. Ask them to use the link in their approval email.");
+        }
+      }
+    }
+  }
   const d = cleanText(details, { min: 5, max: 500, label: "Payout details" });
   if ("error" in d) return d;
 

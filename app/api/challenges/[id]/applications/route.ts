@@ -15,6 +15,8 @@ const STATUS: Record<string, number> = {
   poster_frozen: 403,
   under_review: 403,
   age_restricted: 403,
+  consent_required: 403,
+  guardian_payout_required: 403,
 };
 
 export async function POST(

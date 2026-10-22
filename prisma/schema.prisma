@@ -144,6 +144,20 @@ model PlayerProfile {
   hobbies       String?
   favoriteGames String[]  @default([])
 
+  // Chosen at sign up. Stored lowercase, so uniqueness ignores case. Null for people who
+  // signed in with Google/Discord/Twitch and haven't picked one yet.
+  username String? @unique
+
+  // Sign-up records. Terms/Privacy are accepted together; the version says which text.
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+  // Marketing email is opt-in and off unless ticked; the time is kept as proof.
+  marketingEmail   Boolean   @default(false)
+  marketingEmailAt DateTime?
+  // Under 18 at sign up: the parent/guardian email given on the form. The consent request
+  // is sent from it once the player confirms their own email.
+  guardianEmail String?
+
   registrations    Registration[]
   teamMemberships  TeamMember[]
   clubRoster       ClubRoster?
@@ -151,6 +165,7 @@ model PlayerProfile {
   tournamentVotes  TournamentVote[]
   gameRatings      PlayerGameRating[]
   parentalConsents ParentalConsent[]
+  payoutMethod     PlayerPayoutMethod?
   institution      PlayerInstitution?
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
@@ -1246,6 +1261,9 @@ model SiteSettings {
   // A challenge whose cash prize (in USD) is above this waits for admin
   // approval before it goes live. Plan caps (Plan.limits) apply first.
   challengeReviewUsd      Decimal  @default(10000) @db.Decimal(14, 2)
+  // "Continue with Twitch" on the login/sign-up pages. Off until the Twitch app and the
+  // Supabase provider are set up (see SETUP.md), then switched on from Admin > Settings.
+  twitchLoginEnabled      Boolean  @default(false)
   updatedAt               DateTime @updatedAt
 }
 
@@ -1804,6 +1822,11 @@ model ParentalConsent {
   decidedAt     DateTime?
   validUntil    DateTime?
 
+  // Link in the "you approved" email, so the guardian can come back and withdraw
+  // consent or set where prizes are paid. Only its hash is stored.
+  manageTokenHash String?   @unique
+  revokedAt       DateTime?
+
   signedName      String?
   waiverVersion   String?
   waiverText      String? @db.Text
@@ -1864,4 +1887,35 @@ model Penalty {
 
   @@index([registrationId])
   @@index([tournamentId, createdAt])
+}
+
+
+// ------------------------------------------------------------
+// PAYOUT METHOD — how a player wants to be paid when they win a prize. Saved once,
+// changeable. For a player under 18 it is the PARENT/GUARDIAN's account (entered by
+// the guardian from the consent email link), and `payee` says so. The account details
+// are encrypted before they are stored (lib/payout-crypto.ts) and only decrypted for
+// the person who owes the prize, once a prize is actually awarded.
+// ------------------------------------------------------------
+
+enum PayoutPayee {
+  self
+  guardian
+}
+
+model PlayerPayoutMethod {
+  id       String        @id @default(uuid())
+  playerId String        @unique
+  player   PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  payee     PayoutPayee @default(self)
+  // Whose account it is, as written by whoever entered it (the player, or the guardian).
+  payeeName String
+  // "JazzCash", "Bank transfer", "PayPal", "In-game ID" ...
+  method    String
+  // Encrypted account number / IBAN / username / notes.
+  detailsEnc String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -35,3 +35,30 @@ export function consentRequestEmail(opts: {
 
   return { to, subject, html, text };
 }
+
+export function consentApprovedEmail(opts: { to: string; childName: string; manageLink: string; validUntil: Date }): EmailMessage {
+  const { to, childName, manageLink, validUntil } = opts;
+  const until = validUntil.toISOString().slice(0, 10);
+  const subject = `You approved ${childName} on BattleKrypt`;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1c1a14">
+<h2 style="margin:0 0 12px">Thank you, ${esc(childName)} is approved</h2>
+<p>You gave permission for ${esc(childName)} to join tournaments, leagues, scrims and challenges on BattleKrypt until <strong>${until}</strong>.</p>
+<p>Use the button below any time to <strong>withdraw your permission</strong> or to set <strong>where any prize is paid</strong>. Prizes are paid to you, not to your child.</p>
+<p style="margin:24px 0"><a href="${esc(manageLink)}" style="background:#1c1a14;color:#fff;padding:12px 20px;text-decoration:none;font-weight:bold">Manage permission and payments</a></p>
+<p style="font-size:13px;color:#555">Keep this email. Anyone with this link can change these settings, so don't share it.</p>
+</div>`;
+  const text = `Thank you, ${childName} is approved\n\nYou gave permission for ${childName} to join tournaments, leagues, scrims and challenges on BattleKrypt until ${until}.\n\nWithdraw your permission or set where prizes are paid (to you, not your child):\n${manageLink}\n\nKeep this email. Anyone with this link can change these settings.`;
+  return { to, subject, html, text };
+}
+
+export function consentWithdrawnEmail(opts: { to: string; childName: string }): EmailMessage {
+  const { to, childName } = opts;
+  const subject = `You withdrew permission for ${childName} on BattleKrypt`;
+  const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1c1a14">
+<h2 style="margin:0 0 12px">Permission withdrawn</h2>
+<p>${esc(childName)}'s upcoming entries have been cancelled and they can no longer join anything new on BattleKrypt. They can still browse.</p>
+<p>If this wasn't you, or you change your mind, ${esc(childName)} can send you a new request at any time.</p>
+</div>`;
+  const text = `Permission withdrawn\n\n${childName}'s upcoming entries have been cancelled and they can no longer join anything new on BattleKrypt. They can still browse.\n\nIf this wasn't you, or you change your mind, ${childName} can send you a new request at any time.`;
+  return { to, subject, html, text };
+}

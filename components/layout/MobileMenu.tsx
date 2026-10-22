@@ -28,6 +28,12 @@ export default function MobileMenu({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
   }, [pathname]);
+  // The bottom tab bar's "More" button opens this same drawer.
+  useEffect(() => {
+    const openMenu = () => setOpen(true);
+    window.addEventListener("bk:open-menu", openMenu);
+    return () => window.removeEventListener("bk:open-menu", openMenu);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;

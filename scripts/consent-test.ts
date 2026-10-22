@@ -36,7 +36,8 @@ ok("approved but out of date -> expired", deriveConsentState([approved], d("2027
 ok("declined -> declined", deriveConsentState([rec({ status: "declined", decidedAt: d("2026-10-12") })], now).state === "declined");
 ok("a new pending request after a decline -> pending", deriveConsentState([rec({ status: "declined", decidedAt: d("2026-10-01"), createdAt: d("2026-10-01") }), rec({})], now).state === "pending");
 ok("an approval wins over a later decline attempt", deriveConsentState([approved, rec({ status: "declined", decidedAt: d("2026-10-14") })], now).state === "approved");
-ok("revoked or superseded never count", deriveConsentState([rec({ status: "revoked", validUntil: d("2027-10-12") }), rec({ status: "superseded" })], now).state === "none");
+ok("a revoked approval never grants access (it reads as withdrawn)", deriveConsentState([rec({ status: "revoked", validUntil: d("2027-10-12") }), rec({ status: "superseded" })], now).state === "withdrawn");
+ok("superseded alone never counts", deriveConsentState([rec({ status: "superseded" })], now).state === "none");
 
 // ---- organizer's column
 const m = (needed: boolean, state: "approved" | "pending" | "declined" | "none" | "expired") => ({ needed, state });
@@ -57,7 +58,7 @@ ok("signed name rules", isValidSignedName("Fatima Khan") && !isValidSignedName("
 ok("child shown as first name + last initial", childDisplayName("Ahmed", "Khan") === "Ahmed K." && childDisplayName(null, null) === "your child");
 
 // ---- waiver
-ok("waiver says cash prizes are 18+ only", waiverText("help@x.com").includes("only for players aged 18 or over"));
+ok("waiver says prizes go to the guardian, not the child", waiverText("help@x.com").includes("paid to me") && waiverText("help@x.com").includes("not to my child"));
 ok("waiver says one year and gives the support email", waiverText("help@x.com").includes("one year") && waiverText("help@x.com").includes("help@x.com"));
 ok("waiver is versioned and has several clauses", WAIVER_VERSION.length > 0 && waiverParagraphs("a@b.c").length >= 5);
 

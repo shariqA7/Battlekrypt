@@ -9,17 +9,20 @@ import PlanSettings from "../PlanSettings";
 import { getPlanSettings } from "@/lib/services/plan-requests";
 import ChallengeSettings from "../ChallengeSettings";
 import { getChallengeReviewUsd } from "@/lib/services/challenges";
+import LoginOptionsSettings from "../LoginOptionsSettings";
+import { getLoginOptions } from "@/lib/services/login-options";
 import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminSettingsPage() {
   await requireAdminPage();
-  const [siteSettings, slides, instructions, planSettings, tierSettings, challengeReviewUsd] = await Promise.all([
+  const [siteSettings, slides, instructions, planSettings, tierSettings, challengeReviewUsd, loginOptions] = await Promise.all([
     getSiteSettings(),
     listCarouselSlides(),
     getClubPaymentInstructions(),
     getPlanSettings(),
     listTierSettings(),
     getChallengeReviewUsd(),
+    getLoginOptions(),
   ]);
 
   return (
@@ -30,6 +33,7 @@ export default async function AdminSettingsPage() {
       </div>
       <BrandingManager initialLogoUrl={siteSettings.logoUrl ?? ""} initialSlides={slides} />
       <ClubFeeSettings initialInstructions={instructions ?? ""} />
+      <LoginOptionsSettings initialTwitch={loginOptions.twitch} />
       <ChallengeSettings initialUsd={challengeReviewUsd} />
       <TierSettingsManager
         initialSettings={tierSettings

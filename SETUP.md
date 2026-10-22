@@ -660,3 +660,98 @@ Thailand still sees the global PUBG Mobile. Nothing else changes for visitors el
 - **Plans** can now be priced in any currency that is switched on, not only the original five.
 
 Tests: `npx tsx scripts/east-asia-currency-test.ts` and `npx tsx scripts/game-region-test.ts` (neither needs a database). Migrations: `20261021000000_east_asia_currencies` and `20261021010000_east_asia_game_regions`.
+
+## Sign up, login and password rules
+
+Sign up, login, forgot password and reset password now go through the server
+(`/api/auth/*`). Every rule lives in `lib/validation/auth.ts` and is enforced there; the
+form just shows the server's answer at the top, one tick or cross per check.
+
+**1. Run the migration** (adds `username`, consent records, `guardianEmail`, the Twitch switch):
+
+```
+npx prisma migrate deploy
+npx prisma generate
+```
+
+**2. Supabase backstop (important).** Your Supabase public key lets anyone call Supabase
+directly and skip our server. Set the same password policy there too, in the dashboard
+under Authentication (Providers > Email, or Attack Protection in newer dashboards):
+minimum length 8, and require lowercase, uppercase, digits and symbols. Keep "Confirm email"
+ON. Our server re-checks everything it reads from sign-up data, so a forged request can't
+smuggle in a bad username, country or date of birth.
+
+**3. Redirect URLs.** In Authentication > URL Configuration, the site URL and
+`<your-domain>/auth/callback` must be allowed. Password recovery links also go through
+`/auth/callback`.
+
+**4. Twitch (optional, off until you switch it on).**
+
+1. Whoever owns the Twitch app needs 2FA on their Twitch account (Twitch requires it to
+   register apps; players logging in never need it).
+2. dev.twitch.tv/console > Applications > Register. OAuth Redirect URL:
+   `https://<your-project-ref>.supabase.co/auth/v1/callback`. Category: Website Integration.
+3. Copy the Client ID, generate a Client Secret.
+4. Supabase > Authentication > Sign In / Providers > Twitch: enable, paste both.
+5. BattleKrypt Admin > Settings > Sign-in options: tick Twitch and Save. The button
+   appears on /login and /signup, and the server refuses Twitch sign-ins while it's off.
+
+**5. Tests** (no database needed): `npx tsx scripts/auth-rules-test.ts`
+
+Notes:
+- Usernames are stored lowercase. People who sign in with Google/Discord/Twitch have no
+  username until they choose one (profile settings).
+- Under-18 sign-ups store the guardian email on the profile. Sending the consent email and
+  limiting the account until approval is the next patch.
+- Rate limits on the auth routes are in memory per server instance (`lib/rate-limit.ts`).
+  Enough to slow scripts down; swap in Redis if abuse becomes real.
+- `/terms` and `/privacy` are placeholders. Bump `TERMS_VERSION` in
+  `lib/validation/auth.ts` when the real text goes live.
+
+## Under-18 players: guardian approval, withdrawal and prize payments
+
+**The rule.** A player under 18 can browse everything, but can't join a tournament, scrim,
+league or challenge until a parent/guardian has approved. This is enforced on the server
+in `checkAgeGate` (all four tournament entry paths, including organizer manual-add and
+club entries) and in challenge applications. It only applies while the consent switch is
+on (below).
+
+**How it works.**
+1. At sign up a player aged 13 to 17 gives a guardian email. After they confirm their own
+   email (or log in), we email the guardian a link to read and sign the waiver.
+2. When the guardian approves, they get a second email with a **manage link** that never
+   expires while the consent is valid. From it they can add where prizes are paid and
+   **withdraw** permission at any time.
+3. Withdrawing cancels the child's entries in tournaments that haven't started (the slot
+   reopens), tells the organizer of any tournament already running (the entry is left for
+   them and an admin to decide), blocks new entries, and emails the guardian a
+   confirmation. Results already recorded stay.
+4. Consent also lapses by itself after 365 days, and stops being needed when the player
+   turns 18.
+
+**Prizes.** For a player under 18, **cash** prizes (tournament prize pools and cash
+challenges) are paid to the **guardian's** account, never to the child. The guardian
+enters it on the manage page, and minors can't enter cash-prize events until they have.
+Organizers see it as "Prize payees" on the tournament page, and challenge posters see it
+in the payout details. In-game prizes (like UC) still go to the child's game ID.
+Players 18 and over add their own method under Profile settings. A guardian method stops
+being used on the player's 18th birthday and they are asked to add their own.
+
+**Set up before turning it on.**
+
+1. Run the migration: `npx prisma migrate deploy && npx prisma generate`.
+2. Payout details are encrypted. Create a key and add it to your environment (keep a
+   backup: without it saved details can't be read):
+   ```
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   `PAYOUT_ENCRYPTION_KEY=<that value>`. Without it, saving payment details is refused.
+3. Email: consent emails go out through Resend (`RESEND_API_KEY`, a verified sending
+   domain, `EMAIL_FROM`). Remove `EMAIL_TEST_TO` when live, or every email goes to you.
+4. Have a lawyer review the waiver text (`lib/consent-waiver.ts`, now version
+   `2026-10-v2`), then switch it on with `NEXT_PUBLIC_PARENTAL_CONSENT_ENABLED=true`.
+   While it is off, nothing is gated and no consent emails are sent.
+5. Set `NEXT_PUBLIC_SITE_URL` so the links in emails point at your real domain.
+
+**Tests** (no database needed): `npx tsx scripts/consent-guardian-test.ts` and
+`npx tsx scripts/payout-crypto-test.ts`.

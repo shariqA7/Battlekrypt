@@ -12,6 +12,9 @@ import { isPosterFrozen } from "@/lib/services/challenge-fulfillment";
 import { isUnderReview } from "@/lib/services/challenge-moderation";
 import { detectSelectionFlags } from "@/lib/services/challenge-integrity";
 import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
+import { checkJoinGate } from "@/lib/services/parental-consent";
+import { minorsMissingGuardianPayout } from "@/lib/services/payout-methods";
+import { parentalConsentEnabled } from "@/lib/consent-config";
 import { applyBlocker, selectionBlocker, type EntrantKind } from "@/lib/challenge-rules";
 import { checkChallengeInstitutionGate } from "@/lib/services/challenge-institutions";
 import { notifyNewQueueItem } from "@/lib/services/institution-notifications";
@@ -151,17 +154,32 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
     if (await isUnderReview(c.id)) {
       return { error: "under_review", message: "This challenge is being reviewed after reports. Applications are paused." };
     }
-    // Cash prizes are for adults (self-reported profile age).
+    // Cash prizes: we need to know the applicant's age. Players under 18 may apply once a
+    // parent or guardian has approved them and said where prizes are paid (below); the
+    // prize then goes to the guardian, not the child.
     if (c.prizeType === "cash") {
       const profile = await prisma.playerProfile.findUnique({ where: { userId }, select: { age: true } });
-      const age = cashAgeCheck(profile?.age);
-      if (age !== "ok") {
+      if (cashAgeCheck(profile?.age) === "age_required") {
         return {
           error: "age_restricted",
-          message: age === "age_required"
-            ? "Cash prizes are for players 18 and over. Add your age in your profile to apply."
-            : "Cash prizes are only for players 18 and over.",
+          message: "Add your date of birth in your profile to apply for a cash prize.",
         };
+      }
+    }
+
+    // Under-18s can only view until a guardian has approved. (Club team applications
+    // are made by the club's owner, so this checks the person applying as a player.)
+    if (input.kind === "player" && parentalConsentEnabled()) {
+      const me = await prisma.playerProfile.findUnique({ where: { userId }, select: { id: true } });
+      if (me) {
+        const consent = await checkJoinGate([me.id], me.id);
+        if ("error" in consent) return { error: "consent_required", message: consent.message };
+        if (c.prizeType === "cash" && (await minorsMissingGuardianPayout([me.id])).length > 0) {
+          return {
+            error: "guardian_payout_required",
+            message: "This challenge has a cash prize. Your parent or guardian needs to add where prizes are paid (from the link in their approval email) before you can apply.",
+          };
+        }
       }
     }
 

@@ -57,6 +57,8 @@ export const CLUB_ENTRY_ERRORS = {
   not_club_entry: { status: 400, message: "This entry isn't linked to your club." },
   forbidden: { status: 403, message: "You don't own this tournament." },
   tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },
+  consent_required: { status: 403, message: "A player on this entry needs a parent or guardian's approval before they can join." },
+  guardian_payout_required: { status: 403, message: "A player on this entry needs their parent or guardian to add where prizes are paid." },
   age_restricted: { status: 403, message: "A player doesn't meet this tournament's minimum age." },
   birth_date_required: { status: 403, message: "A player needs to add their date of birth first." },
   institution_required: {
