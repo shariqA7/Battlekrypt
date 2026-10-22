@@ -1,15 +1,15 @@
 import { Suspense } from "react";
 import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
-import AuthPageContent from "@/components/auth/AuthPageContent";
+import SignupForm from "@/components/auth/SignupForm";
+import { getLoginOptions } from "@/lib/services/login-options";
 
 // See app/(auth)/login/page.tsx for why this is needed.
 export const dynamic = "force-dynamic";
 import AuthCarousel from "@/components/auth/AuthCarousel";
-import AuthStageRail from "@/components/auth/AuthStageRail";
 import Link from "next/link";
 
 export default async function SignupPage() {
-  const [settings, slides] = await Promise.all([getSiteSettings(), listCarouselSlides()]);
+  const [settings, slides, options] = await Promise.all([getSiteSettings(), listCarouselSlides(), getLoginOptions()]);
 
   return (
     <main className="flex-1 flex min-h-0 gap-6 p-6">
@@ -25,10 +25,9 @@ export default async function SignupPage() {
           )}
         </Link>
 
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <AuthStageRail step={1} />
+        <div className="flex-1 flex flex-col items-center justify-start md:justify-center py-6">
           <Suspense fallback={null}>
-            <AuthPageContent mode="signup" />
+            <SignupForm twitchEnabled={options.twitch} />
           </Suspense>
         </div>
       </div>

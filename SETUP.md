@@ -660,3 +660,50 @@ Thailand still sees the global PUBG Mobile. Nothing else changes for visitors el
 - **Plans** can now be priced in any currency that is switched on, not only the original five.
 
 Tests: `npx tsx scripts/east-asia-currency-test.ts` and `npx tsx scripts/game-region-test.ts` (neither needs a database). Migrations: `20261021000000_east_asia_currencies` and `20261021010000_east_asia_game_regions`.
+
+## Sign up, login and password rules
+
+Sign up, login, forgot password and reset password now go through the server
+(`/api/auth/*`). Every rule lives in `lib/validation/auth.ts` and is enforced there; the
+form just shows the server's answer at the top, one tick or cross per check.
+
+**1. Run the migration** (adds `username`, consent records, `guardianEmail`, the Twitch switch):
+
+```
+npx prisma migrate deploy
+npx prisma generate
+```
+
+**2. Supabase backstop (important).** Your Supabase public key lets anyone call Supabase
+directly and skip our server. Set the same password policy there too, in the dashboard
+under Authentication (Providers > Email, or Attack Protection in newer dashboards):
+minimum length 8, and require lowercase, uppercase, digits and symbols. Keep "Confirm email"
+ON. Our server re-checks everything it reads from sign-up data, so a forged request can't
+smuggle in a bad username, country or date of birth.
+
+**3. Redirect URLs.** In Authentication > URL Configuration, the site URL and
+`<your-domain>/auth/callback` must be allowed. Password recovery links also go through
+`/auth/callback`.
+
+**4. Twitch (optional, off until you switch it on).**
+
+1. Whoever owns the Twitch app needs 2FA on their Twitch account (Twitch requires it to
+   register apps; players logging in never need it).
+2. dev.twitch.tv/console > Applications > Register. OAuth Redirect URL:
+   `https://<your-project-ref>.supabase.co/auth/v1/callback`. Category: Website Integration.
+3. Copy the Client ID, generate a Client Secret.
+4. Supabase > Authentication > Sign In / Providers > Twitch: enable, paste both.
+5. BattleKrypt Admin > Settings > Sign-in options: tick Twitch and Save. The button
+   appears on /login and /signup, and the server refuses Twitch sign-ins while it's off.
+
+**5. Tests** (no database needed): `npx tsx scripts/auth-rules-test.ts`
+
+Notes:
+- Usernames are stored lowercase. People who sign in with Google/Discord/Twitch have no
+  username until they choose one (profile settings).
+- Under-18 sign-ups store the guardian email on the profile. Sending the consent email and
+  limiting the account until approval is the next patch.
+- Rate limits on the auth routes are in memory per server instance (`lib/rate-limit.ts`).
+  Enough to slow scripts down; swap in Redis if abuse becomes real.
+- `/terms` and `/privacy` are placeholders. Bump `TERMS_VERSION` in
+  `lib/validation/auth.ts` when the real text goes live.

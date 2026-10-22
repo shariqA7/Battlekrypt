@@ -14,6 +14,10 @@
 // page are never silently overwritten by provider data.
 import { prisma } from "@/lib/prisma";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { Prisma } from "@prisma/client";
+import { readSignupMetadata } from "@/lib/signup-profile";
+import { TERMS_VERSION } from "@/lib/validation/auth";
+import { ageOn } from "@/lib/age";
 
 function extractNameParts(user: SupabaseUser) {
   const meta = user.user_metadata ?? {};
@@ -64,18 +68,52 @@ export async function ensureUserRecord(user: SupabaseUser) {
   });
 
   // Every user is a player by default — create the profile at the same
-  // time, seeded with whatever name/avatar the provider gave us. Only done
+  // time, seeded with whatever name/avatar the provider gave us, or with the
+  // sign-up form's answers (re-checked here, never trusted as sent). Only done
   // on first creation (upsert's `update` branch is empty) so a returning
-  // user's own profile edits are never overwritten by provider data.
-  await prisma.playerProfile.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: {
-      userId: user.id,
-      firstName: firstName || null,
-      lastName: lastName || null,
-    },
-  });
+  // user's own profile edits are never overwritten.
+  const signup = readSignupMetadata(user.user_metadata);
+  const now = new Date();
+  const profileData = {
+    firstName: signup?.firstName || firstName || null,
+    lastName: signup?.lastName || lastName || null,
+    country: signup?.country ?? null,
+    mobileNumber: signup?.mobileNumber ?? null,
+    birthDate: signup?.birthDate ?? null,
+    age: signup?.birthDate ? ageOn(signup.birthDate, now) : null,
+    guardianEmail: signup?.guardianEmail ?? null,
+    marketingEmail: signup?.marketingEmail ?? false,
+    marketingEmailAt: signup?.marketingEmail ? now : null,
+    termsAcceptedAt: signup?.termsAccepted ? now : null,
+    termsVersion: signup?.termsAccepted ? TERMS_VERSION : null,
+  };
+  try {
+    await prisma.playerProfile.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id, ...profileData, username: signup?.username ?? null },
+    });
+  } catch (e) {
+    // The username was taken between the form check and now: create the profile
+    // without it. They pick another one in profile settings.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      await prisma.playerProfile.upsert({
+        where: { userId: user.id },
+        update: {},
+        create: { userId: user.id, ...profileData, username: null },
+      });
+    } else {
+      throw e;
+    }
+  }
+
+  // Keep the display name in step with the name they typed on the form.
+  if (!existingUser && signup && (signup.firstName || signup.lastName)) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { displayName: `${signup.firstName} ${signup.lastName}`.trim() },
+    });
+  }
 
   return { user: userRecord, isNewUser: !existingUser };
 }

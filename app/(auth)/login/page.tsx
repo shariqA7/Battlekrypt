@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
-import AuthPageContent from "@/components/auth/AuthPageContent";
+import LoginForm from "@/components/auth/LoginForm";
+import { getLoginOptions } from "@/lib/services/login-options";
 
 // This page's data (site branding, carousel slides) is admin-editable and
 // meant to reflect live at all times. Without this, Next.js tries to
@@ -10,11 +11,10 @@ import AuthPageContent from "@/components/auth/AuthPageContent";
 // deploy.
 export const dynamic = "force-dynamic";
 import AuthCarousel from "@/components/auth/AuthCarousel";
-import AuthStageRail from "@/components/auth/AuthStageRail";
 import Link from "next/link";
 
 export default async function LoginPage() {
-  const [settings, slides] = await Promise.all([getSiteSettings(), listCarouselSlides()]);
+  const [settings, slides, options] = await Promise.all([getSiteSettings(), listCarouselSlides(), getLoginOptions()]);
 
   return (
     <main className="flex-1 flex min-h-0 gap-6 p-6">
@@ -31,9 +31,8 @@ export default async function LoginPage() {
         </Link>
 
         <div className="flex-1 flex flex-col items-center justify-center">
-          <AuthStageRail step={1} />
           <Suspense fallback={null}>
-            <AuthPageContent mode="login" />
+            <LoginForm twitchEnabled={options.twitch} />
           </Suspense>
         </div>
       </div>

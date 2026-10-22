@@ -1,58 +1,49 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { buttonClass } from "@/components/ui/Button";
+import ResultPanel, { type PanelCheck } from "@/components/auth/ResultPanel";
+import { TextField } from "@/components/auth/fields";
 
 export default function ForgotPasswordForm() {
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [checks, setChecks] = useState<PanelCheck[] | null>(null);
   const [sent, setSent] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (submitting) return;
     setSubmitting(true);
-    await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    // Always show the same message whether or not the email is registered
-    // — confirming/denying an account's existence here is a real
-    // user-enumeration risk, and Supabase's own response doesn't
-    // distinguish the two cases anyway.
+    setChecks(null);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      setChecks(data.checks);
+      // The server gives the same answer whether or not the email has an account,
+      // so people can't use this form to find out who is registered.
+      if (data.ok) setSent(true);
+    } catch {
+      setChecks([{ id: "network", ok: false, message: "Couldn't reach the server. Please try again." }]);
+    }
     setSubmitting(false);
-    setSent(true);
-  }
-
-  if (sent) {
-    return (
-      <p className="font-sans text-[13px] text-bk-gold-light text-center">
-        If an account exists for that email, we&apos;ve sent a password reset link.
-      </p>
-    );
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label className="block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5">
-        Email
-      </label>
-      <input
-        type="email"
-        required
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
-        className="w-full bg-bk-surface border border-bk-border text-bk-heading placeholder:text-bk-muted text-[13px] font-sans px-4 h-[46px] mb-4 outline-none transition-all focus:border-bk-gold-light focus:shadow-[0_0_0_3px_rgba(244,200,66,0.12)]"
-      />
-      <button
-        type="submit"
-        disabled={submitting}
-        className={buttonClass("primary", "lg", "w-full")}
-      >
-        {submitting ? "Sending..." : "Send reset link"}
-      </button>
+    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <ResultPanel checks={checks} successMessage="If an account exists for that email, a reset link is on its way" />
+      {!sent && (
+        <>
+          <TextField label="Email" type="email" inputMode="email" autoComplete="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <button type="submit" disabled={submitting} className={buttonClass("primary", "lg", "w-full rounded-xl")}>
+            {submitting ? "Sending..." : "Send reset link"}
+          </button>
+        </>
+      )}
     </form>
   );
 }

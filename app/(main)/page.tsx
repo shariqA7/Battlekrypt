@@ -5,7 +5,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { SectionHeading } from "@/components/ui/Panel";
 import Link from "next/link";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ confirm_email?: string }> }) {
+  const { confirm_email } = await searchParams;
   // Hide tournaments of games that aren't available where this visitor is.
   const region = await getViewerRegion();
   const viewerCountry = region.showAll ? undefined : region.country;
@@ -16,6 +17,11 @@ export default async function Home() {
 
   return (
     <main className="flex-1">
+      {confirm_email === "1" && (
+        <div role="status" className="px-5 sm:px-6 py-3 bg-bk-teal/10 border-b border-bk-teal/40 text-center font-sans text-[13px] text-bk-teal">
+          Almost there: confirm your email to log in. We sent you a link.
+        </div>
+      )}
       <section className="relative overflow-hidden border-b border-bk-border-soft">
         {/* soft gold glow behind the headline; decorative only */}
         <div

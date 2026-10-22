@@ -144,6 +144,20 @@ model PlayerProfile {
   hobbies       String?
   favoriteGames String[]  @default([])
 
+  // Chosen at sign up. Stored lowercase, so uniqueness ignores case. Null for people who
+  // signed in with Google/Discord/Twitch and haven't picked one yet.
+  username String? @unique
+
+  // Sign-up records. Terms/Privacy are accepted together; the version says which text.
+  termsAcceptedAt DateTime?
+  termsVersion    String?
+  // Marketing email is opt-in and off unless ticked; the time is kept as proof.
+  marketingEmail   Boolean   @default(false)
+  marketingEmailAt DateTime?
+  // Under 18 at sign up: the parent/guardian email given on the form. The consent request
+  // is sent from it once the player confirms their own email.
+  guardianEmail String?
+
   registrations    Registration[]
   teamMemberships  TeamMember[]
   clubRoster       ClubRoster?
@@ -1246,6 +1260,9 @@ model SiteSettings {
   // A challenge whose cash prize (in USD) is above this waits for admin
   // approval before it goes live. Plan caps (Plan.limits) apply first.
   challengeReviewUsd      Decimal  @default(10000) @db.Decimal(14, 2)
+  // "Continue with Twitch" on the login/sign-up pages. Off until the Twitch app and the
+  // Supabase provider are set up (see SETUP.md), then switched on from Admin > Settings.
+  twitchLoginEnabled      Boolean  @default(false)
   updatedAt               DateTime @updatedAt
 }
 

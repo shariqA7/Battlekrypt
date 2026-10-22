@@ -2,6 +2,7 @@ import Nav from "@/components/layout/Nav";
 import Footer from "@/components/layout/Footer";
 import BannedScreen from "@/components/layout/BannedScreen";
 import SessionBeacon from "@/components/analytics/SessionBeacon";
+import MobileTabBar from "@/components/layout/MobileTabBar";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveBan } from "@/lib/services/bans";
 
@@ -35,6 +36,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         )}
       </div>
       <Footer />
+      {/* Phones only: fixed bottom tabs. The spacer keeps the footer from hiding behind them. */}
+      <div className="md:hidden h-[calc(64px+env(safe-area-inset-bottom))]" aria-hidden="true" />
+      <MobileTabBar />
     </>
   );
 }
