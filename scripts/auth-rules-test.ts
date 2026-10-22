@@ -4,7 +4,7 @@ import { safeRedirect } from "../lib/safe-redirect";
 import { rateLimit } from "../lib/rate-limit";
 import { toE164, DIAL_CODES } from "../lib/dial-codes";
 import { COUNTRIES } from "../lib/geo-data";
-import { signupChecks, coerceSignup, passwordChecks, allOk, resetChecks, loginChecks } from "../lib/validation/auth";
+import { coerceOrgAccount, orgAccountChecks, signupChecks, coerceSignup, passwordChecks, allOk, resetChecks, loginChecks } from "../lib/validation/auth";
 
 let failed = 0;
 function ok(name: string, cond: boolean) {
@@ -68,6 +68,16 @@ ok("guardian email same as own fails", failedIds(run({ birthDate: "2009-06-01", 
 ok("turns 18 today needs no guardian", allOk(run({ birthDate: "2008-10-21" })));
 ok("17 years 364 days needs guardian", failedIds(run({ birthDate: "2008-10-22" })).includes("guardian_email"));
 ok("adult: guardian email ignored", allOk(run({ guardianEmail: "garbage" })));
+
+// organizer account
+const org = (over: object = {}) => orgAccountChecks(coerceOrgAccount({ email: "Org@Example.com ", password: "Str0ng!Pass", confirmPassword: "Str0ng!Pass", acceptTerms: true, acceptPrivacy: true, ...over }));
+ok("a good organizer account passes", allOk(org()));
+ok("organizer weak password fails (8 chars was the old rule)", failedIds(org({ password: "abcdefgh", confirmPassword: "abcdefgh" })).includes("pw_upper"));
+ok("organizer password with a space fails", failedIds(org({ password: "Str0ng! Pass", confirmPassword: "Str0ng! Pass" })).includes("pw_nospace"));
+ok("organizer mismatch fails", failedIds(org({ confirmPassword: "x" })).join() === "pw_match");
+ok("organizer must accept terms and privacy", failedIds(org({ acceptTerms: false, acceptPrivacy: false })).join() === "terms,privacy");
+ok("organizer bad email fails", failedIds(org({ email: "nope" })).join() === "email");
+ok("organizer password can't contain the email name", failedIds(org({ email: "falconesports@x.com", password: "Falconesports1!", confirmPassword: "Falconesports1!" })).includes("pw_common"));
 
 // login / reset
 ok("login needs email and password", failedIds(loginChecks("x", "")).join() === "email,password");

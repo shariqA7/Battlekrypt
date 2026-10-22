@@ -10,6 +10,7 @@ import { gameVisibilityWhere } from "@/lib/game-region";
 import { checkConsentGate } from "@/lib/services/parental-consent";
 import { checkAgeGate } from "@/lib/services/age-gate";
 import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
+import { normalizeUsername, usernameChecks } from "@/lib/validation/auth";
 import { prisma } from "@/lib/prisma";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
@@ -1138,6 +1139,8 @@ export interface UpdatePlayerProfileInput {
   firstName: string; // required
   lastName: string; // required
   avatarUrl?: string;
+  // Only used while the player has no username yet; once chosen it can't be changed here.
+  username?: string;
   mobileNumber?: string;
   region?: string;
   country?: string;
@@ -1156,7 +1159,20 @@ export async function updatePlayerProfile(userId: string, input: UpdatePlayerPro
 
   // Date of birth: asked for until it is saved, then locked so it can't be
   // changed to get into an older tournament. (Support can correct a mistake.)
-  const current = await prisma.playerProfile.findUnique({ where: { userId }, select: { birthDate: true } });
+  const current = await prisma.playerProfile.findUnique({ where: { userId }, select: { birthDate: true, username: true } });
+
+  // Username: required until chosen (social sign-ins have none), then fixed. Rankings and
+  // public tables show it, so it can't keep changing.
+  let username: string | undefined;
+  if (!current?.username) {
+    const wanted = normalizeUsername(input.username ?? "");
+    if (!wanted) return { error: "username_required" as const, message: "Choose a username." };
+    const taken = !!(await prisma.playerProfile.findUnique({ where: { username: wanted }, select: { id: true } }));
+    const bad = usernameChecks(wanted, taken).find((c) => !c.ok);
+    if (bad) return { error: "username_invalid" as const, message: bad.message };
+    username = wanted;
+  }
+
   let birthDate = current?.birthDate ?? null;
   if (!birthDate) {
     if (!input.birthDate) {
@@ -1178,7 +1194,9 @@ export async function updatePlayerProfile(userId: string, input: UpdatePlayerPro
 
   const displayName = `${input.firstName.trim()} ${input.lastName.trim()}`;
 
-  const [user, playerProfile] = await prisma.$transaction([
+  let user, playerProfile;
+  try {
+  [user, playerProfile] = await prisma.$transaction([
     prisma.user.update({
       where: { id: userId },
       data: {
@@ -1191,6 +1209,7 @@ export async function updatePlayerProfile(userId: string, input: UpdatePlayerPro
       data: {
         firstName: input.firstName.trim(),
         lastName: input.lastName.trim(),
+        ...(username && { username }),
         mobileNumber: input.mobileNumber || null,
         region: input.region || null,
         country: input.country || null,
@@ -1203,6 +1222,13 @@ export async function updatePlayerProfile(userId: string, input: UpdatePlayerPro
       },
     }),
   ]);
+  } catch (e) {
+    // Someone took the username between the check above and the save.
+    if (username && typeof e === "object" && e !== null && (e as { code?: string }).code === "P2002") {
+      return { error: "username_invalid" as const, message: "That username was just taken. Pick another." };
+    }
+    throw e;
+  }
 
   return { data: { user, playerProfile } };
 }

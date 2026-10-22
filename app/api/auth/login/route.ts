@@ -47,10 +47,10 @@ export async function POST(request: Request) {
   await createApplicationFromMetadata(data.user);
   const profile = await prisma.playerProfile.findUnique({
     where: { userId: data.user.id },
-    select: { birthDate: true },
+    select: { birthDate: true, username: true },
   });
   // Someone who signed up with a social login and never gave a date of birth finishes
   // their profile first; everyone else goes where they were headed.
-  const next = profile?.birthDate ? redirectTo : `/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`;
+  const next = profile?.birthDate && profile?.username ? redirectTo : `/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`;
   return NextResponse.json({ ok: true, checks: [...checks, { id: "credentials", ok: true, message: "Signed in" }], next });
 }

@@ -6,7 +6,10 @@
 // sign in afterwards.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import ResultPanel, { type PanelCheck } from "@/components/auth/ResultPanel";
+import { PasswordField } from "@/components/auth/fields";
+import { passwordChecks } from "@/lib/validation/auth";
+import Link from "next/link";
 import { describeLimits, PAID_PERKS } from "@/lib/plan-copy";
 import { formatMoney } from "@/lib/money";
 import {
@@ -120,6 +123,10 @@ export default function OrgApplicationForm({
   const [v, setV] = useState<FormValues>(initialValues ?? EMPTY_VALUES);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [checks, setChecks] = useState<PanelCheck[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -146,10 +153,7 @@ export default function OrgApplicationForm({
 
     const parsed = validateOrgApplication(v);
     const localErrors: Record<string, string> = "errors" in parsed ? { ...(parsed.errors as FieldErrors) } : {};
-    if (mode === "create" && !loggedIn) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) localErrors.email = "Enter a valid email.";
-      if (password.length < 8) localErrors.password = "Use at least 8 characters.";
-    }
+    setChecks(null);
     if (Object.keys(localErrors).length) {
       setErrors(localErrors);
       return;
@@ -206,36 +210,27 @@ export default function OrgApplicationForm({
         return;
       }
 
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent("/organizer/application")}`,
-          // The application rides along in the account until the email is
-          // confirmed, then gets created on first sign-in.
-          data: { full_name: v.handlerName, org_application: v },
-        },
+      // The server checks the account (email, password rules, terms) and the whole
+      // application, then creates the login. Its answer is shown as ticks and crosses.
+      const res = await fetch("/api/auth/org-signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, confirmPassword, acceptTerms, acceptPrivacy, application: v }),
       });
-      if (error) {
-        setMessage({ text: error.message, error: true });
+      const out = await res.json();
+      setChecks(out.checks ?? null);
+      if (out.fieldErrors) setErrors(out.fieldErrors);
+      if (!out.ok) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-      if (data.user && data.user.identities?.length === 0) {
-        setMessage({
-          text: "An account with this email already exists. Sign in, then register your organization from the account menu.",
-          error: true,
-        });
-        return;
-      }
-      if (data.session) {
-        await fetch("/api/auth/ensure-user", { method: "POST" });
-        router.push("/organizer/application");
+      if (out.status === "signed_in") {
+        router.push(out.next ?? "/organizer/application");
         router.refresh();
         return;
       }
       setMessage({
-        text: `We sent a confirmation link to ${email}. Click it and your application will be submitted for review.`,
+        text: `If ${email} is new, we sent a confirmation link. Click it and your application will be submitted for review. If you already have an account, sign in and register your organization from the account menu.`,
         error: false,
       });
     } finally {
@@ -253,12 +248,34 @@ export default function OrgApplicationForm({
           <p className="font-sans text-[12px] text-bk-muted mb-3">
             You&apos;ll use this email and password to sign in once your organization is approved.
           </p>
+          <ResultPanel checks={checks} successMessage="Account created" />
           <Field label="Email" error={errors.email}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="you@organization.com" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} placeholder="you@organization.com" autoComplete="email" />
           </Field>
-          <Field label="Password" error={errors.password}>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} placeholder="At least 8 characters" />
-          </Field>
+          <div className="mb-3">
+            <PasswordField label="Password" autoComplete="new-password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value.replace(/\s/g, ""))} maxLength={72} />
+            {password && (
+              <ul className="mt-2 grid grid-cols-1 min-[420px]:grid-cols-2 gap-x-3 gap-y-1" aria-label="Password rules">
+                {passwordChecks(password, { email: email.trim().toLowerCase() }).filter((c) => c.id !== "pw_common").map((c) => (
+                  <li key={c.id} className={`text-[12px] ${c.ok ? "text-bk-teal" : "text-bk-muted"}`}>{c.ok ? "\u2713" : "\u2022"} {c.message.replace("Password ", "")}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="mb-3">
+            <PasswordField label="Confirm password" autoComplete="new-password" placeholder="Confirm password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value.replace(/\s/g, ""))} maxLength={72} />
+            {confirmPassword && password !== confirmPassword && (
+              <p className="mt-1.5 font-sans text-[12px] text-bk-live">Passwords don&apos;t match</p>
+            )}
+          </div>
+          <label className="flex items-start gap-3 font-sans text-[13px] text-bk-body mb-2">
+            <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5 w-[18px] h-[18px]" />
+            <span>I have read and accept the <Link href="/terms" target="_blank" className="text-bk-gold-light underline">Terms of Use</Link>.</span>
+          </label>
+          <label className="flex items-start gap-3 font-sans text-[13px] text-bk-body mb-2">
+            <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} className="mt-0.5 w-[18px] h-[18px]" />
+            <span>I have read and accept the <Link href="/privacy" target="_blank" className="text-bk-gold-light underline">Privacy Policy</Link>.</span>
+          </label>
         </>
       )}
 

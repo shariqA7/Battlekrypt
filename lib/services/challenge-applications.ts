@@ -12,6 +12,7 @@ import { isPosterFrozen } from "@/lib/services/challenge-fulfillment";
 import { isUnderReview } from "@/lib/services/challenge-moderation";
 import { detectSelectionFlags } from "@/lib/services/challenge-integrity";
 import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
+import { mainMode } from "@/lib/ranking-modes";
 import { checkJoinGate } from "@/lib/services/parental-consent";
 import { minorsMissingGuardianPayout } from "@/lib/services/payout-methods";
 import { parentalConsentEnabled } from "@/lib/consent-config";
@@ -69,7 +70,9 @@ export async function getApplyState(userId: string, c: ChallengeRow): Promise<Ap
   };
   const playerInstituteBlock = player ? await instituteMessage("player", null) : null;
 
-  const playerRating = player?.gameRatings[0]?.rating ?? 1000;
+  // Ratings are per mode; a challenge has no mode, so use the game's main one.
+  const game = await prisma.game.findUnique({ where: { id: c.gameId }, select: { teamSizeMax: true } });
+  const playerRating = player?.gameRatings.find((r) => r.mode === mainMode(game ?? { teamSizeMax: null }))?.rating ?? 1000;
   const playerState = player
     ? {
         rating: playerRating,
@@ -203,7 +206,8 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
       ]);
       if (!player || !user) return { error: "no_profile", message: "Finish player onboarding first." };
       entrantName = user.displayName;
-      rating = player.gameRatings[0]?.rating ?? 1000;
+      const game = await tx.game.findUnique({ where: { id: c.gameId }, select: { teamSizeMax: true } });
+      rating = player.gameRatings.find((r) => r.mode === mainMode(game ?? { teamSizeMax: null }))?.rating ?? 1000;
     } else {
       const team = input.clubTeamId
         ? await tx.clubTeam.findUnique({ where: { id: input.clubTeamId }, include: { club: true } })

@@ -35,13 +35,13 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/organizer/application`);
       }
 
-      // Password sign-ups already gave a date of birth on the form. Social logins
-      // (Google/Discord/Twitch) haven't, so they finish their profile first.
+      // Password sign-ups already gave a date of birth and username on the form. Social
+      // logins (Google/Discord/Twitch) haven't, so they finish their profile first.
       const profile = await prisma.playerProfile.findUnique({
         where: { userId: data.user.id },
-        select: { birthDate: true },
+        select: { birthDate: true, username: true },
       });
-      if (!profile?.birthDate && !redirectTo.startsWith("/reset-password")) {
+      if ((!profile?.birthDate || !profile?.username) && !redirectTo.startsWith("/reset-password")) {
         return NextResponse.redirect(`${origin}/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`);
       }
       return NextResponse.redirect(`${origin}${redirectTo}`);

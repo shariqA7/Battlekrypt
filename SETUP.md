@@ -755,3 +755,65 @@ being used on the player's 18th birthday and they are asked to add their own.
 
 **Tests** (no database needed): `npx tsx scripts/consent-guardian-test.ts` and
 `npx tsx scripts/payout-crypto-test.ts`.
+
+## Rankings
+
+`/rankings` (also in the top nav, and the "Ranking" tab on phones): pick a game, then
+**Players** or **Clubs**, then a mode.
+
+- **The game list follows the visitor's country**, exactly like the Games page, so someone
+  in India doesn't see Free Fire rankings, and admins can preview with `?as=IN`.
+- **Players** are ranked per game *and per mode*. Modes are only offered when someone has a
+  rating in them, and are named from the game: Solo / Duo / Squad for battle royales,
+  `5v5` for Valorant, Dota 2 and Mobile Legends, `4v4` for Black Ops 7, `3v3` for Rocket
+  League, `1v1` for one-on-one games (`lib/ranking-modes.ts`).
+- **Clubs** rank club *teams* (the unit that has a rating), with the club's name beside
+  each. A team shows up once it has placed in a tournament.
+- Equal ratings share a rank. Usernames are shown; a player under 18 without one is just
+  "Player", never their real name.
+
+**Ratings are now stored per mode.** A player has a separate rating for solo, duo and squad
+in each game; a finished tournament updates the mode it was played in, and tier entry
+gates check the rating for the tournament's own mode.
+
+The migration moves every existing rating into the game's *main* mode (solo for 1-player
+games, duo for 2, squad for 3 or more), because old ratings didn't record a mode. If you
+have real tournament history and want exact per-mode ratings, tell us before launch; they
+can be rebuilt by replaying completed tournaments.
+
+```
+npx prisma migrate deploy
+npx prisma generate
+```
+
+**Tests** (no database needed): `npx tsx scripts/rankings-test.ts`
+
+**Database-backed tests** (need a throwaway Postgres with every migration applied and an
+empty database; no email key needed): `npx tsx scripts/guardian-db-test.ts` covers the
+join gate, guardian approval, encrypted payouts, withdrawal side effects and rankings
+against a real database, and `npx tsx scripts/consent-db-test.ts` covers the consent
+request flow.
+
+## Follow-ups: organizer sign-up, usernames, withdrawals mid-tournament
+
+**Organizer sign-up** now uses the same server-side rules as players (`/api/auth/org-signup`):
+strong password with a confirm field and live rule hints, Terms and Privacy ticked, ticks and
+crosses at the top of the form. The organization details are re-validated on the server and
+the name is checked *before* the login is created. The "already have an account" case shows
+the same message as a new email, so the form can't be used to find out who is registered.
+
+**Usernames for Google, Discord and Twitch sign-ins.** Anyone without a username is sent to
+the profile step after signing in, where choosing one is required (3 to 20 letters, numbers
+or underscores; unique ignoring case; reserved words blocked). Once chosen it is fixed,
+because rankings show it. Profile settings shows it read-only. People who signed up before
+usernames existed are asked the next time they save their profile.
+
+**Guardian withdrawals mid-tournament** (Admin > Approvals, with a count in the sidebar).
+When a guardian withdraws consent:
+- tournaments that haven't started: the entry is cancelled and the slot reopens (as before);
+- a tournament already running: the entry stays and a **case** is opened. An admin chooses
+  *Let them finish* or *Remove the entry* (the entry is disqualified), with an optional note.
+  Both the organizer and the player are told. Results already recorded stay either way, and
+  the player can't join anything new until the guardian approves again.
+
+Run `npx prisma migrate deploy && npx prisma generate` for the new `ConsentCase` table.

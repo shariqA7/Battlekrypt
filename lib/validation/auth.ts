@@ -176,3 +176,49 @@ export function resetChecks(password: string, confirm: string, ctx: PasswordCont
     { id: "pw_match", ok: confirm.length > 0 && password === confirm, message: "Passwords match" },
   ];
 }
+
+// ---------------- organizer sign up (account part only) ----------------
+// The organization details have their own rules (lib/validation/org-application.ts); this
+// is the login account that goes with them, held to the same standard as a player's.
+export interface OrgAccountInput {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  acceptTerms: boolean;
+  acceptPrivacy: boolean;
+}
+
+export function coerceOrgAccount(body: unknown): OrgAccountInput {
+  const b = (body ?? {}) as Record<string, unknown>;
+  return {
+    email: normalizeEmail(b.email),
+    password: typeof b.password === "string" ? b.password : "",
+    confirmPassword: typeof b.confirmPassword === "string" ? b.confirmPassword : "",
+    acceptTerms: b.acceptTerms === true,
+    acceptPrivacy: b.acceptPrivacy === true,
+  };
+}
+
+export function orgAccountChecks(i: OrgAccountInput): Check[] {
+  return [
+    { id: "email", ok: isValidEmail(i.email), message: "Email address is valid" },
+    ...resetChecks(i.password, i.confirmPassword, { email: i.email }),
+    { id: "terms", ok: i.acceptTerms, message: "You accepted the Terms of Use" },
+    { id: "privacy", ok: i.acceptPrivacy, message: "You accepted the Privacy Policy" },
+  ];
+}
+
+// ---------------- username on its own (social sign-ins pick one after the fact) ----------------
+export function usernameChecks(raw: string, taken?: boolean): Check[] {
+  const u = normalizeUsername(raw);
+  const checks: Check[] = [
+    {
+      id: "username_format",
+      ok: u.length >= 3 && u.length <= 20 && USERNAME_RE.test(u) && !u.startsWith("_") && !u.endsWith("_"),
+      message: "Username is 3 to 20 letters, numbers or underscores",
+    },
+    { id: "username_reserved", ok: !RESERVED_USERNAMES.has(u), message: "Username is allowed" },
+  ];
+  if (taken !== undefined) checks.push({ id: "username_free", ok: !taken, message: "Username is available" });
+  return checks;
+}

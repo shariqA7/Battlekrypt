@@ -14,6 +14,7 @@ interface OnboardingClientProps {
   initialAvatarUrl: string;
   initialFirstName: string;
   initialLastName: string;
+  initialUsername?: string;
   initialMobileNumber: string;
   initialRegion: string;
   initialCountry: string;

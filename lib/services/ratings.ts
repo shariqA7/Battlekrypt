@@ -94,7 +94,7 @@ export async function awardTournamentRatings(tournamentId: string) {
   const [playerRatings, clubTeams] = await Promise.all([
     playerIds.length
       ? prisma.playerGameRating.findMany({
-          where: { gameId: tournament.gameId, playerId: { in: playerIds } },
+          where: { gameId: tournament.gameId, mode: tournament.mode, playerId: { in: playerIds } },
         })
       : Promise.resolve([]),
     clubTeamIds.length
@@ -134,8 +134,10 @@ export async function awardTournamentRatings(tournamentId: string) {
 
       return unit.playerId
         ? prisma.playerGameRating.upsert({
-            where: { playerId_gameId: { playerId: unit.playerId, gameId: tournament.gameId } },
-            create: { playerId: unit.playerId, gameId: tournament.gameId, rating: newRating },
+            where: {
+              playerId_gameId_mode: { playerId: unit.playerId, gameId: tournament.gameId, mode: tournament.mode },
+            },
+            create: { playerId: unit.playerId, gameId: tournament.gameId, mode: tournament.mode, rating: newRating },
             update: { rating: newRating },
           })
         : prisma.clubTeam.update({
