@@ -60,6 +60,8 @@ export async function POST(
     forbidden: { status: 403, message: "You don't own this tournament." },
     player_not_found: { status: 404, message: "No player found with that email." },
     already_registered: { status: 409, message: "This player is already registered." },
+    consent_required: { status: 403, message: "A parent or guardian needs to approve this account before it can join." },
+    guardian_payout_required: { status: 403, message: "A parent or guardian needs to add where prizes are paid first." },
     age_restricted: { status: 403, message: "This tournament has a minimum age you don't meet." },
     birth_date_required: { status: 403, message: "Add your date of birth in Profile settings first." },
     tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },

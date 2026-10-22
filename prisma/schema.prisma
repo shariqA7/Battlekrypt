@@ -165,6 +165,7 @@ model PlayerProfile {
   tournamentVotes  TournamentVote[]
   gameRatings      PlayerGameRating[]
   parentalConsents ParentalConsent[]
+  payoutMethod     PlayerPayoutMethod?
   institution      PlayerInstitution?
 
   // Subscription plan (Phase 5). Code of a Plan row; an expired paid plan
@@ -1821,6 +1822,11 @@ model ParentalConsent {
   decidedAt     DateTime?
   validUntil    DateTime?
 
+  // Link in the "you approved" email, so the guardian can come back and withdraw
+  // consent or set where prizes are paid. Only its hash is stored.
+  manageTokenHash String?   @unique
+  revokedAt       DateTime?
+
   signedName      String?
   waiverVersion   String?
   waiverText      String? @db.Text
@@ -1881,4 +1887,35 @@ model Penalty {
 
   @@index([registrationId])
   @@index([tournamentId, createdAt])
+}
+
+
+// ------------------------------------------------------------
+// PAYOUT METHOD — how a player wants to be paid when they win a prize. Saved once,
+// changeable. For a player under 18 it is the PARENT/GUARDIAN's account (entered by
+// the guardian from the consent email link), and `payee` says so. The account details
+// are encrypted before they are stored (lib/payout-crypto.ts) and only decrypted for
+// the person who owes the prize, once a prize is actually awarded.
+// ------------------------------------------------------------
+
+enum PayoutPayee {
+  self
+  guardian
+}
+
+model PlayerPayoutMethod {
+  id       String        @id @default(uuid())
+  playerId String        @unique
+  player   PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  payee     PayoutPayee @default(self)
+  // Whose account it is, as written by whoever entered it (the player, or the guardian).
+  payeeName String
+  // "JazzCash", "Bank transfer", "PayPal", "In-game ID" ...
+  method    String
+  // Encrypted account number / IBAN / username / notes.
+  detailsEnc String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

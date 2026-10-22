@@ -6,14 +6,15 @@ import { Badge } from "@/components/ui/Badge";
 import { buttonClass } from "@/components/ui/Button";
 import LocalDate from "@/components/ui/LocalDate";
 
-export type PanelConsentState = "approved" | "pending" | "declined" | "expired" | "none";
+export type PanelConsentState = "approved" | "pending" | "declined" | "expired" | "withdrawn" | "none";
 
 const COPY: Record<PanelConsentState, { tone: "teal" | "amber" | "danger"; label: string; text: string }> = {
-  approved: { tone: "teal", label: "Approved", text: "Your parent or guardian has approved. You're all set for tournaments that ask for consent." },
-  pending: { tone: "amber", label: "Waiting for your parent", text: "We emailed your parent or guardian. Room details and check-in unlock once they approve." },
+  approved: { tone: "teal", label: "Approved", text: "Your parent or guardian has approved. You can join tournaments, scrims, leagues and challenges." },
+  pending: { tone: "amber", label: "Waiting for your parent", text: "We emailed your parent or guardian. Until they approve you can browse, but you can't join anything." },
   declined: { tone: "danger", label: "Declined", text: "Your parent or guardian declined. You can send a new request if that changes." },
   expired: { tone: "amber", label: "Expired", text: "The last approval has run out (they last one year). Ask your parent or guardian again." },
-  none: { tone: "amber", label: "Needed", text: "This tournament needs a parent or guardian's permission because you're under 18. You can still register, but room details and check-in stay locked until they approve." },
+  withdrawn: { tone: "danger", label: "Withdrawn", text: "Your parent or guardian withdrew permission. You can still browse, but you can't join anything until they approve again. You can send a new request." },
+  none: { tone: "amber", label: "Needed", text: "Because you're under 18, a parent or guardian has to approve your account before you can join tournaments, scrims, leagues or challenges. You can browse in the meantime." },
 };
 
 // Shown to a player under 18 where a tournament asks for consent. Sends the

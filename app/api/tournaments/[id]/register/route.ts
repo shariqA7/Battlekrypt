@@ -59,6 +59,8 @@ export async function POST(
     full: { status: 409, message: "This tournament is full." },
     already_registered: { status: 409, message: "You're already registered for this tournament." },
     payment_proof_required: { status: 400, message: "Payment proof is required for a paid tournament." },
+    consent_required: { status: 403, message: "A parent or guardian needs to approve this account before it can join." },
+    guardian_payout_required: { status: 403, message: "A parent or guardian needs to add where prizes are paid first." },
     age_restricted: { status: 403, message: "This tournament has a minimum age you don't meet." },
     birth_date_required: { status: 403, message: "Add your date of birth in Profile settings first." },
     tier_gate: { status: 403, message: "Doesn't meet this tournament's competitive tier requirement." },

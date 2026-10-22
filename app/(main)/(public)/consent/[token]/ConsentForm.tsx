@@ -4,7 +4,7 @@ import { useState } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 
-type Done = { kind: "approved"; validUntil: string | null } | { kind: "declined" };
+type Done = { kind: "approved"; validUntil: string | null; manageToken: string | null } | { kind: "declined" };
 
 const inputClass =
   "w-full bg-bk-bg border border-bk-border px-3 h-[44px] font-sans text-[14px] text-bk-heading outline-none focus:border-bk-gold-from";
@@ -31,7 +31,7 @@ export default function ConsentForm({ token, childName, validDays }: { token: st
       setError(body?.error?.message ?? "Something went wrong. Please try again.");
       return;
     }
-    setDone(action === "approve" ? { kind: "approved", validUntil: body.validUntil } : { kind: "declined" });
+    setDone(action === "approve" ? { kind: "approved", validUntil: body.validUntil, manageToken: body.manageToken ?? null } : { kind: "declined" });
   }
 
   if (done) {
@@ -42,9 +42,19 @@ export default function ConsentForm({ token, childName, validDays }: { token: st
         </p>
         <p className="font-sans text-bk-body text-sm">
           {done.kind === "approved"
-            ? `${childName} can now take part in tournaments that ask for consent for the next ${validDays === 365 ? "year" : `${validDays} days`}. You can close this page.`
+            ? `${childName} can now join tournaments, scrims, leagues and challenges for the next ${validDays === 365 ? "year" : `${validDays} days`}.`
             : `Nothing was approved for ${childName}. You can close this page.`}
         </p>
+        {done.kind === "approved" && done.manageToken && (
+          <>
+            <p className="font-sans text-bk-body text-sm mt-3">
+              Prizes are paid to you, not to {childName}. Please add where to send them. This is also where you can withdraw permission later, and we have emailed you the same link.
+            </p>
+            <a href={`/consent/manage/${done.manageToken}`} className={buttonClass("primary", "md", "mt-4")}>
+              Add payment details
+            </a>
+          </>
+        )}
       </Panel>
     );
   }

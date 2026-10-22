@@ -13,6 +13,7 @@ import PublishButton from "./PublishButton";
 import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
+import PrizePayees from "./PrizePayees";
 import InstitutesPanel from "@/components/institutes/InstitutesPanel";
 import NoShowPolicyPanel from "@/components/penalties/NoShowPolicyPanel";
 import { ButtonLink } from "@/components/ui/Button";
@@ -135,6 +136,10 @@ export default async function ManageTournamentPage({
           />
           <CancelButton tournamentId={id} status={tournament.status} />
         </div>
+
+        {tournament.prizePoolAmount && ["in_progress", "completed"].includes(tournament.status) && (
+          <PrizePayees tournamentId={id} />
+        )}
 
         {isLan && counts && (
           <Panel className="mb-8 p-4">

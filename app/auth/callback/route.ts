@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ensureUserRecord } from "@/lib/ensure-user";
 import { createApplicationFromMetadata } from "@/lib/services/org-applications";
 import { getLoginOptions } from "@/lib/services/login-options";
+import { requestSignupConsent } from "@/lib/services/parental-consent";
 import { prisma } from "@/lib/prisma";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { NextResponse } from "next/server";
@@ -25,6 +26,8 @@ export async function GET(request: Request) {
       }
 
       await ensureUserRecord(data.user);
+      // Under-18 sign-ups: ask the guardian they named, now that their own email is confirmed.
+      await requestSignupConsent(data.user.id, origin).catch(() => undefined);
       // Organization sign-ups carry their application in the account
       // metadata until the email is confirmed; create it now.
       const application = await createApplicationFromMetadata(data.user);

@@ -8,6 +8,7 @@ import { allOk, coerceSignup, signupChecks, type Check } from "@/lib/validation/
 import { buildSignupMetadata } from "@/lib/signup-profile";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/safe-redirect";
+import { requestSignupConsent } from "@/lib/services/parental-consent";
 
 export async function POST(request: Request) {
   const limit = rateLimit(`signup:${clientIp(request.headers)}`, 8, 60 * 60 * 1000);
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
   // "Confirm email" is off: signUp logged them in, so build their profile now.
   if (data.session && data.user) {
     await ensureUserRecord(data.user);
+    await requestSignupConsent(data.user.id, origin).catch(() => undefined);
     return NextResponse.json({ ok: true, checks, status: "signed_in", next: redirectTo });
   }
 

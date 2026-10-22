@@ -27,6 +27,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     agree: body.agree === true,
     ip: forwarded ? forwarded.split(",")[0].trim() : null,
     userAgent: request.headers.get("user-agent"),
+    origin: new URL(request.url).origin,
   });
   if ("error" in result) {
     return NextResponse.json(

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { allOk, loginChecks, normalizeEmail } from "@/lib/validation/auth";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/safe-redirect";
+import { requestSignupConsent } from "@/lib/services/parental-consent";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
   }
 
   await ensureUserRecord(data.user);
+  await requestSignupConsent(data.user.id, new URL(request.url).origin).catch(() => undefined);
   await createApplicationFromMetadata(data.user);
   const profile = await prisma.playerProfile.findUnique({
     where: { userId: data.user.id },

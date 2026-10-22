@@ -707,3 +707,51 @@ Notes:
   Enough to slow scripts down; swap in Redis if abuse becomes real.
 - `/terms` and `/privacy` are placeholders. Bump `TERMS_VERSION` in
   `lib/validation/auth.ts` when the real text goes live.
+
+## Under-18 players: guardian approval, withdrawal and prize payments
+
+**The rule.** A player under 18 can browse everything, but can't join a tournament, scrim,
+league or challenge until a parent/guardian has approved. This is enforced on the server
+in `checkAgeGate` (all four tournament entry paths, including organizer manual-add and
+club entries) and in challenge applications. It only applies while the consent switch is
+on (below).
+
+**How it works.**
+1. At sign up a player aged 13 to 17 gives a guardian email. After they confirm their own
+   email (or log in), we email the guardian a link to read and sign the waiver.
+2. When the guardian approves, they get a second email with a **manage link** that never
+   expires while the consent is valid. From it they can add where prizes are paid and
+   **withdraw** permission at any time.
+3. Withdrawing cancels the child's entries in tournaments that haven't started (the slot
+   reopens), tells the organizer of any tournament already running (the entry is left for
+   them and an admin to decide), blocks new entries, and emails the guardian a
+   confirmation. Results already recorded stay.
+4. Consent also lapses by itself after 365 days, and stops being needed when the player
+   turns 18.
+
+**Prizes.** For a player under 18, **cash** prizes (tournament prize pools and cash
+challenges) are paid to the **guardian's** account, never to the child. The guardian
+enters it on the manage page, and minors can't enter cash-prize events until they have.
+Organizers see it as "Prize payees" on the tournament page, and challenge posters see it
+in the payout details. In-game prizes (like UC) still go to the child's game ID.
+Players 18 and over add their own method under Profile settings. A guardian method stops
+being used on the player's 18th birthday and they are asked to add their own.
+
+**Set up before turning it on.**
+
+1. Run the migration: `npx prisma migrate deploy && npx prisma generate`.
+2. Payout details are encrypted. Create a key and add it to your environment (keep a
+   backup: without it saved details can't be read):
+   ```
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   `PAYOUT_ENCRYPTION_KEY=<that value>`. Without it, saving payment details is refused.
+3. Email: consent emails go out through Resend (`RESEND_API_KEY`, a verified sending
+   domain, `EMAIL_FROM`). Remove `EMAIL_TEST_TO` when live, or every email goes to you.
+4. Have a lawyer review the waiver text (`lib/consent-waiver.ts`, now version
+   `2026-10-v2`), then switch it on with `NEXT_PUBLIC_PARENTAL_CONSENT_ENABLED=true`.
+   While it is off, nothing is gated and no consent emails are sent.
+5. Set `NEXT_PUBLIC_SITE_URL` so the links in emails point at your real domain.
+
+**Tests** (no database needed): `npx tsx scripts/consent-guardian-test.ts` and
+`npx tsx scripts/payout-crypto-test.ts`.

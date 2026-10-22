@@ -3,7 +3,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { ageOn } from "@/lib/age";
 import { ADULT_AGE } from "@/lib/consent-config";
 
-export type ConsentState = "approved" | "pending" | "declined" | "expired" | "none";
+// "withdrawn": the guardian approved once and later took the approval back.
+export type ConsentState = "approved" | "pending" | "declined" | "expired" | "withdrawn" | "none";
 
 export interface ConsentRecord {
   status: "pending" | "approved" | "declined" | "revoked" | "superseded";
@@ -11,6 +12,20 @@ export interface ConsentRecord {
   linkExpiresAt: Date;
   decidedAt: Date | null;
   createdAt: Date;
+  revokedAt?: Date | null;
+}
+
+// Minors (13 to 17) can only view the platform until a guardian has approved: they can't
+// join tournaments, scrims, leagues or challenges. Applies whenever the platform consent
+// switch is on and the player's date of birth says they are under 18. A player with no
+// date of birth on file is not treated as a minor here (the profile form asks for one).
+export function joinNeedsConsent(
+  birthDate: Date | null | undefined,
+  enabled: boolean,
+  now: Date = new Date()
+): boolean {
+  if (!enabled || !birthDate) return false;
+  return ageOn(birthDate, now) < ADULT_AGE;
 }
 
 // Does this player, for this tournament, need a guardian's consent right now?
@@ -41,9 +56,11 @@ export function deriveConsentState(
     return { state: "pending", validUntil: null };
   }
 
+  const when = (r: ConsentRecord) => (r.revokedAt ?? r.decidedAt ?? r.createdAt).getTime();
   const decided = records
-    .filter((r) => r.status === "declined" || (r.status === "approved" && r.validUntil))
-    .sort((a, b) => (b.decidedAt ?? b.createdAt).getTime() - (a.decidedAt ?? a.createdAt).getTime())[0];
+    .filter((r) => r.status === "declined" || r.status === "revoked" || (r.status === "approved" && r.validUntil))
+    .sort((a, b) => when(b) - when(a))[0];
+  if (decided?.status === "revoked") return { state: "withdrawn", validUntil: null };
   if (decided?.status === "declined") return { state: "declined", validUntil: null };
   if (decided?.status === "approved") return { state: "expired", validUntil: decided.validUntil };
   return { state: "none", validUntil: null };
@@ -94,6 +111,6 @@ export function entryConsentStatus(
   const needing = members.filter((m) => m.needed);
   if (needing.length === 0) return "not_required";
   if (needing.every((m) => m.state === "approved")) return "approved";
-  if (needing.some((m) => m.state === "declined")) return "declined";
+  if (needing.some((m) => m.state === "declined" || m.state === "withdrawn")) return "declined";
   return "pending";
 }
