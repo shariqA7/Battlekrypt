@@ -41,6 +41,7 @@ export default async function PlayerProfileSettingsPage({
         initialAvatarUrl={profile?.user.avatarUrl ?? ""}
         initialFirstName={profile?.firstName ?? ""}
         initialLastName={profile?.lastName ?? ""}
+          initialUsername={profile?.username ?? ""}
         initialMobileNumber={profile?.mobileNumber ?? ""}
         initialRegion={profile?.region ?? ""}
         initialCountry={profile?.country ?? ""}

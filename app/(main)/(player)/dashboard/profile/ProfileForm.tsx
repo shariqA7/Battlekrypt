@@ -10,6 +10,8 @@ interface ProfileFormProps {
   initialAvatarUrl: string;
   initialFirstName: string;
   initialLastName: string;
+  // Empty until chosen (Google/Discord/Twitch sign-ins). Once set it is shown, not editable.
+  initialUsername?: string;
   initialMobileNumber: string;
   initialRegion: string;
   initialCountry: string;
@@ -31,6 +33,7 @@ export default function ProfileForm({
   initialAvatarUrl,
   initialFirstName,
   initialLastName,
+  initialUsername = "",
   initialMobileNumber,
   initialRegion,
   initialCountry,
@@ -46,6 +49,7 @@ export default function ProfileForm({
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl);
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
+  const [username, setUsername] = useState(initialUsername);
   const [mobileNumber, setMobileNumber] = useState(initialMobileNumber);
   const [region, setRegion] = useState(initialRegion);
   const [country, setCountry] = useState(initialCountry);
@@ -73,6 +77,7 @@ export default function ProfileForm({
         firstName,
         lastName,
         avatarUrl: avatarUrl || undefined,
+        username: initialUsername ? undefined : username.trim() || undefined,
         mobileNumber: mobileNumber || undefined,
         region: region || undefined,
         country: country || undefined,
@@ -150,6 +155,29 @@ export default function ProfileForm({
           />
         </div>
       </div>
+
+      <label className={labelClass}>Username{initialUsername ? "" : " *"}</label>
+      {initialUsername ? (
+        <p className="font-sans text-[14px] text-bk-heading mb-1">
+          @{initialUsername} <span className="text-bk-muted text-[12px]">(shown on rankings. It can&apos;t be changed.)</span>
+        </p>
+      ) : (
+        <>
+          <input
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
+            maxLength={20}
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="3 to 20 letters, numbers or _"
+            className={inputClass}
+          />
+          <p className="font-sans text-[12px] text-bk-muted mt-1.5 mb-1">
+            Shown on rankings instead of your real name. You can&apos;t change it later.
+          </p>
+        </>
+      )}
 
       <label className={labelClass}>Mobile number</label>
       <input value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} className={inputClass} />

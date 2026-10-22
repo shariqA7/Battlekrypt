@@ -69,6 +69,8 @@ export const updatePlayerProfileSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(60),
   lastName: z.string().trim().min(1, "Last name is required").max(60),
   avatarUrl: z.string().url().optional(),
+  // Chosen once (people who signed in with Google/Discord/Twitch pick it here); ignored after.
+  username: z.string().max(40).optional(),
   mobileNumber: z.string().max(30).optional(),
   region: z.string().max(100).optional(),
   country: z.string().max(100).optional(),

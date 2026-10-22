@@ -153,7 +153,9 @@ export async function checkTierEntryGate(
   const rating = actor.playerId
     ? (
         await prisma.playerGameRating.findUnique({
-          where: { playerId_gameId: { playerId: actor.playerId, gameId: tournament.gameId } },
+          where: {
+            playerId_gameId_mode: { playerId: actor.playerId, gameId: tournament.gameId, mode: tournament.mode },
+          },
         })
       )?.rating ?? 1000 // unrated player = starting baseline, not zero
     : (
@@ -163,7 +165,7 @@ export async function checkTierEntryGate(
   if (rating < setting.minRating) {
     return {
       error: "tier_gate" as const,
-      message: `${tournament.competitiveTier}-tier entry requires ${setting.minRating}+ rating in this game (currently ${rating}).`,
+      message: `${tournament.competitiveTier}-tier entry requires ${setting.minRating}+ rating in this game and mode (currently ${rating}).`,
     };
   }
   return { ok: true as const };

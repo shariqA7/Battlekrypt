@@ -21,6 +21,8 @@ import { listPendingPlanRequests } from "@/lib/services/plan-requests";
 import ChallengeReview from "../ChallengeReview";
 import ChallengeDisputes from "../ChallengeDisputes";
 import ChallengeIntegrity from "../ChallengeIntegrity";
+import ConsentCases from "../ConsentCases";
+import { listConsentCases } from "@/lib/services/consent-cases";
 import { listReportedChallenges } from "@/lib/services/challenge-moderation";
 import { listOpenFlags } from "@/lib/services/challenge-integrity";
 import { listDisputesForAdmin } from "@/lib/services/challenge-fulfillment";
@@ -46,6 +48,8 @@ export default async function AdminApprovalsPage() {
     openFlags,
     challengeReviewUsd,
     pendingTierReviews,
+    openConsentCases,
+    decidedConsentCases,
   ] = await Promise.all([
     listPendingOrganizers(),
     listPendingClubs(),
@@ -62,6 +66,8 @@ export default async function AdminApprovalsPage() {
     listOpenFlags(),
     getChallengeReviewUsd(),
     listPendingTierReviewTournaments(),
+    listConsentCases("open"),
+    listConsentCases("decided"),
   ]);
 
   return (
@@ -94,6 +100,7 @@ export default async function AdminApprovalsPage() {
         }))}
       />
       <PlanRequestsQueue initial={planRequests} />
+      <ConsentCases open={openConsentCases} decided={decidedConsentCases} />
       <ChallengeDisputes
         initial={disputes.map((d) => {
           const a = d.application;

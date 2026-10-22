@@ -914,11 +914,15 @@ model PlayerGameRating {
   gameId   String
   game     Game          @relation(fields: [gameId], references: [id])
 
+  // One rating per mode: someone's solo form says nothing about their squad play, so each
+  // tournament mode keeps its own number (rankings and tier gates read the matching one).
+  mode   TournamentMode
   rating Int @default(1000)
 
   updatedAt DateTime @updatedAt
 
-  @@unique([playerId, gameId])
+  @@unique([playerId, gameId, mode])
+  @@index([gameId, mode, rating])
 }
 
 model Tournament {
@@ -1247,6 +1251,9 @@ model Registration {
 
   // Quota counts ask "how many live entries does this institute have in this tournament".
   @@index([tournamentId, institutionId])
+
+  // Set when a guardian withdrew consent while this entry was in a tournament already running.
+  consentCase ConsentCase?
 }
 
 model SiteSettings {
@@ -1918,4 +1925,36 @@ model PlayerPayoutMethod {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+
+// ------------------------------------------------------------
+// CONSENT CASE — a guardian withdrew consent for a player who is already playing in a
+// RUNNING tournament. The entry is left alone (results stay valid) until an admin decides:
+// let them finish, or remove the entry. Tournaments that haven't started never create one:
+// those entries are simply cancelled.
+// ------------------------------------------------------------
+
+enum ConsentCaseStatus {
+  open
+  allowed
+  removed
+}
+
+model ConsentCase {
+  id             String       @id @default(uuid())
+  registrationId String       @unique
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  tournamentId   String
+  // The child whose guardian withdrew (for a team entry, the one member).
+  playerId       String
+
+  status      ConsentCaseStatus @default(open)
+  decidedById String?
+  decidedAt   DateTime?
+  note        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
 }

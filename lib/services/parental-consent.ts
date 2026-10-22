@@ -26,6 +26,7 @@ import { WAIVER_VERSION, waiverText } from "@/lib/consent-waiver";
 import { consentApprovedEmail, consentRequestEmail, consentWithdrawnEmail } from "@/lib/email-templates";
 import { notify } from "@/lib/services/notifications";
 import { savePayoutMethod } from "@/lib/services/payout-methods";
+import { openConsentCases } from "@/lib/services/consent-cases";
 import { sendEmail } from "@/lib/email";
 import { ageOn } from "@/lib/age";
 import { ADULT_AGE } from "@/lib/consent-config";
@@ -409,13 +410,16 @@ async function applyWithdrawal(player: { id: string; userId: string }, childName
     for (const tid of new Set(upcoming.map((r) => r.tournamentId))) await bumpRegistrationCount(tid);
   }
 
+  // Entries in a running tournament wait for an admin (Approvals > Guardian withdrawals).
+  await openConsentCases(player.id, regs.filter((r) => r.tournament.status === "in_progress"));
+
   for (const r of regs) {
     const running = r.tournament.status === "in_progress";
     await notify(r.tournament.organizer.userId, {
       type: "consent_withdrawn",
       title: running ? "Guardian consent withdrawn mid-tournament" : "An entry was cancelled",
       body: running
-        ? `The guardian of a player (${childName}) in "${r.tournament.name}" withdrew consent. The entry was NOT removed because the tournament is running. Please decide how to handle it, and contact an admin if you need help.`
+        ? `The guardian of a player (${childName}) in "${r.tournament.name}" withdrew consent. The entry was NOT removed because the tournament is running. An admin will decide whether they can finish, and you will be told.`
         : `The guardian of a player (${childName}) in "${r.tournament.name}" withdrew consent, so the entry was cancelled and the slot reopened.`,
       href: `/organizer/dashboard/tournaments/${r.tournamentId}`,
     });

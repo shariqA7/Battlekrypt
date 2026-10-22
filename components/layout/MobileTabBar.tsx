@@ -26,8 +26,9 @@ const TABS: { label: string; href: string; icon: ReactElement; match: (p: string
     icon: svg(<><path {...stroke} d="M5 19L19 5M14 5h5v5M5 5l4 4M15 19l4-4" /></>),
   },
   {
-    label: "Live", href: "/live", match: (p) => p.startsWith("/live"),
-    icon: svg(<><circle {...stroke} cx="12" cy="12" r="2.2" /><path {...stroke} d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></>),
+    // Live stays one tap away in the More menu.
+    label: "Ranking", href: "/rankings", match: (p) => p.startsWith("/rankings"),
+    icon: svg(<><path {...stroke} d="M4 8l3.5 3L12 5l4.5 6L20 8l-1.5 9h-13L4 8z" /><path {...stroke} d="M6 20h12" /></>),
   },
 ];
 

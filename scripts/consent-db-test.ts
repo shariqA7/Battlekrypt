@@ -78,7 +78,7 @@ async function main() {
   const rec = await prisma.parentalConsent.findFirst({ where: { playerId: kid.id, status: "approved" } });
   const days = rec?.validUntil && rec.decidedAt ? Math.round((rec.validUntil.getTime() - rec.decidedAt.getTime()) / 86400000) : 0;
   ok("it is valid for one year", days === 365);
-  ok("the signature, IP, waiver version and exact waiver text are saved", rec?.signedName === "Gran Khan" && rec.signedIp === "203.0.113.9" && !!rec.waiverVersion && (rec.waiverText ?? "").includes("only for players aged 18 or over"));
+  ok("the signature, IP, waiver version and exact waiver text are saved", rec?.signedName === "Gran Khan" && rec.signedIp === "203.0.113.9" && !!rec.waiverVersion && (rec.waiverText ?? "").includes("paid to me"));
   ok("the link can't be used twice", err(await decideConsent(tokenC, { action: "approve", signedName: "Gran Khan", confirmGuardian: true, agree: true })) === "already_used");
   ok("the player is now approved", (await getConsentStateForPlayer(kid.id)).state === "approved");
   ok("the gate opens", !err(await checkConsentGate(tc.id, kid.id)));
