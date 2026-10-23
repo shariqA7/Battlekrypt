@@ -6,7 +6,7 @@ import type { AdminIconName } from "./adminNav";
 const s = { stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
 const PATHS: Record<AdminIconName, ReactElement> = {
-  overview: <><rect {...s} x="3.5" y="3.5" width="7" height="7" rx="1" /><rect {...s} x="13.5" y="3.5" width="7" height="7" rx="1" /><rect {...s} x="3.5" y="13.5" width="7" height="7" rx="1" /><rect {...s} x="13.5" y="13.5" width="7" height="7" rx="1" /></>,
+  dashboard: <><rect {...s} x="3.5" y="3.5" width="7" height="7" rx="1" /><rect {...s} x="13.5" y="3.5" width="7" height="7" rx="1" /><rect {...s} x="3.5" y="13.5" width="7" height="7" rx="1" /><rect {...s} x="13.5" y="13.5" width="7" height="7" rx="1" /></>,
   approvals: <><circle {...s} cx="12" cy="12" r="8.5" /><path {...s} d="M8.2 12.4l2.6 2.6 5-5.6" /></>,
   changeRequests: <><path {...s} d="M4 20h4l10.5-10.5a2.1 2.1 0 00-3-3L5 17v3z" /><path {...s} d="M13.5 8.5l2 2" /></>,
   institutions: <><path {...s} d="M2.5 9.5L12 4.5l9.5 5-9.5 5-9.5-5z" /><path {...s} d="M6 12v4.5c0 1.2 2.7 2.5 6 2.5s6-1.3 6-2.5V12M21.5 9.5V15" /></>,
@@ -21,6 +21,11 @@ const PATHS: Record<AdminIconName, ReactElement> = {
   currencies: <><circle {...s} cx="12" cy="12" r="9.2" /><path {...s} d="M14.8 9.2c-.5-1-1.5-1.5-2.8-1.5-1.6 0-2.7.8-2.7 2s1 1.7 2.7 2.1c1.8.4 2.9 1 2.9 2.3 0 1.3-1.2 2.1-2.9 2.1-1.4 0-2.5-.6-3-1.7M12 6v1.7M12 16.3V18" /></>,
   featured: <path {...s} d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.8L12 3.5z" />,
   traffic: <><path {...s} d="M3.5 20.5h17" /><rect {...s} x="5" y="12" width="3.2" height="6" rx=".6" /><rect {...s} x="10.4" y="7" width="3.2" height="11" rx=".6" /><rect {...s} x="15.8" y="9.5" width="3.2" height="8.5" rx=".6" /></>,
+  teams: <><circle {...s} cx="8" cy="9" r="2.6" /><circle {...s} cx="16.5" cy="9" r="2.6" /><path {...s} d="M2.8 18.5c.5-2.6 2.5-4 5.2-4s4.7 1.4 5.2 4M13.6 14.7c.9-.4 1.9-.5 2.9-.4 2.4.3 4 1.6 4.7 4.2" /></>,
+  tournaments: <><path {...s} d="M7 4h10v5a5 5 0 01-10 0V4zM7 6H4.5v1.5A3 3 0 007.5 10.5M17 6h2.5v1.5a3 3 0 01-3 3M12 14v4M8.5 20h7" /></>,
+  registrations: <><rect {...s} x="5" y="3.5" width="14" height="17" rx="1.6" /><path {...s} d="M8.7 9.3l1.4 1.4 2.4-2.6M8.7 15h6.6M13.8 9.6h1.5" /></>,
+  bans: <><circle {...s} cx="12" cy="12" r="8.5" /><path {...s} d="M6 6l12 12" /></>,
+  sessions: <><circle {...s} cx="12" cy="12" r="8.5" /><path {...s} d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5z" /></>,
   settings: <><circle {...s} cx="12" cy="12" r="3" /><path {...s} d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M18 6l-1.6 1.6M7.6 16.4L6 18" /></>,
 };
 

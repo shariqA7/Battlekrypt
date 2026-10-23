@@ -24,7 +24,7 @@ function SidebarLinks({ collapsed, pending, onNavigate }: { collapsed: boolean; 
           {collapsed ? (
             gi > 0 && <div className="mx-3 mb-2 border-t border-bk-border-soft" aria-hidden="true" />
           ) : (
-            <p className="px-3 mb-1 font-sans font-bold text-[10px] uppercase tracking-[1.6px] text-bk-faint">{group.label}</p>
+            group.label && <p className="px-3 mb-1 font-sans font-bold text-[10px] uppercase tracking-[1.6px] text-bk-faint">{group.label}</p>
           )}
           <ul className="flex flex-col gap-0.5">
             {group.items.map((item) => {
@@ -114,7 +114,11 @@ export default function AdminShell({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // The phone drawer is open only on the page it was opened from, so it
+  // closes by itself after any navigation (no effect needed).
+  const [drawerFor, setDrawerFor] = useState<string | null>(null);
+  const drawerOpen = drawerFor === pathname;
+  const setDrawerOpen = useCallback((open: boolean) => setDrawerFor(open ? pathname : null), [pathname]);
 
   const toggle = useCallback(() => {
     setCollapsed((prev) => {
@@ -124,27 +128,26 @@ export default function AdminShell({
     });
   }, []);
 
-  // Close the phone drawer after navigating, and on Escape.
-  useEffect(() => setDrawerOpen(false), [pathname]);
+  // Escape closes the phone drawer.
   useEffect(() => {
     if (!drawerOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setDrawerOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawerOpen]);
+  }, [drawerOpen, setDrawerOpen]);
 
   return (
-    <div className="flex-1 w-full max-w-[1600px] mx-auto px-3 sm:px-5 py-6 flex gap-6">
+    // Full-bleed: the sidebar touches the left edge and runs from the top bar
+    // down to the footer. min-h keeps it that tall even on short pages.
+    <div className="flex-1 w-full flex items-stretch min-h-[calc(100dvh_-_4rem_-_env(safe-area-inset-top))]">
       {/* Desktop / tablet sidebar */}
       <aside
-        className={`hidden md:block shrink-0 transition-[width] duration-200 ease-out ${collapsed ? "w-16" : "w-60"}`}
+        className={`hidden md:block shrink-0 bg-bk-bg-nav border-r border-bk-border-nav transition-[width] duration-200 ease-out ${collapsed ? "w-16" : "w-60"}`}
         aria-label="Admin sidebar"
       >
-        <div className="sticky top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden bg-bk-bg-nav border border-bk-border-nav py-3">
-          <div className={`flex items-center mb-3 ${collapsed ? "justify-center" : "justify-between pl-3 pr-2"}`}>
-            {!collapsed && (
-              <p className="border-l-[3px] border-bk-gold-from pl-3 font-sans font-extrabold text-lg text-bk-heading">Admin</p>
-            )}
+        {/* Sticks while the page scrolls. Scrolls too, just without a visible scrollbar. */}
+        <div className="sticky top-0 max-h-dvh overflow-y-auto overflow-x-hidden no-scrollbar pb-6">
+          <div className={`flex items-center h-12 ${collapsed ? "justify-center" : "justify-end pr-2"}`}>
             <button
               type="button"
               onClick={toggle}
@@ -160,22 +163,24 @@ export default function AdminShell({
         </div>
       </aside>
 
-      <div className="min-w-0 flex-1">
-        {/* Breadcrumb bar (+ menu button on phones) */}
-        <div className="flex items-center gap-3 mb-6 pb-3 border-b border-bk-border-soft">
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open admin menu"
-            aria-expanded={drawerOpen}
-            className="md:hidden relative grid place-items-center w-11 h-11 -ml-1 text-bk-heading border border-bk-border bg-bk-surface"
-          >
-            <MenuIcon />
-            {pending > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-bk-live" aria-hidden="true" />}
-          </button>
-          <Breadcrumbs />
+      <div className="min-w-0 flex-1 py-6 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-6">
+        <div className="w-full max-w-[1400px] mx-auto">
+          {/* Breadcrumb bar (+ menu button on phones) */}
+          <div className="flex items-center gap-3 mb-6 pb-3 border-b border-bk-border-soft">
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open admin menu"
+              aria-expanded={drawerOpen}
+              className="md:hidden relative grid place-items-center w-11 h-11 -ml-1 text-bk-heading border border-bk-border bg-bk-surface"
+            >
+              <MenuIcon />
+              {pending > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-bk-live" aria-hidden="true" />}
+            </button>
+            <Breadcrumbs />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
 
       {/* Phone drawer: always the full (expanded) menu */}
@@ -183,11 +188,10 @@ export default function AdminShell({
         <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Admin menu">
           <button type="button" aria-label="Close admin menu" onClick={() => setDrawerOpen(false)} className="absolute inset-0 bg-black/60" />
           <div
-            className="absolute left-0 top-0 bottom-0 w-[280px] max-w-[85vw] bg-bk-bg-nav border-r border-bk-border-nav overflow-y-auto"
+            className="absolute left-0 top-0 bottom-0 w-[280px] max-w-[85vw] bg-bk-bg-nav border-r border-bk-border-nav overflow-y-auto no-scrollbar"
             style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)", paddingLeft: "env(safe-area-inset-left)" }}
           >
-            <div className="flex items-center justify-between pl-3 pr-2 py-3">
-              <p className="border-l-[3px] border-bk-gold-from pl-3 font-sans font-extrabold text-lg text-bk-heading">Admin</p>
+            <div className="flex items-center justify-end pr-2 h-14">
               <button type="button" onClick={() => setDrawerOpen(false)} aria-label="Close admin menu" className="grid place-items-center w-11 h-11 text-bk-muted hover:text-bk-heading">
                 <CloseIcon />
               </button>
