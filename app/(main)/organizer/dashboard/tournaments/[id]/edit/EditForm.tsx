@@ -6,6 +6,9 @@ import CurrencyInput from "@/components/ui/CurrencyInput";
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
 import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
+import PrizeAwardsEditor, { awardRowsToBody, awardRowsFromAwards, type AwardRow } from "@/components/tournaments/PrizeAwardsEditor";
+import PrizeLockWarning from "@/components/tournaments/PrizeLockWarning";
+import { checkPrizeBreakdown, awardsCash } from "@/lib/prize-awards";
 import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AgePicker from "@/components/tournaments/AgePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
@@ -25,6 +28,7 @@ interface TournamentForEdit {
   prizePoolAmount: unknown;
   prizePoolCurrency: string | null;
   prizeTiers?: { positionFrom: number; positionTo: number; amount: unknown }[];
+  prizeAwards?: { name: string; cashAmount: unknown; prizeText: string | null }[];
   competitiveTier: CompetitiveTierValue;
   audienceScope: AudienceScopeValue;
   minAge: number;
@@ -59,6 +63,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
   );
   const [prizePoolCurrency, setPrizePoolCurrency] = useState(tournament.prizePoolCurrency ?? "PKR");
   const [prizeRows, setPrizeRows] = useState<PrizeRow[]>(prizeRowsFromTiers(tournament.prizeTiers));
+  const [awardRows, setAwardRows] = useState<AwardRow[]>(awardRowsFromAwards(tournament.prizeAwards));
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>(
     tournament.competitiveTier
   );
@@ -86,6 +91,24 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
     setSubmitting(true);
     setError(null);
 
+    const breakdownError = checkPrizeBreakdown({
+      pool: prizePoolAmount,
+      tiers: prizeRowsToBody(prizeRows),
+      awards: awardRowsToBody(awardRows),
+    });
+    // Only checked when this edit touches the prize; untouched older events can still save.
+    const prizeUntouched =
+      prizePoolAmount === (tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0) &&
+      JSON.stringify(prizeRowsToBody(prizeRows)) ===
+        JSON.stringify(prizeRowsToBody(prizeRowsFromTiers(tournament.prizeTiers))) &&
+      JSON.stringify(awardRowsToBody(awardRows)) ===
+        JSON.stringify(awardRowsToBody(awardRowsFromAwards(tournament.prizeAwards)));
+    if (breakdownError && !prizeUntouched) {
+      setError(breakdownError);
+      setSubmitting(false);
+      return;
+    }
+
     const res = await fetch(`/api/tournaments/${tournament.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -104,6 +127,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
           prizePool: { amount: prizePoolAmount, currency: prizePoolCurrency },
         }),
         prizeTiers: prizePoolAmount > 0 ? prizeRowsToBody(prizeRows) : [],
+        prizeAwards: awardRowsToBody(awardRows),
         competitiveTier,
         ...venueToBody(venue),
         country: country || null,
@@ -205,7 +229,17 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         }}
       />
 
-      <PrizeSplitEditor rows={prizeRows} onChange={setPrizeRows} poolAmount={prizePoolAmount} currency={prizePoolCurrency} />
+      {prizePoolAmount > 0 && <PrizeLockWarning />}
+
+      <PrizeSplitEditor
+        rows={prizeRows}
+        onChange={setPrizeRows}
+        poolAmount={prizePoolAmount}
+        currency={prizePoolCurrency}
+        awardsCash={awardsCash(awardRowsToBody(awardRows))}
+      />
+
+      <PrizeAwardsEditor rows={awardRows} onChange={setAwardRows} currency={prizePoolCurrency} />
 
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />

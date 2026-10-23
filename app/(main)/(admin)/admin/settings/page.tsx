@@ -47,6 +47,9 @@ export default async function AdminSettingsPage() {
       <PlanSettings
         initialInstructions={planSettings.planPaymentInstructions ?? ""}
         initialAdsEnabled={planSettings.adsEnabled}
+        initialDepositEnabled={planSettings.depositEnabled}
+        initialDepositRefundDays={planSettings.depositRefundDays}
+        initialDepositMultiplier={planSettings.depositExposureMultiplier}
       />
     </div>
   );

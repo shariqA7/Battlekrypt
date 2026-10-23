@@ -9,6 +9,7 @@ import { parseOptionalMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { parseVenue } from "@/lib/venue-input";
 import { parsePrizeTiers } from "@/lib/services/prize-tiers";
+import { parsePrizeAwards } from "@/lib/prize-awards";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { isCountryCode } from "@/lib/geo-data";
 import { toPublicTournament } from "@/lib/services/venue";
@@ -92,6 +93,8 @@ export async function PATCH(
 
   const tiers = body.prizeTiers === undefined ? { ok: true as const, tiers: undefined } : parsePrizeTiers(body.prizeTiers);
   if (!tiers.ok) return moneyError(tiers.message);
+  const awards = body.prizeAwards === undefined ? { ok: true as const, awards: undefined } : parsePrizeAwards(body.prizeAwards);
+  if (!awards.ok) return moneyError(awards.message);
 
   const venue = parseVenue(body, { partial: true });
   if (!venue.ok) return moneyError(venue.message);
@@ -115,6 +118,7 @@ export async function PATCH(
       typeof body.requireFreshInstitutionProof === "boolean" ? body.requireFreshInstitutionProof : undefined,
     ...venue.value,
     prizeTiers: tiers.tiers,
+    prizeAwards: awards.awards,
     country: body.country === undefined ? undefined : body.country || null,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   });
@@ -146,11 +150,23 @@ export async function PATCH(
       { status: 409 }
     );
   }
+  if (result.error === "payout_hold" || result.error === "starter_limit") {
+    return NextResponse.json({ error: { code: result.error, message: result.message } }, { status: 409 });
+  }
+  if (result.error === "fx_unavailable") {
+    return NextResponse.json({ error: { code: result.error, message: result.message } }, { status: 503 });
+  }
   if (result.error === "invalid_fee") {
     return moneyError("A paid tournament needs an entry fee greater than zero.");
   }
   if (result.error === "invalid_prize_tiers") {
     return moneyError(result.message);
+  }
+  if (result.error === "pool_locked") {
+    return NextResponse.json(
+      { error: { code: "pool_locked", message: "Players have already registered, so the prize pool can't change directly. Ask an admin from the tournament page." } },
+      { status: 409 }
+    );
   }
   if (result.error === "prize_locked") {
     return NextResponse.json(

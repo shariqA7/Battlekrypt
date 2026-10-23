@@ -12,6 +12,9 @@ export async function PATCH(request: Request) {
   const result = await updatePlanSettings({
     planPaymentInstructions: body.planPaymentInstructions,
     adsEnabled: body.adsEnabled,
+    depositEnabled: body.depositEnabled,
+    depositRefundDays: body.depositRefundDays,
+    depositExposureMultiplier: body.depositExposureMultiplier,
   });
   if ("error" in result) return planError(result);
   return NextResponse.json(result.data);

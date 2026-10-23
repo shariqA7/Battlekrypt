@@ -19,13 +19,14 @@ export async function POST(
     not_found: { status: 404, message: "Tournament not found." },
     forbidden: { status: 403, message: "You don't own this tournament." },
     not_completed: { status: 409, message: "Only completed tournaments can confirm payout." },
-    no_prize_pool: { status: 409, message: "This tournament has no prize pool to distribute." },
+    no_prize_pool: { status: 409, message: "This tournament has no prizes to distribute." },
+    awards_unassigned: { status: 409, message: "Pick a winner for every special award first." },
   };
 
   if (result.error) {
     const mapped = errorMap[result.error];
     return NextResponse.json(
-      { error: { code: result.error, message: mapped.message } },
+      { error: { code: result.error, message: ("message" in result && result.message) || mapped.message } },
       { status: mapped.status }
     );
   }

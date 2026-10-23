@@ -5,6 +5,9 @@ import { describeLimits, PAID_PERKS } from "@/lib/plan-copy";
 import { formatMoney } from "@/lib/money";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import PlanRequestForm from "./PlanRequestForm";
+import DepositRefundButton from "./DepositRefundButton";
+import { getDepositDue, getMyDeposits } from "@/lib/services/security-deposits";
+import { describeExtras, listPlanFields } from "@/lib/services/plan-fields";
 
 const AUDIENCE_LABEL = { organizer: "Organizer", club: "Club", player: "Player" } as const;
 
@@ -18,11 +21,27 @@ export default async function PlansPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectTo=/plans");
 
-  const [states, plans, settings] = await Promise.all([
+  const [states, plans, settings, planFields, myDeposits] = await Promise.all([
     getMyPlanStates(user.id),
     listPlans({ activeOnly: true }),
     getPlanSettings(),
+    listPlanFields(),
+    getMyDeposits(user.id),
   ]);
+
+  // Refundable deposit still to pay for each organizer plan (0 = none due).
+  const depositDue: Record<string, number> = {};
+  if (settings.depositEnabled) {
+    for (const p of plans) {
+      if (p.audience === "organizer" && p.isPaid && p.depositAmount) {
+        depositDue[p.code] = await getDepositDue(user.id, {
+          audience: p.audience,
+          depositAmount: p.depositAmount,
+          priceCurrency: p.priceCurrency,
+        });
+      }
+    }
+  }
 
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
@@ -81,6 +100,30 @@ export default async function PlansPage() {
               )}
             </div>
 
+            {s.audience === "organizer" && myDeposits.length > 0 && (
+              <div className="bg-bk-surface border border-bk-border p-4 mb-3">
+                <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1">
+                  Security deposit
+                </p>
+                {myDeposits.map((d) => (
+                  <p key={d.id} className="font-sans text-[13px] text-bk-heading">
+                    <span className="font-mono">{formatMoney(Number(d.amount.toString()), d.currency)}</span>{" "}
+                    <span className="text-bk-muted">
+                      {d.status === "held"
+                        ? "· on hold while you host events"
+                        : `· refund requested, eligible from ${dateFmt(d.refundEligibleAt ?? new Date())} once all your events and prize payouts are settled`}
+                    </span>
+                  </p>
+                ))}
+                {myDeposits.some((d) => d.status === "held") && (
+                  <DepositRefundButton refundDays={settings.depositRefundDays} />
+                )}
+                <p className="font-sans text-[11px] text-bk-muted mt-2">
+                  Processing fees and tax paid with your plan are not refundable.
+                </p>
+              </div>
+            )}
+
             {s.pendingRequest && (
               <p className="font-sans text-[12px] text-amber-400 mb-3">
                 Your request for{" "}
@@ -99,6 +142,12 @@ export default async function PlansPage() {
             {options.map((p) => {
               const perks = [...describeLimits(s.audience, p.limits), ...PAID_PERKS];
               const isCurrent = s.plan.code === p.code;
+              const extras = describeExtras(
+                planFields.filter((f) => f.audience === p.audience),
+                p.extras
+              );
+              const due = depositDue[p.code] ?? 0;
+              const showDeposit = settings.depositEnabled && p.depositAmount && p.priceCurrency;
               return (
                 <div key={p.code} className="bg-bk-surface border border-bk-border p-4 mb-3">
                   <div className="flex items-start justify-between gap-4">
@@ -110,6 +159,15 @@ export default async function PlansPage() {
                           <span className="text-bk-muted">/ {p.durationDays} days</span>
                         </p>
                       )}
+                      {showDeposit && (
+                        <p className="font-sans text-[12px] text-bk-body mt-1">
+                          + refundable security deposit{" "}
+                          <span className="font-mono text-bk-heading">
+                            {formatMoney(p.depositAmount!, p.priceCurrency!)}
+                          </span>
+                          {due === 0 && <span className="text-bk-muted"> (already on hold)</span>}
+                        </p>
+                      )}
                     </div>
                     {!s.pendingRequest && (
                       <PlanRequestForm
@@ -117,12 +175,28 @@ export default async function PlansPage() {
                         planCode={p.code}
                         planName={isCurrent ? "renewal" : p.name}
                         paymentInstructions={settings.planPaymentInstructions}
+                        breakdown={
+                          p.priceAmount !== null && p.priceCurrency
+                            ? {
+                                price: formatMoney(p.priceAmount, p.priceCurrency),
+                                deposit: due > 0 ? formatMoney(due, p.priceCurrency) : null,
+                                total: formatMoney(p.priceAmount + due, p.priceCurrency),
+                                refundDays: settings.depositRefundDays,
+                              }
+                            : null
+                        }
                       />
                     )}
                   </div>
                   <ul className="mt-3 font-sans text-[13px] text-bk-body list-disc pl-5 space-y-0.5">
                     {perks.map((t) => (
                       <li key={t}>{t}</li>
+                    ))}
+                    {extras.map((x) => (
+                      <li key={x.label}>
+                        {x.label}
+                        {x.value !== "Included" ? `: ${x.value}` : ""}
+                      </li>
                     ))}
                   </ul>
                 </div>

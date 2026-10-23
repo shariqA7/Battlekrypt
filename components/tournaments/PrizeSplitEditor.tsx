@@ -40,25 +40,28 @@ export default function PrizeSplitEditor({
   onChange,
   poolAmount,
   currency,
+  awardsCash = 0,
 }: {
   rows: PrizeRow[];
   onChange: (rows: PrizeRow[]) => void;
   poolAmount: number;
   currency: string;
+  /** Cash from special awards, which also comes out of the pool. */
+  awardsCash?: number;
 }) {
   const parsed = prizeRowsToBody(rows);
-  const allocated = parsed.reduce((sum, r) => sum + r.amount * Math.max(0, r.to - r.from + 1), 0);
+  const allocated = parsed.reduce((sum, r) => sum + r.amount * Math.max(0, r.to - r.from + 1), 0) + awardsCash;
   const over = poolAmount > 0 && allocated > poolAmount;
   const set = (i: number, patch: Partial<PrizeRow>) => onChange(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   return (
     <div className="mt-4">
       <label className="block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5">
-        Prize distribution (optional)
+        Prize distribution (required with a prize pool)
       </label>
       <p className="font-sans text-[11px] text-bk-muted mb-2">
-        Split the prize pool by finishing place. For a range such as 4th–8th, fill in both places; the amount is
-        what <em>each</em> team in that range wins.
+        Say how many teams win and how much each gets. For a range such as 4th–8th, fill in both places; the amount is
+        what <em>each</em> team in that range wins. Places plus cash awards must add up to the whole prize pool.
       </p>
 
       {rows.map((r, i) => (
@@ -94,12 +97,14 @@ export default function PrizeSplitEditor({
         + Add a place
       </button>
 
-      {parsed.length > 0 && (
+      {(parsed.length > 0 || awardsCash > 0 || poolAmount > 0) && (
         <p className={`font-mono text-[12px] mt-2 ${over ? "text-bk-live" : "text-bk-muted"}`}>
           {over
             ? `Over by ${formatMoney(allocated - poolAmount, currency)} — the split can't exceed the prize pool.`
             : poolAmount > 0
-              ? `${formatMoney(allocated, currency)} of ${formatMoney(poolAmount, currency)} allocated · ${formatMoney(poolAmount - allocated, currency)} left`
+              ? Math.abs(poolAmount - allocated) < 0.005
+                ? `${formatMoney(allocated, currency)} of ${formatMoney(poolAmount, currency)} assigned — complete`
+                : `${formatMoney(allocated, currency)} of ${formatMoney(poolAmount, currency)} assigned · ${formatMoney(poolAmount - allocated, currency)} still to assign`
               : "Set a prize pool above to split it."}
         </p>
       )}
