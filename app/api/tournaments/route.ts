@@ -3,6 +3,7 @@
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import { parseVenue } from "@/lib/venue-input";
 import { parsePrizeTiers, checkAgainstPool } from "@/lib/services/prize-tiers";
+import { parsePrizeAwards, checkPrizeBreakdown } from "@/lib/prize-awards";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { isCountryCode, isRegionKey, countryFromText } from "@/lib/geo-data";
 import { isAgeRequirement } from "@/lib/age";
@@ -15,6 +16,7 @@ import { listTournaments, createTournament } from "@/lib/services/tournaments";
 import { resolveCreateMoney } from "@/lib/money";
 import { parseRuleList } from "@/lib/rules";
 import { PlanLimitError } from "@/lib/services/plan-gates";
+import { TrustLimitError } from "@/lib/services/organizer-trust";
 import { banGuard } from "@/lib/services/bans";
 
 function moneyError(message: string) {
@@ -102,6 +104,11 @@ export async function POST(request: Request) {
   if (!tiers.ok) return moneyError(tiers.message);
   const tierError = checkAgainstPool(tiers.tiers, money.prizePool?.amount);
   if (tierError) return moneyError(tierError);
+  const awards = parsePrizeAwards(body.prizeAwards);
+  if (!awards.ok) return moneyError(awards.message);
+  // The whole pool must be assigned: places + cash awards = the pool.
+  const breakdownError = checkPrizeBreakdown({ pool: money.prizePool?.amount, tiers: tiers.tiers, awards: awards.awards });
+  if (breakdownError) return moneyError(breakdownError);
 
   // A valid currency can still be switched off by an admin (/admin/currencies).
   const disabled = await currenciesNotEnabled([money.entryFee?.currency, money.prizePool?.currency]);
@@ -173,12 +180,14 @@ export async function POST(request: Request) {
     ...venue.value,
     country,
     prizeTiers: tiers.tiers,
+    prizeAwards: awards.awards,
     customFields: body.customFields,
     rules: rules.value,
     startAt: body.startAt ? new Date(body.startAt) : undefined,
   }).catch((err: unknown) => {
     // Plan limits (tournaments per month / games hosted) come back as a 403.
     if (err instanceof PlanLimitError) return err;
+    if (err instanceof TrustLimitError) return err;
     throw err;
   });
 
@@ -186,6 +195,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: { code: tournament.code, message: tournament.message } },
       { status: 403 }
+    );
+  }
+
+  if (tournament instanceof TrustLimitError) {
+    return NextResponse.json(
+      { error: { code: tournament.code, message: tournament.message } },
+      { status: tournament.code === "fx_unavailable" ? 503 : 409 }
     );
   }
 

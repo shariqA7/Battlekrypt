@@ -27,10 +27,12 @@ export default function PublishButton({
   tournamentId,
   status,
   submittedForReview,
+  hasPrize = false,
 }: {
   tournamentId: string;
   status: string;
   submittedForReview?: boolean;
+  hasPrize?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +40,13 @@ export default function PublishButton({
   const [nextStatus, setNextStatus] = useState("");
 
   async function handlePublish() {
+    if (
+      hasPrize &&
+      !confirm(
+        "Publish this event?\n\nOnce players register, you can no longer change the prize pool, how it is split by place, or the special awards. Any change will need admin approval and every registered player is told. Check the numbers before you continue."
+      )
+    )
+      return;
     setSubmitting(true);
     setError(null);
     const res = await fetch(`/api/tournaments/${tournamentId}/publish`, { method: "POST" });

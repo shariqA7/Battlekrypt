@@ -9,11 +9,13 @@ export default function PlanRequestForm({
   planCode,
   planName,
   paymentInstructions,
+  breakdown = null,
 }: {
   audience: "organizer" | "club" | "player";
   planCode: string;
   planName: string;
   paymentInstructions: string | null;
+  breakdown?: { price: string; deposit: string | null; total: string; refundDays: number } | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -56,6 +58,30 @@ export default function PlanRequestForm({
 
   return (
     <div className="mt-3 border-t border-bk-border pt-3">
+      {breakdown && (
+        <div className="bg-bk-bg border border-bk-border px-3 py-2.5 mb-3 font-sans text-[13px] text-bk-heading">
+          <p className="flex justify-between">
+            <span>Plan</span>
+            <span className="font-mono">{breakdown.price}</span>
+          </p>
+          {breakdown.deposit && (
+            <p className="flex justify-between">
+              <span>Refundable security deposit</span>
+              <span className="font-mono">{breakdown.deposit}</span>
+            </p>
+          )}
+          <p className="flex justify-between font-bold border-t border-bk-border mt-1 pt-1">
+            <span>Send exactly</span>
+            <span className="font-mono">{breakdown.total}</span>
+          </p>
+          <p className="text-[11px] text-bk-muted mt-1">
+            {breakdown.deposit
+              ? `The deposit comes back ${breakdown.refundDays} days after you leave the paid plan, once your events and prize payouts are settled. `
+              : ""}
+            If you pay through a gateway, its processing fee and any tax are added to your invoice and are not refundable.
+          </p>
+        </div>
+      )}
       {paymentInstructions ? (
         <div className="bg-bk-bg border border-bk-gold-light/40 px-3 py-2.5 mb-3">
           <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-gold-light mb-1">

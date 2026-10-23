@@ -339,6 +339,10 @@ model OrganizerProfile {
   user   User   @relation(fields: [userId], references: [id])
 
   orgName     String
+  // Admin override: skips the new-organizer starter limits (NOT the payout
+  // hold). See lib/services/organizer-trust.ts.
+  limitsLifted Boolean @default(false)
+  deposits     SecurityDeposit[]
   bio         String?
   socialLinks Json?
 
@@ -959,6 +963,16 @@ model Tournament {
   // Only payout-confirmed prize pools count toward the organizer's public
   // "Total Prize Pool Distributed".
   payoutConfirmed   Boolean  @default(false)
+  // Set when the tournament moves to completed; starts the payout grace
+  // period (see lib/services/organizer-trust.ts). Null on older rows.
+  completedAt       DateTime?
+  prizePayouts      PrizePayout[]
+  // Set when an admin-approved cancellation leaves paid players owed refunds:
+  // the organizer must refund them directly and confirm by this date.
+  cancelRefundsDueAt DateTime?
+  refundsConfirmedAt DateTime?
+  changeRequests    TournamentChangeRequest[]
+  prizeAwards       PrizeAward[]
 
   competitiveTier CompetitiveTier @default(none)
 
@@ -1244,6 +1258,7 @@ model Registration {
   // placement since some formats (points-table, league) rank by points
   // rather than a single final placement.
   placement Int?
+  prizePayout PrizePayout?
   points    Int?
 
   registeredAt DateTime  @default(now())
@@ -1271,6 +1286,13 @@ model SiteSettings {
   // "Continue with Twitch" on the login/sign-up pages. Off until the Twitch app and the
   // Supabase provider are set up (see SETUP.md), then switched on from Admin > Settings.
   twitchLoginEnabled      Boolean  @default(false)
+  // Security deposit on organizer plans. depositEnabled shows the deposit on
+  // plans and requires it on NEW purchases; deposits already held keep their
+  // effect and stay refundable when it is off.
+  depositEnabled          Boolean  @default(false)
+  depositRefundDays       Int      @default(30)
+  // Live paid/prized events may total up to (held deposit in USD) x this.
+  depositExposureMultiplier Decimal @default(5) @db.Decimal(6, 2)
   updatedAt               DateTime @updatedAt
 }
 
@@ -1438,6 +1460,11 @@ model Plan {
   priceCurrency String?
   durationDays  Int          @default(30)
   limits        Json         @default("{}")
+  // Refundable security deposit (same currency as the price). Only applies
+  // when SiteSettings.depositEnabled is on. Never includes fees or tax.
+  depositAmount Decimal?     @db.Decimal(14, 2)
+  // Admin-defined extra fields (PlanField): { [fieldId]: value }. Display-only.
+  extras        Json         @default("{}")
   isActive      Boolean      @default(true)
   sortOrder     Int          @default(0)
 
@@ -1465,6 +1492,8 @@ model PlanRequest {
   planCode   String
   plan       Plan              @relation(fields: [planCode], references: [code])
   proofUrl   String
+  // Refundable deposit the requester was told to include with this payment.
+  depositAmount Decimal? @db.Decimal(14, 2)
   status     PlanRequestStatus @default(pending)
   adminNote  String?
   reviewedAt DateTime?
@@ -1957,4 +1986,180 @@ model ConsentCase {
   createdAt DateTime @default(now())
 
   @@index([status, createdAt])
+}
+
+
+// ------------------------------------------------------------
+// ORGANIZER TRUST: starter limits + winner-confirmed payouts
+// ------------------------------------------------------------
+// New organizers start with caps on entry fee, prize pool and paid entrants.
+// They graduate after enough completed prize tournaments whose winners ALL
+// confirmed they were paid. Until an organizer's past payouts are settled,
+// they can't host new paid or prized events. Money never moves through the
+// platform: PrizePayout only records the organizer's claim and each winner's
+// answer. All numbers are admin-editable (OrganizerTrustConfig), not hardcoded.
+
+enum PayoutStatus {
+  paid_by_organizer // organizer says they paid; winner hasn't answered
+  confirmed         // winner (or an admin) confirmed receipt
+  disputed          // winner says they were NOT paid
+}
+
+model PrizePayout {
+  id             String       @id @default(uuid())
+  tournamentId   String
+  tournament     Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  // A payout is either for a PLACEMENT (registrationId) or for a special AWARD
+  // (awardId + recipientUserId, since an award goes to one player, not a team).
+  registrationId String?       @unique
+  registration   Registration? @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  awardId        String?       @unique
+  award          PrizeAward?   @relation(fields: [awardId], references: [id], onDelete: SetNull)
+  recipientUserId String?
+  // Non-cash prize text for awards (amount is 0 for a non-cash-only award).
+  description    String?
+
+  amount   Decimal @db.Decimal(14, 2)
+  currency String
+
+  status             PayoutStatus @default(paid_by_organizer)
+  organizerMarkedAt  DateTime     @default(now())
+  winnerRespondedAt  DateTime?
+  winnerNote         String?
+  adminNote          String?
+
+  @@index([tournamentId])
+  @@index([status])
+}
+
+// Single row (id "default"), created on first read. Admin edits it at
+// /admin/organizer-trust.
+model OrganizerTrustConfig {
+  id                    String   @id @default("default")
+  starterMaxEntryFeeUsd Decimal  @default(5) @db.Decimal(10, 2)
+  starterMaxPrizeUsd    Decimal  @default(100) @db.Decimal(10, 2)
+  starterMaxPaidEntrants Int     @default(50)
+  graduationEvents      Int      @default(3)
+  // Days after completion before an unpaid/unconfirmed payout puts the
+  // organizer on hold, and before an unanswered "I paid" is treated as accepted.
+  payoutGraceDays       Int      @default(7)
+  updatedAt             DateTime @updatedAt
+}
+
+
+// ------------------------------------------------------------
+// PLAN CUSTOM FIELDS (admin-defined, display-only)
+// ------------------------------------------------------------
+model PlanField {
+  id        String       @id @default(uuid())
+  audience  PlanAudience
+  label     String
+  kind      String // "text" | "number" | "flag"
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+
+  @@index([audience, sortOrder])
+}
+
+// ------------------------------------------------------------
+// ORGANIZER SECURITY DEPOSIT
+// ------------------------------------------------------------
+// One lump sum paid with an organizer plan, held while they host events and
+// refundable after they leave the paid plan (waiting period, no unsettled
+// payouts). Fees and tax are never part of it. The platform records the
+// deposit; money moves outside the system (admin refunds by bank transfer).
+
+enum DepositStatus {
+  held
+  refund_requested
+  refunded
+  forfeited
+}
+
+model SecurityDeposit {
+  id          String           @id @default(uuid())
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+  planCode    String
+  planRequestId String?        @unique
+
+  amount   Decimal @db.Decimal(14, 2)
+  currency String
+
+  status            DepositStatus @default(held)
+  heldAt            DateTime      @default(now())
+  refundRequestedAt DateTime?
+  refundEligibleAt  DateTime?
+  resolvedAt        DateTime?
+  resolvedById      String?
+  refundedAmount    Decimal?      @db.Decimal(14, 2)
+  forfeitedAmount   Decimal?      @db.Decimal(14, 2)
+  adminNote         String?
+
+  @@index([organizerId, status])
+  @@index([status, refundEligibleAt])
+}
+
+
+// ------------------------------------------------------------
+// TOURNAMENT LOCK + ADMIN CHANGE REQUESTS
+// ------------------------------------------------------------
+// Once a paid or prized tournament, scrim or league has an active
+// registration, its prize pool, cancellation and entry conditions are locked.
+// The organizer can only ask an admin; the change is applied on approval and
+// registered players are told. Free events with no prize aren't locked.
+
+enum ChangeKind {
+  prize_pool
+  cancel
+  conditions
+  other
+}
+
+enum ChangeStatus {
+  pending
+  approved
+  denied
+}
+
+model TournamentChangeRequest {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  requestedById String
+  kind         ChangeKind
+  details      String
+  payload      Json?
+
+  status       ChangeStatus @default(pending)
+  adminNote    String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([tournamentId])
+  @@index([status])
+}
+
+
+// Extra awards on top of the placement split (PrizeTier): "Final MVP",
+// "Best IGL", "Best rookie"… An award has a cash amount (counts toward the
+// prize pool), a non-cash prize, or both. Locked together with the pool once
+// players register; changes go through an admin change request.
+model PrizeAward {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  name       String
+  cashAmount Decimal? @db.Decimal(14, 2)
+  prizeText  String?
+  sortOrder  Int      @default(0)
+
+  // Chosen by the organizer after the event, from the players who took part.
+  winnerUserId     String?
+  winnerAssignedAt DateTime?
+  payout           PrizePayout?
+
+  @@index([tournamentId])
 }

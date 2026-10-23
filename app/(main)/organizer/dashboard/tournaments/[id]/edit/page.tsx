@@ -42,6 +42,7 @@ export default async function EditTournamentPage({
         tournament={{
           ...tournament,
           prizeTiers: tournament.prizeTiers.map((t) => ({ positionFrom: t.positionFrom, positionTo: t.positionTo, amount: Number(t.amount) })),
+          prizeAwards: tournament.prizeAwards.map((a) => ({ name: a.name, cashAmount: a.cashAmount == null ? null : Number(a.cashAmount), prizeText: a.prizeText })),
         }}
       />
       </Panel>

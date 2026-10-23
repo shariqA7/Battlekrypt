@@ -13,6 +13,7 @@ import TrackView from "./TrackView";
 import VoteWidget from "./VoteWidget";
 import StageRail from "@/components/tournaments/StageRail";
 import PrizeDistribution from "@/components/tournaments/PrizeDistribution";
+import PrizeAwardsList from "@/components/tournaments/PrizeAwardsList";
 import OrganizerCard from "@/components/tournaments/OrganizerCard";
 import RuleCard from "@/components/tournaments/RuleCard";
 import LocalDate from "@/components/ui/LocalDate";
@@ -46,6 +47,14 @@ export default async function TournamentDetailPage({
   const cta = ctaFor(tournament, tournament._count.registrations);
   const hasPrize = !!tournament.prizePoolAmount;
   const prizeCurrency = tournament.prizePoolCurrency ?? "PKR";
+
+  // Display names of special-award winners (set by the organizer after the event).
+  const winnerIds = tournament.prizeAwards.flatMap((a) => (a.winnerUserId ? [a.winnerUserId] : []));
+  const winnerNames: Record<string, string> = {};
+  if (winnerIds.length > 0) {
+    const users = await prisma.user.findMany({ where: { id: { in: winnerIds } }, select: { id: true, displayName: true } });
+    for (const u of users) winnerNames[u.id] = u.displayName;
+  }
 
   return (
     <>
@@ -226,6 +235,12 @@ export default async function TournamentDetailPage({
 
           <aside className="min-w-0 flex flex-col gap-6 lg:self-start">
             <PrizeDistribution tiers={tournament.prizeTiers} currency={prizeCurrency} />
+            <PrizeAwardsList awards={tournament.prizeAwards} currency={prizeCurrency} winnerNames={winnerNames} />
+            {tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0 && (
+              <p className="font-sans text-[11px] text-bk-muted -mt-3">
+                The prize pool and its split are locked once players register — the organizer can only change them with admin approval.
+              </p>
+            )}
             <OrganizerCard
               id={tournament.organizer.id}
               name={tournament.organizer.orgName}

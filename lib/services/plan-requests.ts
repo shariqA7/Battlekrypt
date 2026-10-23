@@ -18,6 +18,8 @@ import {
 } from "@/lib/plans";
 import { isSupportedCurrency, ZERO_DECIMAL_CURRENCIES } from "@/lib/money";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
+import { getDepositDue } from "@/lib/services/security-deposits";
+import { validateExtras } from "@/lib/services/plan-fields";
 
 export const PLAN_REQUEST_ERRORS = {
   validation_error: { status: 400, message: "Invalid request." },
@@ -57,6 +59,8 @@ function serializePlan(p: {
   priceCurrency: string | null;
   durationDays: number;
   limits: unknown;
+  depositAmount?: { toString(): string } | null;
+  extras?: unknown;
   isActive: boolean;
   sortOrder: number;
 }) {
@@ -69,6 +73,8 @@ function serializePlan(p: {
     priceCurrency: p.priceCurrency,
     durationDays: p.durationDays,
     limits: p.limits as Record<string, number | boolean | null>,
+    depositAmount: p.depositAmount == null ? null : Number(p.depositAmount.toString()),
+    extras: (p.extras && typeof p.extras === "object" && !Array.isArray(p.extras) ? p.extras : {}) as Record<string, string | number | boolean>,
     isActive: p.isActive,
     sortOrder: p.sortOrder,
   };
@@ -188,8 +194,18 @@ export async function createPlanRequest(
   });
   if (pending) return fail("already_pending");
 
+  // Refundable security deposit to include with the payment (0 when deposits
+  // are off, this plan has none, or they already hold enough).
+  const depositDue = await getDepositDue(userId, plan);
+
   const request = await prisma.planRequest.create({
-    data: { userId, audience, planCode: plan.code, proofUrl: input.proofUrl },
+    data: {
+      userId,
+      audience,
+      planCode: plan.code,
+      proofUrl: input.proofUrl,
+      depositAmount: depositDue > 0 ? depositDue : null,
+    },
   });
   return { data: request };
 }
@@ -268,6 +284,34 @@ export async function approvePlanRequest(requestId: string, adminId: string) {
       where: { id: requestId },
       data: { status: "approved", reviewedAt: now },
     });
+    // The refundable deposit paid with this request is recorded separately
+    // from the plan fee: only the deposit can ever be refunded.
+    if (req.audience === "organizer" && req.depositAmount && Number(req.depositAmount.toString()) > 0 && req.plan.priceCurrency) {
+      const org = await tx.organizerProfile.findUnique({ where: { userId: req.userId }, select: { id: true } });
+      if (org) {
+        await tx.securityDeposit.create({
+          data: {
+            organizerId: org.id,
+            planCode: req.planCode,
+            planRequestId: req.id,
+            amount: req.depositAmount,
+            currency: req.plan.priceCurrency,
+          },
+        });
+        await tx.paymentRecord.create({
+          data: {
+            userId: req.userId,
+            kind: PAYMENT_KIND_BY_AUDIENCE[req.audience],
+            amount: req.depositAmount,
+            currency: req.plan.priceCurrency,
+            method: "Screenshot proof",
+            reference: `${req.id}-deposit`,
+            note: `Security deposit (refundable) — ${req.plan.name}`,
+            recordedById: adminId,
+          },
+        });
+      }
+    }
     // Keep the admin payments ledger complete: every approved plan purchase
     // is money the platform received. (Skipped only if the plan has no price.)
     if (req.plan.priceAmount !== null && req.plan.priceCurrency) {
@@ -331,6 +375,8 @@ export interface UpdatePlanInput {
   priceCurrency?: unknown;
   durationDays?: unknown;
   limits?: unknown;
+  depositAmount?: unknown;
+  extras?: unknown;
   isActive?: unknown;
 }
 
@@ -344,6 +390,8 @@ export async function updatePlan(code: string, adminId: string, input: UpdatePla
     priceCurrency?: string | null;
     durationDays?: number;
     limits?: Record<string, number | boolean | null>;
+    depositAmount?: number | null;
+    extras?: Record<string, string | number | boolean>;
     isActive?: boolean;
   } = {};
 
@@ -396,6 +444,30 @@ export async function updatePlan(code: string, adminId: string, input: UpdatePla
     data.limits = checked.value;
   }
 
+  if (input.depositAmount !== undefined) {
+    if (plan.audience !== "organizer" || !plan.isPaid) {
+      return fail("validation_error", "Only paid organizer plans can have a security deposit.");
+    }
+    if (input.depositAmount === null || input.depositAmount === "") {
+      data.depositAmount = null;
+    } else if (
+      typeof input.depositAmount !== "number" ||
+      !Number.isFinite(input.depositAmount) ||
+      input.depositAmount < 0 ||
+      input.depositAmount > 1_000_000_000
+    ) {
+      return fail("validation_error", "Enter a valid deposit amount (or leave empty for none).");
+    } else {
+      data.depositAmount = input.depositAmount === 0 ? null : Math.round(input.depositAmount * 100) / 100;
+    }
+  }
+
+  if (input.extras !== undefined) {
+    const checked = await validateExtras(plan.audience, input.extras);
+    if (!checked.ok) return fail("validation_error", checked.message);
+    data.extras = checked.value;
+  }
+
   if (input.isActive !== undefined) {
     if (typeof input.isActive !== "boolean") return fail("validation_error", "Invalid active flag.");
     // The free plan is every new account's fallback — never hide it.
@@ -435,14 +507,44 @@ export async function getPlanSettings() {
   return {
     planPaymentInstructions: s?.planPaymentInstructions ?? null,
     adsEnabled: s?.adsEnabled ?? false,
+    depositEnabled: s?.depositEnabled ?? false,
+    depositRefundDays: s?.depositRefundDays ?? 30,
+    depositExposureMultiplier: Number(s?.depositExposureMultiplier ?? 5),
   };
 }
 
 export async function updatePlanSettings(input: {
   planPaymentInstructions?: unknown;
   adsEnabled?: unknown;
+  depositEnabled?: unknown;
+  depositRefundDays?: unknown;
+  depositExposureMultiplier?: unknown;
 }) {
-  const data: { planPaymentInstructions?: string | null; adsEnabled?: boolean } = {};
+  const data: {
+    planPaymentInstructions?: string | null;
+    adsEnabled?: boolean;
+    depositEnabled?: boolean;
+    depositRefundDays?: number;
+    depositExposureMultiplier?: number;
+  } = {};
+  if (input.depositEnabled !== undefined) {
+    if (typeof input.depositEnabled !== "boolean") return fail("validation_error", "Invalid deposit switch.");
+    data.depositEnabled = input.depositEnabled;
+  }
+  if (input.depositRefundDays !== undefined) {
+    const d = input.depositRefundDays;
+    if (typeof d !== "number" || !Number.isInteger(d) || d < 1 || d > 365) {
+      return fail("validation_error", "Refund waiting period must be 1–365 whole days.");
+    }
+    data.depositRefundDays = d;
+  }
+  if (input.depositExposureMultiplier !== undefined) {
+    const m = input.depositExposureMultiplier;
+    if (typeof m !== "number" || !Number.isFinite(m) || m < 1 || m > 100) {
+      return fail("validation_error", "Deposit multiplier must be between 1 and 100.");
+    }
+    data.depositExposureMultiplier = m;
+  }
 
   if (input.planPaymentInstructions !== undefined) {
     if (input.planPaymentInstructions !== null && typeof input.planPaymentInstructions !== "string") {

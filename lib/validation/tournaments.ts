@@ -33,6 +33,8 @@ export const createTournamentSchema = z.object({
         label: z.string(),
         type: z.string(),
         required: z.boolean().optional(),
+        // Entry conditions (type "condition") can link to what to follow/share.
+        url: z.string().url().optional(),
       })
     )
     .optional(),

@@ -1,6 +1,7 @@
 import { requireAdminPage } from "@/lib/admin-page";
 import { prisma } from "@/lib/prisma";
 import AdminNav from "@/components/admin/AdminNav";
+import { countPendingChangeRequests } from "@/lib/services/change-requests";
 import { countReportedChallenges } from "@/lib/services/challenge-moderation";
 import { countOpenFlags } from "@/lib/services/challenge-integrity";
 import { countOpenConsentCases } from "@/lib/services/consent-cases";
@@ -11,7 +12,7 @@ import { countOpenConsentCases } from "@/lib/services/consent-cases";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdminPage();
 
-  const [orgApps, legacyOrganizers, clubUpgrades, games, claims, planReqs, tierReviews, heldChallenges, challengeDisputes, reportedChallenges, challengeFlags, institutions, consentCases] = await Promise.all([
+  const [orgApps, legacyOrganizers, clubUpgrades, games, claims, planReqs, tierReviews, heldChallenges, challengeDisputes, reportedChallenges, challengeFlags, institutions, consentCases, changeRequests] = await Promise.all([
     prisma.organizationApplication.count({ where: { status: "pending" } }),
     prisma.organizerProfile.count({ where: { user: { kycStatus: { in: ["none", "pending"] } } } }),
     prisma.clubProfile.count({ where: { upgradeStatus: "pending" } }),
@@ -25,13 +26,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     countOpenFlags(),
     prisma.institution.count({ where: { verified: false } }),
     countOpenConsentCases(),
+    countPendingChangeRequests(),
   ]);
 
   return (
     <div className="flex-1 w-full max-w-6xl mx-auto px-5 sm:px-6 py-8 grid md:grid-cols-[210px_1fr] gap-6 md:gap-8">
       <aside>
         <p className="border-l-[3px] border-bk-gold-from pl-3 font-sans font-extrabold text-lg text-bk-heading mb-3 md:mb-4">Admin</p>
-        <AdminNav pending={orgApps + legacyOrganizers + clubUpgrades + games + claims + tierReviews + planReqs + heldChallenges + challengeDisputes + reportedChallenges + challengeFlags + institutions + consentCases} />
+        <AdminNav pending={orgApps + legacyOrganizers + clubUpgrades + games + claims + tierReviews + planReqs + heldChallenges + challengeDisputes + reportedChallenges + challengeFlags + institutions + consentCases + changeRequests} />
       </aside>
       <div className="min-w-0">{children}</div>
     </div>

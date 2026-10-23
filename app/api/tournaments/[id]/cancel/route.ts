@@ -24,6 +24,12 @@ export async function POST(
       { status: 403 }
     );
   }
+  if (result.error === "locked") {
+    return NextResponse.json(
+      { error: { code: "locked", message: "Players have already registered for this paid or prized event, so you can't cancel it directly. Ask an admin from the tournament page." } },
+      { status: 409 }
+    );
+  }
   if (result.error === "invalid_status") {
     return NextResponse.json(
       { error: { code: "invalid_status", message: "This tournament is already completed or cancelled." } },

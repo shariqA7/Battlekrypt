@@ -86,7 +86,47 @@ export default function JoinForm({
         </>
       )}
 
-      {customFields.map((field) => (
+      {customFields.filter((f) => (f as { type?: string }).type === "condition").length > 0 && (
+        <div className="mt-4 border border-bk-border px-3 py-2.5">
+          <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-gold-light mb-2">
+            Entry conditions
+          </p>
+          {customFields
+            .filter((f) => (f as { type?: string }).type === "condition")
+            .map((field) => {
+              const url = (field as { url?: string }).url;
+              return (
+                <label key={field.key} className="flex items-start gap-2 font-sans text-[13px] text-bk-heading mb-1.5">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={fieldValues[field.key] === "yes"}
+                    onChange={(e) =>
+                      setFieldValues((prev) => ({ ...prev, [field.key]: e.target.checked ? "yes" : "" }))
+                    }
+                    className="mt-1"
+                  />
+                  <span>
+                    {field.label}
+                    {url && (
+                      <>
+                        {" "}
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline">
+                          open link
+                        </a>
+                      </>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          <p className="font-sans text-[11px] text-bk-muted mt-1">
+            The organizer checks these before approving you.
+          </p>
+        </div>
+      )}
+
+      {customFields.filter((f) => (f as { type?: string }).type !== "condition").map((field) => (
         <div key={field.key}>
           <label className={labelClass}>{field.label}</label>
           <input

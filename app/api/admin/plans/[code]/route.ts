@@ -20,6 +20,8 @@ export async function PATCH(
     priceCurrency: body.priceCurrency,
     durationDays: body.durationDays,
     limits: body.limits,
+    depositAmount: body.depositAmount,
+    extras: body.extras,
     isActive: body.isActive,
   });
   if ("error" in result) return planError(result);

@@ -1,5 +1,6 @@
 "use client";
 
+import { parseConditionLines } from "@/lib/entry-conditions";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import CurrencyInput from "@/components/ui/CurrencyInput";
@@ -10,6 +11,9 @@ import RulesEditor, { type EditableRule } from "@/components/tournaments/RulesEd
 import TierPicker, { type CompetitiveTierValue } from "@/components/tournaments/TierPicker";
 import CountryPicker from "@/components/tournaments/CountryPicker";
 import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
+import PrizeAwardsEditor, { awardRowsToBody, type AwardRow } from "@/components/tournaments/PrizeAwardsEditor";
+import PrizeLockWarning from "@/components/tournaments/PrizeLockWarning";
+import { checkPrizeBreakdown, awardsCash } from "@/lib/prize-awards";
 import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 import { buttonClass } from "@/components/ui/Button";
@@ -60,6 +64,7 @@ export default function NewTournamentPage() {
   const [prizePoolAmount, setPrizePoolAmount] = useState(0);
   const [prizePoolCurrency, setPrizePoolCurrency] = useState("PKR");
   const [prizeRows, setPrizeRows] = useState<PrizeRow[]>([]);
+  const [awardRows, setAwardRows] = useState<AwardRow[]>([]);
   const [competitiveTier, setCompetitiveTier] = useState<CompetitiveTierValue>("none");
   const [venue, setVenue] = useState<VenueValue>(emptyVenue);
   // "__default" = leave it to the server (the organizer's own country).
@@ -69,6 +74,8 @@ export default function NewTournamentPage() {
   const [requireConsent, setRequireConsent] = useState(false);
   const [freshProof, setFreshProof] = useState(false);
   const [rules, setRules] = useState<EditableRule[]>([]);
+  // One entry condition per line: "Follow @team on Instagram | https://…"
+  const [conditionsText, setConditionsText] = useState("");
   const [customFields, setCustomFields] = useState<
     { key: string; label: string; type: string; required: boolean }[]
   >([]);
@@ -150,8 +157,26 @@ export default function NewTournamentPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+
+    const parsedConditions = parseConditionLines(conditionsText);
+    if (!parsedConditions.ok) {
+      setError(parsedConditions.message);
+      return;
+    }
+    const allFields = [...customFields, ...parsedConditions.fields];
+
+    // The whole prize pool must be described before the draft is created.
+    const breakdownError = checkPrizeBreakdown({
+      pool: prizePoolAmount,
+      tiers: prizeRowsToBody(prizeRows),
+      awards: awardRowsToBody(awardRows),
+    });
+    if (breakdownError) {
+      setError(breakdownError);
+      return;
+    }
+    setSubmitting(true);
 
     const res = await fetch("/api/tournaments", {
       method: "POST",
@@ -173,6 +198,7 @@ export default function NewTournamentPage() {
         paymentInstructions: entryType === "paid" ? paymentInstructions.trim() || undefined : undefined,
         prizePool: prizePoolAmount > 0 ? { amount: prizePoolAmount, currency: prizePoolCurrency } : undefined,
         prizeTiers: prizePoolAmount > 0 ? prizeRowsToBody(prizeRows) : [],
+        prizeAwards: awardRowsToBody(awardRows),
         competitiveTier,
         ...venueToBody(venue),
         country: country === "__default" ? undefined : country,
@@ -180,7 +206,7 @@ export default function NewTournamentPage() {
         minAge,
         requireParentalConsent: requireConsent && minAge < 18,
         requireFreshInstitutionProof: audienceScope === "institution" && freshProof,
-        customFields: customFields.length > 0 ? customFields : undefined,
+        customFields: allFields.length > 0 ? allFields : undefined,
         rules: rules.map((r) => ({
           title: r.title,
           description: r.description,
@@ -453,6 +479,19 @@ export default function NewTournamentPage() {
             </button>
           </div>
 
+          <label className={labelClass}>Entry conditions (optional)</label>
+          <textarea
+            rows={3}
+            value={conditionsText}
+            onChange={(e) => setConditionsText(e.target.value)}
+            placeholder={"Follow @yourteam on Instagram | https://instagram.com/yourteam\nShare our announcement post"}
+            className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
+          />
+          <p className="font-sans text-[11px] text-bk-muted mt-1">
+            One per line, with an optional link after a |. Players must tick each one to register and you check them
+            when approving. For paid or prized events, conditions can&apos;t change after the first player registers.
+          </p>
+
           <FormGroup title="Entry &amp; prizes" />
 
           <label className={labelClass}>Entry</label>
@@ -514,7 +553,17 @@ export default function NewTournamentPage() {
             }}
           />
 
-          <PrizeSplitEditor rows={prizeRows} onChange={setPrizeRows} poolAmount={prizePoolAmount} currency={prizePoolCurrency} />
+          {prizePoolAmount > 0 && <PrizeLockWarning />}
+
+          <PrizeSplitEditor
+            rows={prizeRows}
+            onChange={setPrizeRows}
+            poolAmount={prizePoolAmount}
+            currency={prizePoolCurrency}
+            awardsCash={awardsCash(awardRowsToBody(awardRows))}
+          />
+
+          <PrizeAwardsEditor rows={awardRows} onChange={setAwardRows} currency={prizePoolCurrency} />
 
           <div className="mt-4">
             <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />

@@ -58,6 +58,7 @@ export async function POST(
     registration_closed: { status: 409, message: "Registration is not open for this tournament." },
     full: { status: 409, message: "This tournament is full." },
     already_registered: { status: 409, message: "You're already registered for this tournament." },
+    conditions_not_met: { status: 400, message: "Confirm every entry condition first." },
     payment_proof_required: { status: 400, message: "Payment proof is required for a paid tournament." },
     consent_required: { status: 403, message: "A parent or guardian needs to approve this account before it can join." },
     guardian_payout_required: { status: 403, message: "A parent or guardian needs to add where prizes are paid first." },

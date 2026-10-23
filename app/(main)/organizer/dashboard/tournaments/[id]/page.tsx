@@ -1,3 +1,8 @@
+import ChangeRequestPanel from "./ChangeRequestPanel";
+import AwardWinnersPanel from "./AwardWinnersPanel";
+import { listEligiblePlayers } from "@/lib/services/award-winners";
+import { getLockState, listChangeRequestsFor } from "@/lib/services/change-requests";
+import { conditionsToLines } from "@/lib/entry-conditions";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { checkInCounts } from "@/lib/services/venue";
@@ -66,6 +71,12 @@ export default async function ManageTournamentPage({
     redirect("/organizer/dashboard");
   }
   const registrations = result.data;
+  const [lock, changeRequests] = await Promise.all([getLockState(id), listChangeRequestsFor(id)]);
+  const refundsDue = tournament.status === "cancelled" && tournament.cancelRefundsDueAt && !tournament.refundsConfirmedAt;
+  const payoutRows =
+    tournament.status === "completed"
+      ? await prisma.prizePayout.findMany({ where: { tournamentId: id }, select: { status: true } })
+      : [];
   // Parental consent status per registration (null when this tournament doesn't ask for it).
   const consentStatuses = await consentStatusesForTournament(id);
   const capacity = await getTournamentCapacity(id);
@@ -108,6 +119,7 @@ export default async function ManageTournamentPage({
             tournamentId={id}
             status={tournament.status}
             submittedForReview={tournament.submittedForReview}
+            hasPrize={tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0}
           />
         </div>
         <p className="font-sans text-bk-body text-sm mb-5 pl-[19px]">Manage registrations and match rooms</p>
@@ -131,7 +143,7 @@ export default async function ManageTournamentPage({
           <PayoutButton
             tournamentId={id}
             status={tournament.status}
-            hasPrizePool={!!tournament.prizePoolAmount}
+            hasPrizePool={!!tournament.prizePoolAmount || tournament.prizeAwards.length > 0}
             payoutConfirmed={tournament.payoutConfirmed}
           />
           <CancelButton tournamentId={id} status={tournament.status} />
@@ -140,6 +152,54 @@ export default async function ManageTournamentPage({
         {tournament.prizePoolAmount && ["in_progress", "completed"].includes(tournament.status) && (
           <PrizePayees tournamentId={id} />
         )}
+
+        {(lock?.locked || changeRequests.length > 0 || refundsDue) && (
+          <ChangeRequestPanel
+            tournamentId={id}
+            locked={Boolean(lock?.locked) && tournament.status !== "cancelled" && tournament.status !== "completed"}
+            hasPrize={tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0}
+            prizeCurrency={tournament.prizePoolCurrency ?? "PKR"}
+            currentPool={tournament.prizePoolAmount != null ? Number(tournament.prizePoolAmount) : 0}
+            currentTiers={tournament.prizeTiers.map((t) => ({ positionFrom: t.positionFrom, positionTo: t.positionTo, amount: Number(t.amount) }))}
+            currentAwards={tournament.prizeAwards.map((a) => ({ name: a.name, cashAmount: a.cashAmount == null ? null : Number(a.cashAmount), prizeText: a.prizeText }))}
+            currentConditions={conditionsToLines(tournament.customFields)}
+            requests={changeRequests.map((r) => ({
+              id: r.id,
+              kind: r.kind,
+              details: r.details,
+              status: r.status,
+              adminNote: r.adminNote,
+              createdAt: r.createdAt.toISOString(),
+            }))}
+            refundsDueAt={refundsDue && tournament.cancelRefundsDueAt ? tournament.cancelRefundsDueAt.toISOString() : null}
+          />
+        )}
+
+        {tournament.status === "completed" && tournament.prizeAwards.length > 0 && (
+          <AwardWinnersPanel
+            tournamentId={id}
+            awards={tournament.prizeAwards.map((a) => ({
+              id: a.id,
+              name: a.name,
+              cash: a.cashAmount == null ? null : Number(a.cashAmount),
+              text: a.prizeText,
+              winnerUserId: a.winnerUserId,
+              locked: tournament.payoutConfirmed,
+            }))}
+            players={await listEligiblePlayers(id)}
+            currency={tournament.prizePoolCurrency ?? ""}
+          />
+        )}
+
+        {payoutRows.length > 0 && (
+          <p className="font-sans text-[12px] text-bk-body mb-6">
+            Prize payouts: {payoutRows.filter((r) => r.status === "confirmed").length} of {payoutRows.length} winners confirmed
+            {payoutRows.some((r) => r.status === "disputed") && (
+              <span className="text-bk-live"> · {payoutRows.filter((r) => r.status === "disputed").length} reported as not paid</span>
+            )}
+            . Every winner confirming counts toward lifting your new-organizer limits.
+          </p>
+)}
 
         {isLan && counts && (
           <Panel className="mb-8 p-4">

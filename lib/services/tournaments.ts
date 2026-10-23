@@ -15,6 +15,11 @@ import { prisma } from "@/lib/prisma";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
+import { checkOrganizerTrust, TrustLimitError, markPrizesPaid } from "@/lib/services/organizer-trust";
+import { getLockState } from "@/lib/services/change-requests";
+import { checkPrizeBreakdown, type AwardInput } from "@/lib/prize-awards";
+import { replacePrizeAwards, loadAwards } from "@/lib/services/prize-awards";
+import { conditionsOf } from "@/lib/entry-conditions";
 import { getPaidPlanCodes, holdsPaidPlan } from "@/lib/plans";
 import { checkTierEntryGate, resolveTierSetting } from "@/lib/services/competitive-tiers";
 import {
@@ -144,6 +149,7 @@ export async function getTournamentById(idOrSlug: string) {
       organizer: { include: { user: { select: { kycStatus: true, avatarUrl: true } } } },
       stages: { orderBy: { order: "asc" } },
       prizeTiers: { orderBy: { positionFrom: "asc" } },
+      prizeAwards: { orderBy: { sortOrder: "asc" } },
       rules: {
         orderBy: [{ position: "asc" }, { id: "asc" }],
         include: { appliesToStage: { select: { id: true, name: true } } },
@@ -189,6 +195,7 @@ export interface CreateTournamentInput {
   venueType?: VenueType;
   country?: string | null;
   prizeTiers?: PrizeTierInput[];
+  prizeAwards?: AwardInput[];
   venueName?: string;
   venueAddress?: string;
   venueCity?: string;
@@ -207,6 +214,17 @@ export async function createTournament(input: CreateTournamentInput) {
   const organizer = await prisma.organizerProfile.findUnique({ where: { id: input.organizerId } });
   if (!organizer) throw new Error("Organizer profile not found.");
   await assertOrganizerCanCreateTournament(organizer, input.gameId);
+
+  // Anti-scam gate: starter limits for new organizers, and no new paid or
+  // prized events while an earlier prize payout is unsettled.
+  const trust = await checkOrganizerTrust({
+    organizerId: input.organizerId,
+    entryType: input.entryType,
+    entryFee: input.entryFeeAmount && input.entryFeeCurrency ? { amount: Number(input.entryFeeAmount), currency: input.entryFeeCurrency } : null,
+    prizePool: input.prizePoolAmount && input.prizePoolCurrency ? { amount: Number(input.prizePoolAmount), currency: input.prizePoolCurrency } : null,
+    maxTeams: input.maxTeams,
+  });
+  if (!trust.ok) throw new TrustLimitError(trust.code, trust.message);
 
   return prisma.tournament.create({
     data: {
@@ -258,6 +276,9 @@ export async function createTournament(input: CreateTournamentInput) {
       prizeTiers: input.prizeTiers?.length
         ? { create: input.prizeTiers.map((t) => ({ positionFrom: t.from, positionTo: t.to, amount: t.amount })) }
         : undefined,
+      prizeAwards: input.prizeAwards?.length
+        ? { create: input.prizeAwards.map((a, i) => ({ name: a.name, cashAmount: a.cashAmount, prizeText: a.prizeText, sortOrder: i })) }
+        : undefined,
     },
     include: { rules: { orderBy: [{ position: "asc" }, { id: "asc" }] } },
   });
@@ -282,6 +303,35 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   });
   if (organizerUser?.kycStatus !== "approved") {
     return { error: "organizer_not_approved" as const };
+  }
+
+  // A prize pool must be fully described before players can see it: how many
+  // teams win and how much each gets, plus any awards. (Also catches older
+  // drafts that only had a total.)
+  if (tournament.prizePoolAmount && Number(tournament.prizePoolAmount) > 0) {
+    const [tierRows, awards] = await Promise.all([
+      prisma.prizeTier.findMany({ where: { tournamentId } }),
+      loadAwards(tournamentId),
+    ]);
+    const breakdown = checkPrizeBreakdown({
+      pool: Number(tournament.prizePoolAmount),
+      tiers: tierRows.map((r) => ({ from: r.positionFrom, to: r.positionTo, amount: Number(r.amount) })),
+      awards,
+    });
+    if (breakdown) return { error: "prize_split_incomplete" as const, message: breakdown };
+  }
+
+  // Re-checked at publish: a draft made while eligible can't go live while an
+  // earlier payout is unsettled, and limits may have changed since creation.
+  {
+    const trust = await checkOrganizerTrust({
+      organizerId,
+      entryType: tournament.entryType,
+      entryFee: tournament.entryFeeAmount && tournament.entryFeeCurrency ? { amount: Number(tournament.entryFeeAmount), currency: tournament.entryFeeCurrency } : null,
+      prizePool: tournament.prizePoolAmount && tournament.prizePoolCurrency ? { amount: Number(tournament.prizePoolAmount), currency: tournament.prizePoolCurrency } : null,
+      maxTeams: tournament.maxTeams,
+    });
+    if (!trust.ok) return { error: trust.code, message: trust.message };
   }
 
   // A hybrid tournament needs its online AND LAN stages set up.
@@ -494,6 +544,14 @@ export async function registerForTournament(input: RegisterInput) {
 
   if (tournament.entryType === "paid" && !input.paymentProofUrl) {
     return { error: "payment_proof_required" as const };
+  }
+
+  // Entry conditions (follow / share…) must each be ticked. The organizer
+  // verifies them when approving.
+  {
+    const answers = (input.customFieldResponses ?? {}) as Record<string, unknown>;
+    const unmet = conditionsOf(tournament.customFields).filter((c) => answers[c.key] !== "yes");
+    if (unmet.length > 0) return { error: "conditions_not_met" as const, message: `Confirm every entry condition first: ${unmet.map((c) => c.label).join(", ")}.` };
   }
 
   // Squad/duo mode: create a TeamEntry + members. Solo: register the player directly.
@@ -923,6 +981,7 @@ export interface UpdateTournamentInput {
   venueType?: VenueType;
   country?: string | null;
   prizeTiers?: PrizeTierInput[];
+  prizeAwards?: AwardInput[];
   venueName?: string;
   venueAddress?: string;
   venueCity?: string;
@@ -942,21 +1001,36 @@ export async function updateTournament(
 
   // The prize split lives in its own table, so it is split off here and never
   // reaches the tournament update below.
-  const { prizeTiers, ...rest } = input;
-  const data: Omit<UpdateTournamentInput, "prizeTiers"> = { ...rest };
+  const { prizeTiers, prizeAwards, ...rest } = input;
+  const data: Omit<UpdateTournamentInput, "prizeTiers" | "prizeAwards"> = { ...rest };
 
-  // Prize split: must fit inside the (possibly new) prize pool, and — like the
-  // pool itself — can't be changed once players have registered for it.
+  // The prize pool, how it is split by place, and the extra awards are ONE
+  // promise to everyone who registered. Once players are in, any change goes
+  // through an admin (change request), never a direct edit. Before that, the
+  // result must still account for the whole pool.
   {
-    const existing = await prisma.prizeTier.findMany({ where: { tournamentId }, orderBy: { positionFrom: "asc" } });
+    const [existing, existingAwards] = await Promise.all([
+      prisma.prizeTier.findMany({ where: { tournamentId }, orderBy: { positionFrom: "asc" } }),
+      loadAwards(tournamentId),
+    ]);
     const existingTiers: PrizeTierInput[] = existing.map((r) => ({ from: r.positionFrom, to: r.positionTo, amount: Number(r.amount) }));
-    const poolAfter =
-      data.prizePoolAmount !== undefined ? Number(data.prizePoolAmount) : tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0;
+    const poolBefore = tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0;
+    const poolAfter = data.prizePoolAmount !== undefined ? Number(data.prizePoolAmount) : poolBefore;
     const tiersAfter = prizeTiers ?? existingTiers;
+    const awardsAfter = prizeAwards ?? existingAwards;
+
     const poolError = checkAgainstPool(tiersAfter, poolAfter);
     if (poolError) return { error: "invalid_prize_tiers" as const, message: poolError };
-    if (prizeTiers !== undefined && JSON.stringify(prizeTiers) !== JSON.stringify(existingTiers)) {
-      if ((await getActiveRegistrationCount(tournamentId)) > 0) return { error: "prize_locked" as const };
+
+    const poolChanged = poolAfter !== poolBefore;
+    const tiersChanged = prizeTiers !== undefined && JSON.stringify(prizeTiers) !== JSON.stringify(existingTiers);
+    const awardsChanged = prizeAwards !== undefined && JSON.stringify(prizeAwards) !== JSON.stringify(existingAwards);
+    if (poolChanged || tiersChanged || awardsChanged) {
+      if ((await getActiveRegistrationCount(tournamentId)) > 0) {
+        return { error: poolChanged ? ("pool_locked" as const) : ("prize_locked" as const) };
+      }
+      const breakdown = checkPrizeBreakdown({ pool: poolAfter, tiers: tiersAfter, awards: awardsAfter });
+      if (breakdown) return { error: "invalid_prize_tiers" as const, message: breakdown };
     }
   }
 
@@ -1080,13 +1154,41 @@ export async function updateTournament(
     (data as Prisma.TournamentUpdateInput).submittedForReview = false;
   }
 
+  // Raising the fee, prize pool or capacity after creation must not dodge the
+  // new-organizer limits. Only an actual increase is checked (the edit form
+  // resends current values on every save).
+  {
+    const feeNow = Number(tournament.entryFeeAmount ?? 0);
+    const prizeNow = Number(tournament.prizePoolAmount ?? 0);
+    const feeAfter = data.entryFeeAmount !== undefined ? Number(data.entryFeeAmount) : feeNow;
+    const prizeAfter = data.prizePoolAmount !== undefined ? Number(data.prizePoolAmount) : prizeNow;
+    const capAfter = data.maxTeams ?? tournament.maxTeams;
+    const currencyChanged =
+      (data.entryFeeCurrency !== undefined && data.entryFeeCurrency !== tournament.entryFeeCurrency) ||
+      (data.prizePoolCurrency !== undefined && data.prizePoolCurrency !== tournament.prizePoolCurrency);
+    if (feeAfter > feeNow || prizeAfter > prizeNow || capAfter > tournament.maxTeams || currencyChanged) {
+      const feeCurrency = data.entryFeeCurrency ?? tournament.entryFeeCurrency;
+      const prizeCurrency = data.prizePoolCurrency ?? tournament.prizePoolCurrency;
+      const trust = await checkOrganizerTrust({
+        organizerId,
+        entryType: tournament.entryType,
+        entryFee: feeAfter > 0 && feeCurrency ? { amount: feeAfter, currency: feeCurrency } : null,
+        prizePool: prizeAfter > 0 && prizeCurrency ? { amount: prizeAfter, currency: prizeCurrency } : null,
+        maxTeams: capAfter,
+      });
+      if (!trust.ok) return { error: trust.code, message: trust.message };
+    }
+  }
+
   const updated = await prisma.tournament.update({
     where: { id: tournamentId },
     data,
   });
-  if (prizeTiers !== undefined) {
-    await prisma.$transaction(replacePrizeTiers(tournamentId, prizeTiers));
-  }
+  const ops = [
+    ...(prizeTiers !== undefined ? replacePrizeTiers(tournamentId, prizeTiers) : []),
+    ...(prizeAwards !== undefined ? replacePrizeAwards(tournamentId, prizeAwards) : []),
+  ];
+  if (ops.length > 0) await prisma.$transaction(ops);
   return { data: updated };
 }
 
@@ -1097,6 +1199,11 @@ export async function cancelTournament(tournamentId: string, organizerId: string
   if (tournament.status === "cancelled" || tournament.status === "completed") {
     return { error: "invalid_status" as const };
   }
+
+  // Paid or prized events with registered players can't be cancelled by the
+  // organizer alone — they ask an admin (see change-requests.ts).
+  const lock = await getLockState(tournamentId);
+  if (lock?.locked) return { error: "locked" as const };
 
   const updated = await prisma.tournament.update({
     where: { id: tournamentId },
@@ -1295,20 +1402,9 @@ export async function getPublicOrganizerProfile(organizerId: string) {
 // prize pool — confirming payout on a still-running or prizeless
 // tournament doesn't mean anything (see Tournament.payoutConfirmed).
 export async function markPayoutConfirmed(tournamentId: string, userId: string) {
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
-    include: { organizer: true },
-  });
-  if (!tournament) return { error: "not_found" as const };
-  if (tournament.organizer.userId !== userId) return { error: "forbidden" as const };
-  if (tournament.status !== "completed") return { error: "not_completed" as const };
-  if (!tournament.prizePoolAmount) return { error: "no_prize_pool" as const };
-
-  const updated = await prisma.tournament.update({
-    where: { id: tournamentId },
-    data: { payoutConfirmed: true },
-  });
-  return { data: updated };
+  // Delegates to organizer-trust: besides flipping Tournament.payoutConfirmed,
+  // each winner now gets a payout record to confirm or dispute.
+  return markPrizesPaid(tournamentId, userId);
 }
 
 // A player may vote once they hold ANY registration for this tournament —
@@ -1546,7 +1642,7 @@ export async function updateTournamentStatus(
 
   const updated = await prisma.tournament.update({
     where: { id: tournamentId },
-    data: { status: newStatus as TournamentStatus },
+    data: { status: newStatus as TournamentStatus, ...(newStatus === "completed" ? { completedAt: new Date() } : {}) },
   });
 
   // Rating only moves once results are final (spec §9) — this transition
