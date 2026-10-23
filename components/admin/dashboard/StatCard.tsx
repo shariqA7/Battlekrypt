@@ -53,7 +53,7 @@ export default function StatCard({
   return (
     <div
       className="bk-rise group bg-bk-surface border border-bk-border p-4 min-w-0 transition-colors hover:border-bk-gold-light/50 hover:bg-bk-surface-hover"
-      style={{ animationDelay: `${index * 60}ms` }}
+      style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="font-sans text-[11px] uppercase tracking-[1.2px] text-bk-muted">{label}</p>
