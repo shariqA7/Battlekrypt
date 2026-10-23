@@ -4,9 +4,11 @@
 // Plain data (no JSX) so server and client code can both import it.
 
 export type AdminIconName =
-  | "overview" | "approvals" | "users" | "institutions" | "idPhotos" | "currencies"
+  | "dashboard" | "approvals" | "users" | "institutions" | "idPhotos" | "currencies"
   | "organizations" | "clubs" | "plans" | "featured" | "changeRequests"
-  | "organizerTrust" | "deposits" | "payments" | "traffic" | "settings";
+  | "organizerTrust" | "deposits" | "payments" | "traffic" | "settings"
+  // Dashboard stat cards
+  | "teams" | "tournaments" | "registrations" | "bans" | "sessions";
 
 export type AdminNavItem = {
   href: string;
@@ -16,12 +18,13 @@ export type AdminNavItem = {
   badge?: boolean;
 };
 
+// An empty label means "no heading" (used for the Dashboard link at the top).
 export type AdminNavGroup = { label: string; items: AdminNavItem[] };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
-    label: "Dashboard",
-    items: [{ href: "/admin", label: "Overview", icon: "overview" }],
+    label: "",
+    items: [{ href: "/admin", label: "Dashboard", icon: "dashboard" }],
   },
   {
     label: "Review",
@@ -72,9 +75,10 @@ export type Crumb = { label: string; href: string };
 // sidebar label; any deeper segment (an id or a future sub-page) is prettified.
 export function adminCrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("?")[0].split("/").filter(Boolean);
-  if (segments[0] !== "admin") return [{ label: "Admin", href: "/admin" }];
+  // /admin IS the dashboard, so the breadcrumb root is "Dashboard".
+  if (segments[0] !== "admin") return [{ label: "Dashboard", href: "/admin" }];
 
-  const crumbs: Crumb[] = [{ label: "Admin", href: "/admin" }];
+  const crumbs: Crumb[] = [{ label: "Dashboard", href: "/admin" }];
   let href = "/admin";
   for (const seg of segments.slice(1)) {
     href += `/${seg}`;

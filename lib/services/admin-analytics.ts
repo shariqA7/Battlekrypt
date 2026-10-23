@@ -40,26 +40,126 @@ function tally<T>(rows: T[], key: (r: T) => string | null | undefined, top = 8) 
     .slice(0, top);
 }
 
-export async function getOverview() {
-  const since30 = new Date(Date.now() - 30 * DAY);
+// ---------------------------------------------------------------------------
+// Dashboard (the /admin home page) with a time-range filter.
+// ---------------------------------------------------------------------------
+
+export type DashRange = "today" | "week" | "month" | "6m" | "12m" | "all";
+
+export const DASH_RANGES: { key: DashRange; label: string; long: string }[] = [
+  { key: "today", label: "Today", long: "today" },
+  { key: "week", label: "Week", long: "the last 7 days" },
+  { key: "month", label: "Month", long: "the last 30 days" },
+  { key: "6m", label: "6M", long: "the last 6 months" },
+  { key: "12m", label: "12M", long: "the last 12 months" },
+  { key: "all", label: "All time", long: "all time" },
+];
+
+export const DEFAULT_DASH_RANGE: DashRange = "month";
+
+export function parseDashRange(v: string | undefined): DashRange {
+  return DASH_RANGES.some((r) => r.key === v) ? (v as DashRange) : DEFAULT_DASH_RANGE;
+}
+
+type Unit = "hour" | "day" | "week" | "month";
+type Win = { gte?: Date; lt?: Date } | undefined;
+
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// The window a range covers, the chart bucket size, and (for everything except
+// "all") the equally long window right before it, used for the +/- comparison.
+function dashWindow(range: DashRange, earliest: Date | null) {
+  const now = new Date();
+  const today = startOfToday();
+  let since: Date | null;
+  let unit: Unit;
+  switch (range) {
+    case "today": since = today; unit = "hour"; break;
+    case "week": since = new Date(today.getTime() - 6 * DAY); unit = "day"; break;
+    case "month": since = new Date(today.getTime() - 29 * DAY); unit = "day"; break;
+    case "6m": since = new Date(today.getTime() - 181 * DAY); unit = "week"; break;
+    case "12m": since = new Date(now.getFullYear(), now.getMonth() - 11, 1); unit = "month"; break;
+    default: {
+      // All time: monthly bars from the first account (or the last 12 months if empty).
+      const first = earliest ?? new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      since = new Date(first.getFullYear(), first.getMonth(), 1);
+      unit = "month";
+    }
+  }
+  const prev = range === "all" ? null : { from: new Date(since.getTime() - (now.getTime() - since.getTime())), to: since };
+  return { now, since, unit, prev, filterSince: range === "all" ? null : since };
+}
+
+const fmtDay = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const fmtMonth = (d: Date) => d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+export interface DashPoint {
+  label: string; // axis label, already formatted for people
+  value: number;
+}
+
+// Zero-filled counts per bucket between `since` and now.
+function bucketSeries(dates: Date[], since: Date, now: Date, unit: Unit): DashPoint[] {
+  const starts: Date[] = [];
+  if (unit === "hour") {
+    for (let h = 0; h < 24; h++) starts.push(new Date(since.getTime() + h * 3_600_000));
+  } else if (unit === "month") {
+    const c = new Date(since.getFullYear(), since.getMonth(), 1);
+    while (c <= now) { starts.push(new Date(c)); c.setMonth(c.getMonth() + 1); }
+  } else {
+    const step = unit === "week" ? 7 * DAY : DAY;
+    for (let t = since.getTime(); t <= now.getTime(); t += step) starts.push(new Date(t));
+  }
+
+  const counts = new Array<number>(starts.length).fill(0);
+  for (const d of dates) {
+    let i: number;
+    if (unit === "hour") i = Math.floor((d.getTime() - since.getTime()) / 3_600_000);
+    else if (unit === "month") i = (d.getFullYear() - since.getFullYear()) * 12 + d.getMonth() - since.getMonth();
+    else i = Math.floor((d.getTime() - since.getTime()) / (unit === "week" ? 7 * DAY : DAY));
+    if (i >= 0 && i < counts.length) counts[i] += 1;
+  }
+
+  return starts.map((d, i) => ({
+    label: unit === "hour" ? `${String(d.getHours()).padStart(2, "0")}:00` : unit === "month" ? fmtMonth(d) : fmtDay(d),
+    value: counts[i],
+  }));
+}
+
+export interface DashStat {
+  current: number; // inside the selected range
+  previous: number | null; // the equally long range before it (null for "all time")
+}
+
+export async function getDashboard(range: DashRange) {
+  const [first] = await prisma.user.findMany({ orderBy: { createdAt: "asc" }, take: 1, select: { createdAt: true } });
+  const { now, since, unit, prev, filterSince } = dashWindow(range, first?.createdAt ?? null);
+
+  const cur: Win = filterSince ? { gte: filterSince } : undefined;
+  const prv: Win | null = prev ? { gte: prev.from, lt: prev.to } : null;
+  const both = async (fn: (w: Win) => Promise<number>): Promise<DashStat> => {
+    const [current, previous] = await Promise.all([fn(cur), prv ? fn(prv) : Promise.resolve(null)]);
+    return { current, previous };
+  };
 
   const [
-    users,
-    players,
-    organizers,
-    pendingApps,
-    clubsActive,
-    clubsPaid,
-    clubsDisbanded,
-    teams,
-    tournaments,
-    liveTournaments,
-    registrations,
-    activeBans,
-    newUsers,
-    sessions30,
-    payments,
+    users, organizers, clubs, teams, tournaments, registrations, bans, sessionsStat,
+    totalUsers, totalPlayers, totalOrganizers, pendingApps, clubsActive, clubsPaid, clubsDisbanded,
+    totalTeams, totalTournaments, liveTournaments, totalRegistrations, activeBans,
+    userDates, sessionRows, registrationDates, payments,
   ] = await Promise.all([
+    both((w) => prisma.user.count({ where: w ? { createdAt: w } : {} })),
+    both((w) => prisma.organizerProfile.count({ where: w ? { createdAt: w } : {} })),
+    both((w) => prisma.clubProfile.count({ where: w ? { createdAt: w } : {} })),
+    both((w) => prisma.clubTeam.count({ where: w ? { createdAt: w } : {} })),
+    both((w) => prisma.tournament.count({ where: w ? { createdAt: w } : {} })),
+    both((w) => prisma.registration.count({ where: w ? { registeredAt: w } : {} })),
+    both((w) => prisma.accountBan.count({ where: w ? { createdAt: w } : {} })),
+    both((w) => prisma.visitSession.count({ where: w ? { createdAt: w } : {} })),
     prisma.user.count(),
     prisma.playerProfile.count(),
     prisma.organizerProfile.count(),
@@ -71,27 +171,37 @@ export async function getOverview() {
     prisma.tournament.count(),
     prisma.tournament.count({ where: { status: "in_progress" } }),
     prisma.registration.count(),
-    prisma.accountBan.count({
-      where: { liftedAt: null, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] },
-    }),
-    prisma.user.findMany({ where: { createdAt: { gte: since30 } }, select: { createdAt: true } }),
-    prisma.visitSession.findMany({ where: { createdAt: { gte: since30 } }, select: { createdAt: true, country: true } }),
+    prisma.accountBan.count({ where: { liftedAt: null, OR: [{ endsAt: null }, { endsAt: { gt: new Date() } }] } }),
+    prisma.user.findMany({ where: cur ? { createdAt: cur } : {}, select: { createdAt: true } }),
+    prisma.visitSession.findMany({ where: cur ? { createdAt: cur } : {}, select: { createdAt: true, country: true } }),
+    prisma.registration.findMany({ where: cur ? { registeredAt: cur } : {}, select: { registeredAt: true } }),
     prisma.paymentRecord.findMany({ select: { amount: true, currency: true, createdAt: true } }),
   ]);
 
+  // Revenue inside the range, per currency (never blended into one number).
   const revenue: Record<string, number> = {};
-  for (const p of payments) revenue[p.currency] = (revenue[p.currency] ?? 0) + toNumber(p.amount);
+  let paymentCount = 0;
+  for (const p of payments) {
+    if (filterSince && p.createdAt < filterSince) continue;
+    revenue[p.currency] = (revenue[p.currency] ?? 0) + toNumber(p.amount);
+    paymentCount += 1;
+  }
 
   return {
-    counts: {
-      users, players, organizers, pendingApps, clubsActive, clubsPaid, clubsDisbanded,
-      teams, tournaments, liveTournaments, registrations, activeBans,
+    range,
+    periodLabel: range === "today" ? fmtDay(now) : range === "all" ? `Since ${fmtMonth(since)}` : `${fmtDay(since)} – ${fmtDay(now)}`,
+    stats: { users, organizers, clubs, teams, tournaments, registrations, bans, sessions: sessionsStat },
+    totals: {
+      users: totalUsers, players: totalPlayers, organizers: totalOrganizers, pendingApps, clubsActive, clubsPaid,
+      clubsDisbanded, teams: totalTeams, tournaments: totalTournaments, liveTournaments, registrations: totalRegistrations,
+      activeBans,
     },
-    signups: bucketByDay(newUsers.map((u) => u.createdAt), 30),
-    sessionsPerDay: bucketByDay(sessions30.map((s) => s.createdAt), 30),
-    topCountries: tally(sessions30, (s) => (s.country ? countryName(s.country) : null), 5),
     revenue,
-    paymentCount: payments.length,
+    paymentCount,
+    signups: bucketSeries(userDates.map((u) => u.createdAt), since, now, unit),
+    sessionsSeries: bucketSeries(sessionRows.map((s) => s.createdAt), since, now, unit),
+    registrationsSeries: bucketSeries(registrationDates.map((r) => r.registeredAt), since, now, unit),
+    topCountries: tally(sessionRows, (s) => (s.country ? countryName(s.country) : null), 5),
   };
 }
 

@@ -191,3 +191,27 @@ p, h1, h2, h3, h4, li, td, th, label {
     min-height: 100dvh;
   }
 }
+
+/* ---- Admin: scroll without a visible scrollbar (sidebar) ---- */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---- Admin dashboard animations. All are skipped for people who ask their
+   device to reduce motion. ---- */
+@keyframes bk-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes bk-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes bk-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes bk-ping {
+  0%   { transform: scale(1); opacity: 0.55; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.bk-rise  { animation: bk-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.bk-bar   { transform-box: fill-box; transform-origin: bottom; animation: bk-grow-y 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.bk-bar-x { transform-origin: left; animation: bk-grow-x 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.bk-ping  { animation: bk-ping 1.6s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .bk-rise, .bk-bar, .bk-bar-x, .bk-ping { animation: none; }
+}
