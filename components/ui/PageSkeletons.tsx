@@ -125,3 +125,13 @@ export function AdminPageSkeleton() {
     </LoadingRegion>
   );
 }
+
+/** Content area of an admin sub tab (heading and tab bar are already on screen). */
+export function AdminTabSkeleton() {
+  return (
+    <LoadingRegion>
+      <Skeleton className="h-4 w-48 mb-4" />
+      <SkeletonList rows={4} />
+    </LoadingRegion>
+  );
+}
