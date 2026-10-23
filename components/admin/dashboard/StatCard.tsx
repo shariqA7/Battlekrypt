@@ -1,8 +1,9 @@
 // One dashboard number: icon, label, animated value, "vs previous period"
-// change, and a small hint line. Server component (CountUp is the only client
-// part). Cards rise in one after another using the delay from `index`.
+// change, and a small hint line. While `loading`, only the changing parts
+// (value, change, hint) turn into shimmer; the icon and label stay put.
 import { AdminIcon } from "../AdminIcons";
 import type { AdminIconName } from "../adminNav";
+import { Skeleton } from "@/components/ui/Skeleton";
 import CountUp from "./CountUp";
 
 const TONES = {
@@ -36,6 +37,7 @@ export default function StatCard({
   previous = null,
   hint,
   index = 0,
+  loading = false,
 }: {
   icon: AdminIconName;
   tone?: keyof typeof TONES;
@@ -49,6 +51,7 @@ export default function StatCard({
   previous?: number | null;
   hint?: string;
   index?: number;
+  loading?: boolean;
 }) {
   return (
     <div
@@ -61,13 +64,22 @@ export default function StatCard({
           <AdminIcon name={icon} size={18} />
         </span>
       </div>
-      <p className="font-mono text-2xl text-bk-heading mt-2 break-words">
-        {typeof value === "number" ? <CountUp value={value} /> : text}
-      </p>
-      <div className="flex items-center justify-between gap-2 mt-1.5 min-h-[16px]">
-        {hint ? <p className="font-sans text-[11px] text-bk-muted truncate">{hint}</p> : <span />}
-        {typeof current === "number" && <Delta current={current} previous={previous} />}
-      </div>
+      {loading ? (
+        <>
+          <Skeleton className="h-7 w-24 mt-2" />
+          <Skeleton className="h-3 w-32 mt-2.5" />
+        </>
+      ) : (
+        <>
+          <p className="font-mono text-2xl text-bk-heading mt-2 break-words">
+            {typeof value === "number" ? <CountUp value={value} /> : text}
+          </p>
+          <div className="flex items-center justify-between gap-2 mt-1.5 min-h-[16px]">
+            {hint ? <p className="font-sans text-[11px] text-bk-muted truncate">{hint}</p> : <span />}
+            {typeof current === "number" && <Delta current={current} previous={previous} />}
+          </div>
+        </>
+      )}
     </div>
   );
 }

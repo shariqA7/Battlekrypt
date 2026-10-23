@@ -3,7 +3,7 @@
 // requireAdminPage() first.
 import { prisma } from "@/lib/prisma";
 import { countryName } from "@/lib/geo";
-import { toNumber } from "@/lib/money";
+import { formatMoney, toNumber } from "@/lib/money";
 
 const DAY = 86_400_000;
 
@@ -130,6 +130,8 @@ function bucketSeries(dates: Date[], since: Date, now: Date, unit: Unit): DashPo
   }));
 }
 
+export type DashboardData = Awaited<ReturnType<typeof getDashboard>>;
+
 export interface DashStat {
   current: number; // inside the selected range
   previous: number | null; // the equally long range before it (null for "all time")
@@ -196,7 +198,8 @@ export async function getDashboard(range: DashRange) {
       clubsDisbanded, teams: totalTeams, tournaments: totalTournaments, liveTournaments, registrations: totalRegistrations,
       activeBans,
     },
-    revenue,
+    rangeLong: DASH_RANGES.find((r) => r.key === range)!.long,
+    revenueText: Object.entries(revenue).map(([cur, amt]) => formatMoney(amt, cur)).join(" · ") || "—",
     paymentCount,
     signups: bucketSeries(userDates.map((u) => u.createdAt), since, now, unit),
     sessionsSeries: bucketSeries(sessionRows.map((s) => s.createdAt), since, now, unit),

@@ -215,3 +215,25 @@ p, h1, h2, h3, h4, li, td, th, label {
 @media (prefers-reduced-motion: reduce) {
   .bk-rise, .bk-bar, .bk-bar-x, .bk-ping { animation: none; }
 }
+
+/* ---- Shimmer: placeholder blocks while content loads. Uses the theme's own
+   surface/border colors so it works in both dark and light. ---- */
+@keyframes bk-shimmer {
+  from { background-position: 160% 0; }
+  to   { background-position: -60% 0; }
+}
+.bk-shimmer {
+  background-color: var(--bk-surface-hover);
+  background-image: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, var(--bk-border) 75%, transparent) 50%,
+    transparent 75%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: bk-shimmer 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bk-shimmer { animation: none; }
+}
