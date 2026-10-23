@@ -1,16 +1,20 @@
 import { requireAdminPage } from "@/lib/admin-page";
 import { prisma } from "@/lib/prisma";
-import AdminNav from "@/components/admin/AdminNav";
+import { cookies } from "next/headers";
+import AdminShell from "@/components/admin/AdminShell";
+import { ADMIN_SIDEBAR_COOKIE } from "@/components/admin/adminNav";
 import { countPendingChangeRequests } from "@/lib/services/change-requests";
 import { countReportedChallenges } from "@/lib/services/challenge-moderation";
 import { countOpenFlags } from "@/lib/services/challenge-integrity";
 import { countOpenConsentCases } from "@/lib/services/consent-cases";
 
-// Shell for every /admin page: a sidebar plus a wide content area. Each page
+// Shell for every /admin page: a collapsible sidebar, breadcrumbs, and a wide
+// content area (see AdminShell). Each page
 // still calls requireAdminPage() itself, because layouts are skipped on
 // client-side navigation.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdminPage();
+  const defaultCollapsed = (await cookies()).get(ADMIN_SIDEBAR_COOKIE)?.value === "collapsed";
 
   const [orgApps, legacyOrganizers, clubUpgrades, games, claims, planReqs, tierReviews, heldChallenges, challengeDisputes, reportedChallenges, challengeFlags, institutions, consentCases, changeRequests] = await Promise.all([
     prisma.organizationApplication.count({ where: { status: "pending" } }),
@@ -29,13 +33,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     countPendingChangeRequests(),
   ]);
 
+  const pending =
+    orgApps + legacyOrganizers + clubUpgrades + games + claims + tierReviews + planReqs + heldChallenges +
+    challengeDisputes + reportedChallenges + challengeFlags + institutions + consentCases + changeRequests;
+
   return (
-    <div className="flex-1 w-full max-w-6xl mx-auto px-5 sm:px-6 py-8 grid md:grid-cols-[210px_1fr] gap-6 md:gap-8">
-      <aside>
-        <p className="border-l-[3px] border-bk-gold-from pl-3 font-sans font-extrabold text-lg text-bk-heading mb-3 md:mb-4">Admin</p>
-        <AdminNav pending={orgApps + legacyOrganizers + clubUpgrades + games + claims + tierReviews + planReqs + heldChallenges + challengeDisputes + reportedChallenges + challengeFlags + institutions + consentCases + changeRequests} />
-      </aside>
-      <div className="min-w-0">{children}</div>
-    </div>
+    <AdminShell pending={pending} defaultCollapsed={defaultCollapsed}>
+      {children}
+    </AdminShell>
   );
 }
