@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
+import { Chip, ExpandAllBar, Expandable, useOpenSet } from "@/components/admin/Expandable";
 
 export interface AdminClaim {
   id: string;
@@ -53,6 +54,7 @@ export default function NameClaims({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const set = useOpenSet();
 
   function banDays(): number | null | undefined {
     if (duration === "permanent") return null;
@@ -103,12 +105,27 @@ export default function NameClaims({
       {error && <p className="font-sans text-[12px] text-bk-live mb-3">{error}</p>}
       {claims.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No claims waiting.</p>}
 
-      <div className="space-y-4">
+      <ExpandAllBar ids={claims.map((c) => c.id)} set={set} />
+      <div className="space-y-2">
         {claims.map((c) => (
-          <div key={c.id} className="bg-bk-surface border border-bk-border p-4">
-            <p className="font-sans font-bold text-bk-heading">
-              &ldquo;{c.clubName}&rdquo;
-            </p>
+          <Expandable
+            key={c.id}
+            id={c.id}
+            open={set.has(c.id)}
+            onToggle={() => set.toggle(c.id)}
+            summary={
+              <>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-sans font-bold text-bk-heading">&ldquo;{c.clubName}&rdquo;</span>
+                  {c.club ? <Chip tone="amber">held by {c.club.clubName}</Chip> : <Chip>holder gone</Chip>}
+                </span>
+                <span className="block font-sans text-[12px] text-bk-muted truncate mt-0.5">
+                  Claimed by {c.claimant.displayName} · {c.claimant.email}
+                </span>
+              </>
+            }
+            aside={<span className="font-sans text-[12px] text-bk-muted">{new Date(c.createdAt).toLocaleDateString()}</span>}
+          >
             <p className="font-sans text-[12px] text-bk-muted mb-3">
               Claimed by {c.claimant.displayName} ({c.claimant.email}) · {new Date(c.createdAt).toLocaleString()}
             </p>
@@ -178,7 +195,7 @@ export default function NameClaims({
                 Review
               </button>
             )}
-          </div>
+          </Expandable>
         ))}
       </div>
 

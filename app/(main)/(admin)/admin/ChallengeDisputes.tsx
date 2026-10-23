@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
+import { Chip, ExpandAllBar, Expandable, useOpenSet } from "@/components/admin/Expandable";
 
 export interface AdminDispute {
   id: string;
@@ -56,6 +57,7 @@ function Links({ urls, label }: { urls: string[]; label: string }) {
 // Disputes from challenges: a poster doubting proof of a win, or a challenger
 // saying a prize never arrived. Both sides' evidence is shown side by side.
 export default function ChallengeDisputes({ initial }: { initial: AdminDispute[] }) {
+  const expanded = useOpenSet();
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const [open, setOpen] = useState<string | null>(null);
@@ -99,23 +101,35 @@ export default function ChallengeDisputes({ initial }: { initial: AdminDispute[]
         window is flagged below.
       </p>
       {items.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No open disputes.</p>}
-      <div className="space-y-4">
+      <ExpandAllBar ids={items.map((i) => i.id)} set={expanded} />
+      <div className="space-y-2">
         {items.map((d) => (
-          <div key={d.id} className="bg-bk-surface border border-bk-border p-4">
-            <div className="flex justify-between gap-3">
-              <div>
-                <p className="font-sans font-bold text-bk-heading">
-                  {d.kind === "payment" ? "Payment dispute" : "Proof dispute"} · {d.challengeTitle}
-                </p>
-                <p className="font-sans text-[12px] text-bk-muted">
-                  Poster {d.posterName} ({d.posterEmail}) · challenger {d.challengerName} ({d.challengerEmail}) · prize {d.prizeLabel}
-                </p>
-              </div>
-              <div className="text-right shrink-0 font-sans text-[11px] uppercase tracking-[0.6px]">
-                {d.missedDeadline && <p className="text-bk-live">Deadline missed</p>}
-                <p className="text-bk-muted">{d.status === "awaiting_admin" ? "Ready to decide" : "Waiting for response"}</p>
-              </div>
-            </div>
+          <Expandable
+            key={d.id}
+            id={d.id}
+            open={expanded.has(d.id)}
+            onToggle={() => expanded.toggle(d.id)}
+            summary={
+              <>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-sans font-bold text-bk-heading">{d.challengeTitle}</span>
+                  <Chip tone={d.kind === "payment" ? "amber" : "muted"}>{d.kind === "payment" ? "payment" : "proof"} dispute</Chip>
+                  {d.missedDeadline && <Chip tone="live">deadline missed</Chip>}
+                </span>
+                <span className="block font-sans text-[12px] text-bk-muted truncate mt-0.5">
+                  {d.posterName} vs {d.challengerName} · prize {d.prizeLabel}
+                </span>
+              </>
+            }
+            aside={
+              <span className="font-sans text-[11px] uppercase tracking-[0.6px] text-bk-muted">
+                {d.status === "awaiting_admin" ? "Ready to decide" : "Waiting for response"}
+              </span>
+            }
+          >
+            <p className="font-sans text-[12px] text-bk-muted">
+              Poster {d.posterName} ({d.posterEmail}) · challenger {d.challengerName} ({d.challengerEmail})
+            </p>
 
             <div className="grid md:grid-cols-2 gap-3 mt-3 font-sans text-[12px] text-bk-body">
               <div className="bg-bk-bg border border-bk-border p-3 space-y-1">
@@ -181,7 +195,7 @@ export default function ChallengeDisputes({ initial }: { initial: AdminDispute[]
             ) : (
               <button onClick={() => start(d)} className={buttonClass("primary", "sm", "mt-3")}>Review</button>
             )}
-          </div>
+          </Expandable>
         ))}
       </div>
     </section>

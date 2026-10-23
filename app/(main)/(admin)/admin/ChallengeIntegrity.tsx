@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
+import { Chip, ExpandAllBar, Expandable, useOpenSet } from "@/components/admin/Expandable";
 
 export interface AdminReportedChallenge {
   id: string;
@@ -59,6 +60,8 @@ export default function ChallengeIntegrity({
   const [ban, setBan] = useState("none");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const repSet = useOpenSet();
+  const flagSet = useOpenSet();
 
   async function post(url: string, body: Record<string, unknown>, onOk: () => void) {
     setBusy(true);
@@ -84,18 +87,28 @@ export default function ChallengeIntegrity({
           before challengers are picked.
         </p>
         {reports.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No reports waiting.</p>}
-        <div className="space-y-3">
+        <ExpandAllBar ids={reports.map((r) => r.id)} set={repSet} />
+        <div className="space-y-2">
           {reports.map((c) => (
-            <div key={c.id} className="bg-bk-surface border border-bk-border p-4">
-              <div className="flex justify-between gap-3">
-                <div>
-                  <p className="font-sans font-bold text-bk-heading">{c.title}</p>
-                  <p className="font-sans text-[12px] text-bk-muted">
-                    {c.gameName} · {c.posterName} ({c.posterEmail}) · {c.prizeLabel} · {c.status.replace("_", " ")}
-                  </p>
-                </div>
-                <p className="font-sans text-[12px] text-bk-live shrink-0">{c.reports.length} report{c.reports.length === 1 ? "" : "s"}</p>
-              </div>
+            <Expandable
+              key={c.id}
+              id={c.id}
+              open={repSet.has(c.id)}
+              onToggle={() => repSet.toggle(c.id)}
+              summary={
+                <>
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-sans font-bold text-bk-heading">{c.title}</span>
+                    <Chip tone="live">{c.reports.length} report{c.reports.length === 1 ? "" : "s"}</Chip>
+                    <Chip>{c.status.replace("_", " ")}</Chip>
+                  </span>
+                  <span className="block font-sans text-[12px] text-bk-muted truncate mt-0.5">
+                    {c.gameName} · {c.posterName} · {c.prizeLabel}
+                  </span>
+                </>
+              }
+            >
+              <p className="font-sans text-[12px] text-bk-muted">Poster {c.posterName} ({c.posterEmail})</p>
               <p className="font-sans text-[13px] text-bk-body whitespace-pre-wrap mt-2">{c.description}</p>
               <ul className="mt-3 space-y-1 font-sans text-[12px] text-bk-body">
                 {c.reports.map((r) => (
@@ -123,7 +136,7 @@ export default function ChallengeIntegrity({
               ) : (
                 <button onClick={() => { setOpen(c.id); setError(null); }} className={buttonClass("primary", "sm", "mt-3")}>Review</button>
               )}
-            </div>
+            </Expandable>
           ))}
         </div>
       </div>
@@ -135,11 +148,26 @@ export default function ChallengeIntegrity({
           so look at the proof and payment history before ending anything.
         </p>
         {flagList.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No flags.</p>}
-        <div className="space-y-3">
+        <ExpandAllBar ids={flagList.map((f) => f.id)} set={flagSet} />
+        <div className="space-y-2">
           {flagList.map((f) => (
-            <div key={f.id} className="bg-bk-surface border border-bk-border p-4">
-              <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-amber">{KIND_LABEL[f.kind]}</p>
-              <p className="font-sans font-bold text-bk-heading mt-1">{f.challengeTitle}</p>
+            <Expandable
+              key={f.id}
+              id={f.id}
+              open={flagSet.has(f.id)}
+              onToggle={() => flagSet.toggle(f.id)}
+              summary={
+                <>
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="font-sans font-bold text-bk-heading">{f.challengeTitle}</span>
+                    <Chip tone="amber">{KIND_LABEL[f.kind]}</Chip>
+                  </span>
+                  <span className="block font-sans text-[12px] text-bk-muted truncate mt-0.5">
+                    Poster {f.posterEmail} · challenger {f.entryName}
+                  </span>
+                </>
+              }
+            >
               <p className="font-sans text-[12px] text-bk-muted">
                 Poster {f.posterEmail} · challenger {f.entryName} ({f.challengerEmail}) · entry {f.entryStage.replace(/_/g, " ")}
               </p>
@@ -157,7 +185,7 @@ export default function ChallengeIntegrity({
               ) : (
                 <button onClick={() => { setOpen(f.id); setError(null); }} className={buttonClass("primary", "sm", "mt-3")}>Review</button>
               )}
-            </div>
+            </Expandable>
           ))}
         </div>
       </div>

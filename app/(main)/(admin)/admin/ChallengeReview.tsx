@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
+import { Chip, ExpandAllBar, Expandable, useOpenSet } from "@/components/admin/Expandable";
 
 export interface ReviewChallenge {
   id: string;
@@ -33,6 +34,7 @@ export default function ChallengeReview({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const set = useOpenSet();
 
   async function act(id: string, action: "approve" | "reject") {
     setBusy(true);
@@ -62,22 +64,34 @@ export default function ChallengeReview({
       </p>
       {error && <p className="font-sans text-[12px] text-bk-live mb-3">{error}</p>}
       {items.length === 0 && <p className="font-sans text-[13px] text-bk-muted">Nothing waiting.</p>}
-      <div className="space-y-3">
+      <ExpandAllBar ids={items.map((i) => i.id)} set={set} />
+      <div className="space-y-2">
         {items.map((c) => (
-          <div key={c.id} className="bg-bk-surface border border-bk-border p-4">
-            <div className="flex justify-between gap-3">
-              <div>
-                <p className="font-sans font-bold text-bk-heading">{c.title}</p>
-                <p className="font-sans text-[12px] text-bk-muted">
-                  {c.gameName} · {c.posterType}: {c.posterName} ({c.posterEmail}) · {new Date(c.createdAt).toLocaleString()}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="font-sans font-bold text-bk-gold-light">{c.prizeLabel}</p>
-                {c.prizeUsd && <p className="font-sans text-[11px] text-bk-muted">≈ ${Number(c.prizeUsd).toLocaleString()}</p>}
-              </div>
-            </div>
-            <p className="font-sans text-[13px] text-bk-body whitespace-pre-wrap mt-3">{c.description}</p>
+          <Expandable
+            key={c.id}
+            id={c.id}
+            open={set.has(c.id)}
+            onToggle={() => set.toggle(c.id)}
+            summary={
+              <>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-sans font-bold text-bk-heading">{c.title}</span>
+                  <Chip>{c.gameName}</Chip>
+                </span>
+                <span className="block font-sans text-[12px] text-bk-muted truncate mt-0.5">
+                  {c.posterType}: {c.posterName} · {c.posterEmail}
+                </span>
+              </>
+            }
+            aside={
+              <span className="text-right">
+                <span className="block font-sans font-bold text-bk-gold-light">{c.prizeLabel}</span>
+                {c.prizeUsd && <span className="block font-sans text-[11px] text-bk-muted">≈ ${Number(c.prizeUsd).toLocaleString()}</span>}
+              </span>
+            }
+          >
+            <p className="font-sans text-[12px] text-bk-muted">Submitted {new Date(c.createdAt).toLocaleString()}</p>
+            <p className="font-sans text-[13px] text-bk-body whitespace-pre-wrap mt-2">{c.description}</p>
             <p className="font-sans text-[12px] text-bk-muted mt-2">Pays via: {c.payoutMethod}</p>
 
             {rejecting === c.id ? (
@@ -90,10 +104,10 @@ export default function ChallengeReview({
             ) : (
               <div className="flex gap-2 mt-3">
                 <button disabled={busy} onClick={() => act(c.id, "approve")} className={buttonClass("primary", "sm", "")}>Approve</button>
-                <button onClick={() => setRejecting(c.id)} className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center.5">Reject</button>
+                <button onClick={() => setRejecting(c.id)} className="border border-bk-live text-bk-live font-sans font-bold text-[11px] uppercase px-3 min-h-[40px] sm:min-h-[32px] inline-flex items-center justify-center">Reject</button>
               </div>
             )}
-          </div>
+          </Expandable>
         ))}
       </div>
     </section>

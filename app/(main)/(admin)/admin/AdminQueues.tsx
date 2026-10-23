@@ -32,16 +32,22 @@ interface FlaggedTournament {
 }
 
 
+type QueueSection = "organizers" | "clubs" | "games" | "flags";
+
+// Each approvals sub tab renders only the queues it owns (`show`) and passes
+// only the data for those.
 export default function AdminQueues({
-  initialOrganizers,
-  initialClubs,
-  initialGameRequests,
-  initialFlags,
+  show,
+  initialOrganizers = [],
+  initialClubs = [],
+  initialGameRequests = [],
+  initialFlags = [],
 }: {
-  initialOrganizers: PendingOrganizer[];
-  initialClubs: PendingClub[];
-  initialGameRequests: PendingGameRequest[];
-  initialFlags: FlaggedTournament[];
+  show: QueueSection[];
+  initialOrganizers?: PendingOrganizer[];
+  initialClubs?: PendingClub[];
+  initialGameRequests?: PendingGameRequest[];
+  initialFlags?: FlaggedTournament[];
 }) {
   const [organizers, setOrganizers] = useState(initialOrganizers);
   const [clubs, setClubs] = useState(initialClubs);
@@ -109,6 +115,7 @@ export default function AdminQueues({
 
   return (
     <div className="flex flex-col gap-10">
+      {show.includes("organizers") && (
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">
           Organizer approvals ({organizers.length})
@@ -147,7 +154,9 @@ export default function AdminQueues({
           </div>
         )}
       </section>
+      )}
 
+      {show.includes("clubs") && (
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">
           Paid club upgrades ({clubs.length})
@@ -236,7 +245,9 @@ export default function AdminQueues({
           </div>
         )}
       </section>
+      )}
 
+      {show.includes("games") && (
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">
           Game requests ({gameRequests.length})
@@ -275,7 +286,9 @@ export default function AdminQueues({
           </div>
         )}
       </section>
+      )}
 
+      {show.includes("flags") && (
       <section>
         <p className="font-sans font-medium text-bk-heading text-sm mb-3">
           Flagged tournaments ({flags.length})
@@ -318,6 +331,7 @@ export default function AdminQueues({
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

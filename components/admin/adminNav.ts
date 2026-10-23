@@ -8,7 +8,9 @@ export type AdminIconName =
   | "organizations" | "clubs" | "plans" | "featured" | "changeRequests"
   | "organizerTrust" | "deposits" | "payments" | "traffic" | "settings"
   // Dashboard stat cards
-  | "teams" | "tournaments" | "registrations" | "bans" | "sessions";
+  | "teams" | "tournaments" | "registrations" | "bans" | "sessions"
+  // Sub tabs
+  | "rules" | "disputes" | "reports" | "consent" | "games" | "branding" | "login" | "tiers" | "challenges" | "review";
 
 export type AdminNavItem = {
   href: string;
@@ -63,6 +65,34 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
 ];
 
+// Pages that are split into sub tabs. Each sub tab is its own page (and loads
+// only its own data). `countKey` links a tab to its pending-count badge
+// (see lib/services/admin-attention.ts).
+export type AdminSubTab = { href: string; label: string; icon: AdminIconName; countKey?: string };
+
+export const ADMIN_SUBTABS: Record<string, AdminSubTab[]> = {
+  "/admin/approvals": [
+    { href: "/admin/approvals/organizations", label: "Organizations", icon: "organizations", countKey: "organizers" },
+    { href: "/admin/approvals/clubs", label: "Clubs", icon: "clubs", countKey: "clubs" },
+    { href: "/admin/approvals/plan-payments", label: "Plan payments", icon: "payments", countKey: "planPayments" },
+    { href: "/admin/approvals/tournaments", label: "Tournaments", icon: "tournaments", countKey: "tournamentReviews" },
+    { href: "/admin/approvals/games", label: "Games", icon: "games", countKey: "games" },
+    { href: "/admin/approvals/challenges", label: "Challenge review", icon: "review", countKey: "challengeReview" },
+    { href: "/admin/approvals/disputes", label: "Disputes", icon: "disputes", countKey: "challengeDisputes" },
+    { href: "/admin/approvals/reports", label: "Reports & flags", icon: "reports", countKey: "challengeIntegrity" },
+    { href: "/admin/approvals/consent", label: "Parental consent", icon: "consent", countKey: "consent" },
+    { href: "/admin/approvals/suggested-rules", label: "Suggested rules", icon: "rules" },
+  ],
+  "/admin/settings": [
+    { href: "/admin/settings/branding", label: "Branding", icon: "branding" },
+    { href: "/admin/settings/clubs", label: "Clubs", icon: "clubs" },
+    { href: "/admin/settings/login", label: "Login options", icon: "login" },
+    { href: "/admin/settings/challenges", label: "Challenges", icon: "challenges" },
+    { href: "/admin/settings/tiers", label: "Competitive tiers", icon: "tiers" },
+    { href: "/admin/settings/plans", label: "Plans & ads", icon: "plans" },
+  ],
+};
+
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
 
 export function isAdminItemActive(href: string, pathname: string): boolean {
@@ -82,7 +112,9 @@ export function adminCrumbs(pathname: string): Crumb[] {
   let href = "/admin";
   for (const seg of segments.slice(1)) {
     href += `/${seg}`;
-    const known = ADMIN_NAV_ITEMS.find((i) => i.href === href);
+    const known =
+      ADMIN_NAV_ITEMS.find((i) => i.href === href) ??
+      Object.values(ADMIN_SUBTABS).flat().find((t) => t.href === href);
     const label = known
       ? known.label
       : decodeURIComponent(seg).replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
