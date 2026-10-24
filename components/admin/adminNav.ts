@@ -75,6 +75,7 @@ export type AdminSubTab = { href: string; label: string; icon: AdminIconName; co
 export const ADMIN_SUBTABS: Record<string, AdminSubTab[]> = {
   "/admin/approvals": [
     { href: "/admin/approvals/organizations", label: "Organizations", icon: "organizations", countKey: "organizers" },
+    { href: "/admin/approvals/identity", label: "Identity checks", icon: "idPhotos", countKey: "identity" },
     { href: "/admin/approvals/clubs", label: "Clubs", icon: "clubs", countKey: "clubs" },
     { href: "/admin/approvals/plan-payments", label: "Plan payments", icon: "payments", countKey: "planPayments" },
     { href: "/admin/approvals/tournaments", label: "Tournaments", icon: "tournaments", countKey: "tournamentReviews" },

@@ -16,6 +16,7 @@
 import { prisma } from "@/lib/prisma";
 import { tryToUsd } from "@/lib/currency-fx";
 import { notify, notifyMany } from "@/lib/services/notifications";
+import { isIdentityVerified } from "@/lib/identity";
 
 const DAY_MS = 86_400_000;
 
@@ -42,18 +43,22 @@ export async function updateTrustConfig(input: {
   starterMaxPaidEntrants: number;
   graduationEvents: number;
   payoutGraceDays: number;
+  idRetentionDays: number;
+  idRejectedRetentionDays: number;
+  idValidityMonths: number;
 }) {
   const { starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d } = input;
-  if (![fee, prize, n, g, d].every((v) => Number.isFinite(v) && v >= 0)) {
+  const { idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: valid } = input;
+  if (![fee, prize, n, g, d, keep, keepRejected, valid].every((v) => Number.isFinite(v) && v >= 0)) {
     return { error: "validation_error" as const, message: "Every value must be a number, zero or more." };
   }
-  if (!Number.isInteger(n) || !Number.isInteger(g) || !Number.isInteger(d)) {
+  if (![n, g, d, keep, keepRejected, valid].every(Number.isInteger)) {
     return { error: "validation_error" as const, message: "Entrants, events and days must be whole numbers." };
   }
   const data = await prisma.organizerTrustConfig.upsert({
     where: { id: "default" },
-    update: { starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d },
-    create: { id: "default", starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d },
+    update: { starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d, idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: Math.max(1, valid) },
+    create: { id: "default", starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d, idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: Math.max(1, valid) },
   });
   return { data };
 }
@@ -125,14 +130,22 @@ export async function getPayoutHolds(organizerId: string, graceDays: number) {
 export async function getOrganizerTrustSummary(organizerId: string) {
   const [cfg, organizer, confirmed] = await Promise.all([
     getTrustConfig(),
-    prisma.organizerProfile.findUnique({ where: { id: organizerId }, select: { limitsLifted: true } }),
+    prisma.organizerProfile.findUnique({
+      where: { id: organizerId },
+      select: { limitsLifted: true, identity: { select: { status: true, validUntil: true } } },
+    }),
     countFullyConfirmedEvents(organizerId),
   ]);
   const holds = await getPayoutHolds(organizerId, cfg.payoutGraceDays);
-  const graduated = Boolean(organizer?.limitsLifted) || confirmed >= cfg.graduationEvents;
+  // A verified identity lifts the starter limits too (the other ways: an admin
+  // lifts them, or enough prize events were fully confirmed). Payout holds
+  // still apply to everyone.
+  const identityVerified = isIdentityVerified(organizer?.identity);
+  const graduated = Boolean(organizer?.limitsLifted) || identityVerified || confirmed >= cfg.graduationEvents;
   return {
     cfg,
     graduated,
+    identityVerified,
     limitsLifted: Boolean(organizer?.limitsLifted),
     confirmedEvents: confirmed,
     eventsNeeded: Math.max(0, cfg.graduationEvents - confirmed),

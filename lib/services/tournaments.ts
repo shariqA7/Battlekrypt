@@ -12,6 +12,7 @@ import { checkAgeGate } from "@/lib/services/age-gate";
 import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
 import { normalizeUsername, usernameChecks } from "@/lib/validation/auth";
 import { prisma } from "@/lib/prisma";
+import { isIdentityVerified } from "@/lib/identity";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
@@ -146,7 +147,7 @@ export async function getTournamentById(idOrSlug: string) {
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     include: {
       game: true,
-      organizer: { include: { user: { select: { kycStatus: true, avatarUrl: true } } } },
+      organizer: { include: { user: { select: { kycStatus: true, avatarUrl: true } }, identity: { select: { status: true, validUntil: true } } } },
       stages: { orderBy: { order: "asc" } },
       prizeTiers: { orderBy: { positionFrom: "asc" } },
       prizeAwards: { orderBy: { sortOrder: "asc" } },
@@ -159,13 +160,13 @@ export async function getTournamentById(idOrSlug: string) {
   });
   if (!tournament) return null;
 
-  // Verified badge is derived (spec §7): paid plan AND approved KYC.
+  // Verified badge is derived (spec §7): paid plan AND a verified identity
+  // (organizer application approval alone is not enough).
   const paid = await getPaidPlanCodes();
   return {
     ...tournament,
     organizerVerified:
-      holdsPaidPlan(tournament.organizer, paid) &&
-      tournament.organizer.user.kycStatus === "approved",
+      holdsPaidPlan(tournament.organizer, paid) && isIdentityVerified(tournament.organizer.identity),
   };
 }
 
@@ -1356,7 +1357,7 @@ export async function getOrganizerByUserId(userId: string) {
 export async function getPublicOrganizerProfile(organizerId: string) {
   const organizer = await prisma.organizerProfile.findUnique({
     where: { id: organizerId },
-    include: { user: { select: { kycStatus: true } } },
+    include: { user: { select: { kycStatus: true } }, identity: { select: { status: true, validUntil: true } } },
   });
   if (!organizer) return null;
 
@@ -1391,7 +1392,7 @@ export async function getPublicOrganizerProfile(organizerId: string) {
 
   return {
     ...organizer,
-    verified: holdsPaidPlan(organizer, paid) && organizer.user.kycStatus === "approved",
+    verified: holdsPaidPlan(organizer, paid) && isIdentityVerified(organizer.identity),
     tournamentsHosted: completedTournaments.length,
     prizeDistributed,
     likes,
@@ -1769,6 +1770,7 @@ export async function listOrganizers() {
     prisma.organizerProfile.findMany({
       include: {
         user: { select: { kycStatus: true } },
+        identity: { select: { status: true, validUntil: true } },
         _count: { select: { tournaments: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -1777,7 +1779,7 @@ export async function listOrganizers() {
   ]);
   return organizers.map((o) => ({
     ...o,
-    verified: holdsPaidPlan(o, paid) && o.user.kycStatus === "approved",
+    verified: holdsPaidPlan(o, paid) && isIdentityVerified(o.identity),
   }));
 }
 

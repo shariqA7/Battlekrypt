@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getMyTournaments } from "@/lib/services/tournaments";
 import { countPendingCoHostInvites } from "@/lib/services/institutions";
 import { getOrganizerTrustSummary, HOLD_REASON_TEXT } from "@/lib/services/organizer-trust";
+import { getIdentityForOrganizer } from "@/lib/services/identity";
 import Link from "next/link";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import InitialTile from "@/components/ui/InitialTile";
@@ -44,6 +45,8 @@ export default async function OrganizerDashboard() {
   const tournaments = await getMyTournaments(organizerProfile.id);
   const pendingInvites = await countPendingCoHostInvites(organizerProfile.id);
   const trust = await getOrganizerTrustSummary(organizerProfile.id);
+  const identity = await getIdentityForOrganizer(organizerProfile.id);
+  const idState = identity?.state ?? "none";
 
   return (
     <>
@@ -83,6 +86,23 @@ export default async function OrganizerDashboard() {
           </p>
         )}
 
+        {isApproved && idState !== "approved" && (
+          <Link
+            href="/organizer/dashboard/verification"
+            className="block bg-bk-surface border border-bk-gold-light/40 hover:bg-bk-surface-hover transition-colors font-sans text-[12px] text-bk-body px-3 py-2.5 mb-6"
+          >
+            <span className="font-bold text-bk-gold-light">
+              {idState === "pending" ? "Identity check in review" : idState === "rejected" ? "Identity check not approved" : idState === "expired" ? "Identity verification expired" : "Verify your identity"}
+            </span>
+            {" — "}
+            {idState === "pending"
+              ? "we'll notify you when an admin has looked at it."
+              : idState === "rejected"
+                ? "see what to fix and submit again."
+                : "earn your Verified badge (with a paid plan) and lift the new-organizer limits."}
+          </Link>
+        )}
+
         {trust.holds.length > 0 && (
           <p className="bg-bk-live/[0.12] text-bk-live font-sans text-[12px] px-3 py-2 mb-6">
             You can&apos;t host new paid or prized events until earlier prize payouts are settled:{" "}
@@ -93,7 +113,7 @@ export default async function OrganizerDashboard() {
           <p className="bg-bk-amber/[0.12] text-bk-amber font-sans text-[12px] px-3 py-2 mb-6">
             New-organizer limits: entry fee up to ${Number(trust.cfg.starterMaxEntryFeeUsd)}, prize pool up to ${Number(trust.cfg.starterMaxPrizeUsd)},
             up to {trust.cfg.starterMaxPaidEntrants} entrants on paid events. Complete {trust.eventsNeeded} more prize event
-            {trust.eventsNeeded === 1 ? "" : "s"} where every winner confirms they were paid to lift them.
+            {trust.eventsNeeded === 1 ? "" : "s"} where every winner confirms they were paid to lift them, or verify your identity.
           </p>
         )}
 

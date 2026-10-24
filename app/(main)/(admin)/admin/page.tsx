@@ -32,16 +32,17 @@ export default async function AdminDashboardPage({
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <AttentionCard index={0} href="/admin/approvals/plan-payments" icon="payments" label="Plan payments" count={attention.items.planPayments} />
-          <AttentionCard index={1} href="/admin/approvals/organizations" icon="organizations" label="Organizer applications" count={attention.items.organizers} />
-          <AttentionCard index={2} href="/admin/approvals/clubs" icon="clubs" label="Club upgrades & name claims" count={attention.items.clubs} />
-          <AttentionCard index={3} href="/admin/approvals/tournaments" icon="tournaments" label="Tournament reviews" count={attention.items.tournamentReviews} />
-          <AttentionCard index={4} href="/admin/approvals/games" icon="games" label="Game requests" count={attention.items.games} />
-          <AttentionCard index={5} href="/admin/approvals/challenges" icon="review" label="Challenge review" count={attention.items.challengeReview} />
-          <AttentionCard index={6} href="/admin/approvals/disputes" icon="disputes" label="Challenge disputes" count={attention.items.challengeDisputes} />
-          <AttentionCard index={7} href="/admin/approvals/reports" icon="reports" label="Reports & flags" count={attention.items.challengeIntegrity} />
-          <AttentionCard index={8} href="/admin/approvals/consent" icon="consent" label="Parental-consent cases" count={attention.items.consent} />
-          <AttentionCard index={9} href="/admin/institutions" icon="institutions" label="Institutions to verify" count={attention.items.institutions} />
-          <AttentionCard index={10} href="/admin/change-requests" icon="changeRequests" label="Tournament change requests" count={attention.items.changeRequests} />
+          <AttentionCard index={1} href="/admin/approvals/identity" icon="idPhotos" label="Identity checks" count={attention.items.identity} />
+          <AttentionCard index={2} href="/admin/approvals/organizations" icon="organizations" label="Organizer applications" count={attention.items.organizers} />
+          <AttentionCard index={3} href="/admin/approvals/clubs" icon="clubs" label="Club upgrades & name claims" count={attention.items.clubs} />
+          <AttentionCard index={4} href="/admin/approvals/tournaments" icon="tournaments" label="Tournament reviews" count={attention.items.tournamentReviews} />
+          <AttentionCard index={5} href="/admin/approvals/games" icon="games" label="Game requests" count={attention.items.games} />
+          <AttentionCard index={6} href="/admin/approvals/challenges" icon="review" label="Challenge review" count={attention.items.challengeReview} />
+          <AttentionCard index={7} href="/admin/approvals/disputes" icon="disputes" label="Challenge disputes" count={attention.items.challengeDisputes} />
+          <AttentionCard index={8} href="/admin/approvals/reports" icon="reports" label="Reports & flags" count={attention.items.challengeIntegrity} />
+          <AttentionCard index={9} href="/admin/approvals/consent" icon="consent" label="Parental-consent cases" count={attention.items.consent} />
+          <AttentionCard index={10} href="/admin/institutions" icon="institutions" label="Institutions to verify" count={attention.items.institutions} />
+          <AttentionCard index={11} href="/admin/change-requests" icon="changeRequests" label="Tournament change requests" count={attention.items.changeRequests} />
         </div>
       </section>
 
