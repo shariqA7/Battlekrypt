@@ -40,7 +40,10 @@ model User {
   phone       String?   @unique
   displayName String
   avatarUrl   String?
-  kycStatus   KycStatus @default(none) // doubles as the organizer-approval gate in Phase 1
+  // ORGANIZER APPROVAL (an admin accepted the organization application). Despite
+  // the name this is NOT an identity check: that is IdentityVerification below,
+  // and only that earns the Verified badge and lifts the starter limits.
+  kycStatus   KycStatus @default(none)
   isAdmin     Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -348,6 +351,7 @@ model OrganizerProfile {
   // hold). See lib/services/organizer-trust.ts.
   limitsLifted Boolean @default(false)
   deposits     SecurityDeposit[]
+  identity     IdentityVerification?
   bio         String?
   socialLinks Json?
 
@@ -2048,6 +2052,11 @@ model OrganizerTrustConfig {
   // Days after completion before an unpaid/unconfirmed payout puts the
   // organizer on hold, and before an unanswered "I paid" is treated as accepted.
   payoutGraceDays       Int      @default(7)
+  // Identity documents (see IdentityVerification): how long the images are kept
+  // after an admin decides, and how long an approval stays valid.
+  idRetentionDays         Int    @default(30)
+  idRejectedRetentionDays Int    @default(7)
+  idValidityMonths        Int    @default(24)
   updatedAt             DateTime @updatedAt
 }
 
@@ -2172,4 +2181,71 @@ model PrizeAward {
 enum PlayStyle {
   casual
   competitive
+}
+
+
+// ------------------------------------------------------------
+// ORGANIZER IDENTITY VERIFICATION
+// ------------------------------------------------------------
+// Level 2 of organizer trust (Level 1 = application approved, User.kycStatus).
+// An approved identity earns the Verified badge (with a paid plan) and lifts
+// the new-organizer starter limits. Clubs do not use this.
+//
+// Data minimisation: the ID images live in the private "identity-documents"
+// bucket and are deleted by a scheduled job `purgeAfter` (retention days after
+// the decision). What outlives them is only: status, document type, who
+// decided and when, "18+ confirmed", the validity date, and a KEYED HASH of the
+// document number (to spot the same person behind another organizer account).
+// The typed name and number are cleared the moment a decision is made.
+
+enum IdentityStatus {
+  pending
+  approved
+  rejected
+}
+
+enum IdentityDocType {
+  nic
+  passport
+}
+
+model IdentityVerification {
+  id          String           @id @default(uuid())
+  organizerId String           @unique
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+
+  status  IdentityStatus  @default(pending)
+  docType IdentityDocType
+
+  // Typed by the organizer for the reviewer; cleared when a decision is made.
+  fullName       String?
+  documentNumber String?
+
+  // Storage paths in the private bucket; null once purged.
+  frontPath  String?
+  backPath   String? // NIC only
+  selfiePath String?
+
+  // HMAC-SHA256 of the normalised document number (secret in env).
+  idNumberHash String?
+
+  over18Confirmed Boolean @default(false)
+  attemptCount    Int     @default(1)
+  rejectionNote   String?
+
+  // Admin can keep the images longer (dispute, ban evidence).
+  retentionHold Boolean   @default(false)
+  purgeAfter    DateTime? // set when decided
+  purgedAt      DateTime?
+
+  submittedAt  DateTime  @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+  validUntil   DateTime? // approvals expire; the organizer re-verifies
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([idNumberHash])
+  @@index([status, purgeAfter])
 }

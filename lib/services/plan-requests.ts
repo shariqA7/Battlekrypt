@@ -8,6 +8,7 @@
 
 import type { PaymentKind, PlanAudience } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isIdentityVerified } from "@/lib/identity";
 import {
   FREE_PLAN_CODE,
   computeNewExpiry,
@@ -125,7 +126,6 @@ export interface AccountPlanState {
 // Everything the "My plans" page needs: one entry per account type the user
 // actually has.
 export async function getMyPlanStates(userId: string): Promise<AccountPlanState[]> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
   const states: AccountPlanState[] = [];
 
   for (const audience of AUDIENCES) {
@@ -133,9 +133,16 @@ export async function getMyPlanStates(userId: string): Promise<AccountPlanState[
     if (!account) continue;
 
     const plan = await resolvePlan(audience, account);
-    // Organizer verification rides on KYC approval; club on club approval.
-    const approved =
-      audience === "organizer" ? user?.kycStatus === "approved" : account.approved ?? true;
+    // Organizer verification rides on a verified identity (not just the approved
+    // application); a club's on club approval.
+    const identity =
+      audience === "organizer"
+        ? await prisma.identityVerification.findFirst({
+            where: { organizer: { userId } },
+            select: { status: true, validUntil: true },
+          })
+        : null;
+    const approved = audience === "organizer" ? isIdentityVerified(identity) : account.approved ?? true;
 
     const [pending, rejected] = await Promise.all([
       prisma.planRequest.findFirst({

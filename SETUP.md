@@ -883,3 +883,64 @@ and the login page both offer **Send it again**, with a 60-second wait between s
 
 Tests: `npx tsx scripts/auth-rules-test.ts` (link parsing) and the sign-in section of
 `scripts/guardian-db-test.ts`.
+
+## Organizer identity verification (NIC / passport)
+
+Level 2 of organizer trust. Level 1 is the approved organization application (`User.kycStatus`, which really means "organizer approved"). An approved **identity check** earns the Verified badge (with a paid plan) and lifts the new-organizer starter limits. Clubs do not use it. An organizer whose application was approved before this shipped keeps hosting, but their Verified badge pauses until an admin approves their ID.
+
+Run `npx prisma migrate dev` to apply `20261027100000_organizer_identity`.
+
+**Organizer:** Dashboard → "Verify your identity" (`/organizer/dashboard/verification`). **Admin:** Approvals → Identity checks. **Retention settings:** Admin → Organizer trust (days to keep images after approval / rejection, months a verification stays valid).
+
+### 1. Environment variables
+
+| Variable | Used for |
+|---|---|
+| `IDENTITY_HASH_SECRET` | Long random string (32+ chars). Keys the fingerprint of ID numbers. **Never change it once organizers have verified**, or old fingerprints stop matching. Submissions are refused until it is set. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Used ONLY by the scheduled deletion job (`lib/supabase/admin.ts`). Server-side, no `NEXT_PUBLIC_` prefix. Never expose it. |
+| `CRON_SECRET` | Authorizes the scheduled job. Vercel Cron sends it automatically. |
+
+### 2. Private storage bucket (Supabase → SQL editor)
+
+Depends on `public.bk_is_admin()` from the Student ID section above.
+
+```sql
+-- private bucket: images only, 8 MB each
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('identity-documents', 'identity-documents', false, 8388608,
+        array['image/jpeg','image/png','image/webp','image/heic','image/heif'])
+on conflict (id) do update
+  set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+-- an organizer may upload only into their own folder: <userId>/<file>. No read, no delete.
+drop policy if exists "organizers upload own identity documents" on storage.objects;
+create policy "organizers upload own identity documents"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'identity-documents' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- admins can open a file (the app only offers this on Approvals → Identity checks and logs every view)
+drop policy if exists "admins read identity documents" on storage.objects;
+create policy "admins read identity documents"
+on storage.objects for select to authenticated
+using (bucket_id = 'identity-documents' and public.bk_is_admin());
+```
+
+### 3. Scheduled deletion
+
+`vercel.json` runs `/api/cron/identity-retention` daily at 03:00 UTC. It deletes (a) the images of decided checks past their retention date that are not "kept longer", and (b) abandoned uploads (older than 2 days and not attached to a check). If photos pass their date without being deleted, Approvals → Identity checks shows a red warning. Test it by hand:
+
+```
+curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-SITE/api/cron/identity-retention
+```
+
+### 4. What stays after the images are deleted
+
+Status, document type, who decided and when, "18+ confirmed", the validity date, and a keyed fingerprint of the document number (used to warn an admin when the same document appears on another organizer account, especially a banned one). The typed name and number are cleared the moment an admin decides.
+
+### 5. Admin log
+
+Every opening of an image is written to `AdminActionLog` as `identity_document_viewed` (notes = which image). Decisions are logged as `identity_approved`, `identity_rejected`, `identity_retention_hold`, `identity_retention_release`.
+
+### 6. Privacy policy wording (draft: have a lawyer review before publishing)
+
+> **Identity verification (organizers).** To verify an organizer we collect a photo of a government ID (NIC or passport), a selfie holding it, the name and document number on it. We use them only to confirm that a real adult runs the organization. Only platform administrators can see them, and each viewing is logged. The photos are deleted automatically [30] days after we approve the check, or [7] days after we reject it, unless a dispute or a ban requires us to keep them longer. When they are deleted we keep the result of the check, its date, and an irreversible fingerprint of the document number, which we use to stop one person operating several organizer accounts.

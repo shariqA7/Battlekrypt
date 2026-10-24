@@ -33,6 +33,9 @@ export default async function AdminOrganizerTrustPage() {
           starterMaxPaidEntrants: cfg.starterMaxPaidEntrants,
           graduationEvents: cfg.graduationEvents,
           payoutGraceDays: cfg.payoutGraceDays,
+          idRetentionDays: cfg.idRetentionDays,
+          idRejectedRetentionDays: cfg.idRejectedRetentionDays,
+          idValidityMonths: cfg.idValidityMonths,
         }}
         holds={holds.map((h) => ({
           id: h.id,

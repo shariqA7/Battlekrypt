@@ -13,6 +13,9 @@ export async function PUT(request: Request) {
     starterMaxPaidEntrants: Number(b.starterMaxPaidEntrants),
     graduationEvents: Number(b.graduationEvents),
     payoutGraceDays: Number(b.payoutGraceDays),
+    idRetentionDays: Number(b.idRetentionDays),
+    idRejectedRetentionDays: Number(b.idRejectedRetentionDays),
+    idValidityMonths: Number(b.idValidityMonths),
   });
   if ("error" in result) {
     return NextResponse.json({ error: { code: result.error, message: result.message } }, { status: 400 });

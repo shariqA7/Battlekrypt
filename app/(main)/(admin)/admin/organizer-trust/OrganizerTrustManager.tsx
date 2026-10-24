@@ -10,6 +10,9 @@ interface Config {
   starterMaxPaidEntrants: number;
   graduationEvents: number;
   payoutGraceDays: number;
+  idRetentionDays: number;
+  idRejectedRetentionDays: number;
+  idValidityMonths: number;
 }
 interface Props {
   config: Config;
@@ -24,6 +27,9 @@ const FIELDS: { key: keyof Config; label: string; hint: string }[] = [
   { key: "starterMaxPaidEntrants", label: "Max paid entrants", hint: "Capacity of a paid event" },
   { key: "graduationEvents", label: "Events to graduate", hint: "Prize events with every winner confirming" },
   { key: "payoutGraceDays", label: "Payout grace (days)", hint: "Before an unpaid or disputed payout blocks new events" },
+  { key: "idRetentionDays", label: "Keep ID images after approval (days)", hint: "Then they are deleted automatically" },
+  { key: "idRejectedRetentionDays", label: "Keep ID images after rejection (days)", hint: "Then they are deleted automatically" },
+  { key: "idValidityMonths", label: "Identity check valid for (months)", hint: "After that the organizer verifies again" },
 ];
 
 export default function OrganizerTrustManager({ config, holds, disputed, organizers }: Props) {
@@ -59,7 +65,7 @@ export default function OrganizerTrustManager({ config, holds, disputed, organiz
   return (
     <div className="space-y-6">
       <Panel className="p-4">
-        <h2 className="font-sans font-bold text-[14px] text-bk-heading mb-3">Starter limits</h2>
+        <h2 className="font-sans font-bold text-[14px] text-bk-heading mb-3">Starter limits &amp; ID retention</h2>
         <form onSubmit={saveConfig} className="grid sm:grid-cols-2 gap-3">
           {FIELDS.map((f) => (
             <label key={f.key} className="block">

@@ -1,7 +1,9 @@
 // VerifiedBadge.tsx
-// Derived flag, per spec: verified = subscription_plan != free AND kyc_status == approved (org/club)
-//                          verified = subscription_plan != free (player)
-// Never store this as a separate field — compute it from plan + kyc status.
+// Derived flag, per spec:
+//   organizer: paid plan AND verified identity (IdentityVerification, not just an approved application)
+//   club:      paid plan AND club approved (clubs have no identity check)
+//   player:    paid plan
+// Never store this as a separate field — compute it from plan + status.
 
 interface VerifiedBadgeProps {
   size?: number;
