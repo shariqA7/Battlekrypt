@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserRecord } from "@/lib/ensure-user";
 import { createApplicationFromMetadata } from "@/lib/services/org-applications";
-import { prisma } from "@/lib/prisma";
 import { allOk, loginChecks, normalizeEmail } from "@/lib/validation/auth";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { requestSignupConsent } from "@/lib/services/parental-consent";
+import { needsOnboarding } from "@/lib/services/onboarding";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -32,12 +32,19 @@ export async function POST(request: Request) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) {
     // One message for "no such account" and "wrong password", so emails can't be probed.
-    const message =
-      error?.code === "email_not_confirmed"
-        ? "Confirm your email first. Check your inbox for the link we sent."
-        : "Email or password is incorrect";
+    const unconfirmed = error?.code === "email_not_confirmed";
     return NextResponse.json(
-      { ok: false, checks: [...checks, { id: "credentials", ok: false, message }] },
+      {
+        ok: false,
+        checks: [
+          ...checks,
+          {
+            id: unconfirmed ? "unconfirmed" : "credentials",
+            ok: false,
+            message: unconfirmed ? "Confirm your email first. Check your inbox for the link we sent." : "Email or password is incorrect",
+          },
+        ],
+      },
       { status: 401 }
     );
   }
@@ -45,12 +52,9 @@ export async function POST(request: Request) {
   await ensureUserRecord(data.user);
   await requestSignupConsent(data.user.id, new URL(request.url).origin).catch(() => undefined);
   await createApplicationFromMetadata(data.user);
-  const profile = await prisma.playerProfile.findUnique({
-    where: { userId: data.user.id },
-    select: { birthDate: true, username: true },
-  });
-  // Someone who signed up with a social login and never gave a date of birth finishes
-  // their profile first; everyone else goes where they were headed.
-  const next = profile?.birthDate && profile?.username ? redirectTo : `/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`;
+  // Not onboarded yet (or still missing a username / date of birth): finish that first.
+  const next = (await needsOnboarding(data.user.id))
+    ? `/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`
+    : redirectTo;
   return NextResponse.json({ ok: true, checks: [...checks, { id: "credentials", ok: true, message: "Signed in" }], next });
 }

@@ -143,6 +143,11 @@ model PlayerProfile {
   gender        String?
   hobbies       String?
   favoriteGames String[]  @default([])
+  // Asked during onboarding; shown nowhere public. Null = not answered.
+  playStyle     PlayStyle?
+  // Set when the new-player onboarding is finished (or skipped to the end). Null means
+  // they still get sent through it after signing in. Existing players are backfilled.
+  onboardedAt   DateTime?
 
   // Chosen at sign up. Stored lowercase, so uniqueness ignores case. Null for people who
   // signed in with Google/Discord/Twitch and haven't picked one yet.
@@ -2162,4 +2167,9 @@ model PrizeAward {
   payout           PrizePayout?
 
   @@index([tournamentId])
+}
+
+enum PlayStyle {
+  casual
+  competitive
 }

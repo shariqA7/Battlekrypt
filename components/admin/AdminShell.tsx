@@ -12,10 +12,11 @@ import {
   ADMIN_SIDEBAR_COOKIE,
   adminCrumbs,
   isAdminItemActive,
+  navBadgeCount,
 } from "./adminNav";
 import { AdminIcon, ChevronRight, ChevronsLeft, ChevronsRight, CloseIcon, HomeIcon, MenuIcon } from "./AdminIcons";
 
-function SidebarLinks({ collapsed, pending, onNavigate }: { collapsed: boolean; pending: number; onNavigate?: () => void }) {
+function SidebarLinks({ collapsed, counts, onNavigate }: { collapsed: boolean; counts: Record<string, number>; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Admin sections" className="flex flex-col gap-4">
@@ -29,7 +30,7 @@ function SidebarLinks({ collapsed, pending, onNavigate }: { collapsed: boolean; 
           <ul className="flex flex-col gap-0.5">
             {group.items.map((item) => {
               const active = isAdminItemActive(item.href, pathname);
-              const count = item.badge ? pending : 0;
+              const count = navBadgeCount(item, counts);
               return (
                 <li key={item.href}>
                   <Link
@@ -106,10 +107,14 @@ function Breadcrumbs() {
 export default function AdminShell({
   children,
   pending,
+  counts,
   defaultCollapsed,
 }: {
   children: React.ReactNode;
+  /** Everything waiting, in total: drives the dot on the phone menu button. */
   pending: number;
+  /** Per-queue counts (getAttentionCounts().items): drive each sidebar item's badge. */
+  counts: Record<string, number>;
   defaultCollapsed: boolean;
 }) {
   const pathname = usePathname();
@@ -159,7 +164,7 @@ export default function AdminShell({
               {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
             </button>
           </div>
-          <SidebarLinks collapsed={collapsed} pending={pending} />
+          <SidebarLinks collapsed={collapsed} counts={counts} />
         </div>
       </aside>
 
@@ -196,7 +201,7 @@ export default function AdminShell({
                 <CloseIcon />
               </button>
             </div>
-            <SidebarLinks collapsed={false} pending={pending} onNavigate={() => setDrawerOpen(false)} />
+            <SidebarLinks collapsed={false} counts={counts} onNavigate={() => setDrawerOpen(false)} />
           </div>
         </div>
       )}

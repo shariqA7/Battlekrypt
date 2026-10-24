@@ -1,26 +1,22 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
 import ResultPanel, { CrossIcon, TickIcon, type PanelCheck } from "@/components/auth/ResultPanel";
 import SocialLogin, { OrDivider } from "@/components/auth/SocialLogin";
 import AuthStageRail from "@/components/auth/AuthStageRail";
+import ResendConfirmation from "@/components/auth/ResendConfirmation";
 import { Checkbox, PasswordField, SelectField, TextField, Label, fieldClass } from "@/components/auth/fields";
-import { COUNTRIES } from "@/lib/geo-data";
+import DobField from "@/components/auth/DobField";
+import { COUNTRY_LIST } from "@/components/auth/country-list";
 import { DIAL_CODES } from "@/lib/dial-codes";
 import { PLATFORM_MIN_AGE } from "@/lib/age";
 import { ADULT_AGE, birthInfo, passwordChecks, resetChecks } from "@/lib/validation/auth";
 import { safeRedirect } from "@/lib/safe-redirect";
 
 const STAGES = ["Create account", "Confirm email", "Play"] as const;
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-const COUNTRY_LIST = Object.entries(COUNTRIES)
-  .map(([code, c]) => ({ code, name: c.name }))
-  .sort((a, b) => a.name.localeCompare(b.name));
-
 export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -33,9 +29,7 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [country, setCountry] = useState("");
-  const [day, setDay] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [dialCountry, setDialCountry] = useState("");
   const [dialTouched, setDialTouched] = useState(false);
   const [phone, setPhone] = useState("");
@@ -48,12 +42,6 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
   const [checks, setChecks] = useState<PanelCheck[] | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
 
-  const thisYear = new Date().getFullYear();
-  const years = useMemo(() => Array.from({ length: 100 }, (_, i) => thisYear - i), [thisYear]);
-  const daysInMonth = month && year ? new Date(Number(year), Number(month), 0).getDate() : 31;
-
-  const birthDate =
-    day && month && year ? `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}` : "";
   const age = birthInfo(birthDate)?.age ?? null;
   const isMinor = age !== null && age >= PLATFORM_MIN_AGE && age < ADULT_AGE;
 
@@ -123,7 +111,7 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
           <h1 className="font-sans font-extrabold text-[26px] leading-tight text-bk-heading mb-2">Check your email</h1>
           <p className="font-sans text-[14px] text-bk-body mb-1">We sent a confirmation link to</p>
           <p className="font-sans text-[14px] font-bold text-bk-heading mb-4 break-all">{sentTo}</p>
-          <p className="font-sans text-[14px] text-bk-body mb-6">Click the link in that email to log in.</p>
+          <p className="font-sans text-[14px] text-bk-body mb-6">Open the email on any device and press the button to log in. If it isn&apos;t there, check your spam folder.</p>
           {isMinor && (
             <p className="font-sans text-[12px] text-bk-muted mb-6">
               We&apos;ll also ask your parent or guardian for permission, so you can enter tournaments.
@@ -132,6 +120,7 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
           <Link href="/?confirm_email=1" className={buttonClass("primary", "lg", "w-full rounded-xl")}>
             Back to home
           </Link>
+          <div className="mt-4"><ResendConfirmation email={sentTo} redirectTo={redirectTo} /></div>
           <button
             type="button"
             onClick={() => { setSentTo(null); setChecks(null); setSubmitting(false); }}
@@ -195,23 +184,7 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
             {COUNTRY_LIST.map((c) => (<option key={c.code} value={c.code}>{c.name}</option>))}
           </SelectField>
 
-          <fieldset>
-            <Label>Date of birth</Label>
-            <div className="grid grid-cols-[1fr_1.6fr_1.2fr] gap-2">
-              <select aria-label="Day" className={`${fieldClass} px-3`} value={day} onChange={(e) => setDay(e.target.value)}>
-                <option value="">Day</option>
-                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (<option key={d} value={String(d)}>{d}</option>))}
-              </select>
-              <select aria-label="Month" className={`${fieldClass} px-3`} value={month} onChange={(e) => setMonth(e.target.value)}>
-                <option value="">Month</option>
-                {MONTHS.map((m, i) => (<option key={m} value={String(i + 1)}>{m}</option>))}
-              </select>
-              <select aria-label="Year" className={`${fieldClass} px-3`} value={year} onChange={(e) => setYear(e.target.value)}>
-                <option value="">Year</option>
-                {years.map((y) => (<option key={y} value={String(y)}>{y}</option>))}
-              </select>
-            </div>
-          </fieldset>
+          <DobField onChange={setBirthDate} />
 
           {isMinor && (
             <div className="rounded-xl border border-bk-amber/50 bg-bk-surface p-3.5">

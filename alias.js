@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- this is a CommonJS preload for ts-node, where require() is intended */
 // Tiny preload so the phase test scripts can resolve the "@/..." path alias:
 //   ts-node --transpile-only ... -r ./alias.js scripts/phase8-1-test.ts
 const Module = require("module");

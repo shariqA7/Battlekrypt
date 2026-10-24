@@ -57,16 +57,16 @@ async function main() {
   ok("the message doesn't name the player", !!r && "message" in r && !String(r.message).includes("T"));
 
   // profile: date of birth required once, 13+ floor, then locked
-  const noDob = await updatePlayerProfile("new1", { firstName: "N", lastName: "One" });
+  const noDob = await updatePlayerProfile("new1", { username: "new_one", firstName: "N", lastName: "One" });
   ok("profile save without a date of birth is refused", err(noDob) === "birth_date_required");
-  const young = await updatePlayerProfile("new1", { firstName: "N", lastName: "One", birthDate: iso(yearsAgo(12)) });
+  const young = await updatePlayerProfile("new1", { username: "new_one", firstName: "N", lastName: "One", birthDate: iso(yearsAgo(12)) });
   ok("under 13 is refused", err(young) === "under_age");
   ok("...and nothing was stored", (await prisma.playerProfile.findUnique({ where: { userId: "new1" } }))?.birthDate === null);
-  const bad = await updatePlayerProfile("new1", { firstName: "N", lastName: "One", birthDate: "2010-02-31" });
+  const bad = await updatePlayerProfile("new1", { username: "new_one", firstName: "N", lastName: "One", birthDate: "2010-02-31" });
   ok("an impossible date is refused", err(bad) === "validation_error");
-  const good = await updatePlayerProfile("new1", { firstName: "N", lastName: "One", birthDate: iso(yearsAgo(14)) });
+  const good = await updatePlayerProfile("new1", { username: "new_one", firstName: "N", lastName: "One", birthDate: iso(yearsAgo(14)) });
   ok("a valid 14-year-old date is saved, with age kept in step", !err(good) && (await prisma.playerProfile.findUnique({ where: { userId: "new1" } }))?.age === 14);
-  await updatePlayerProfile("new1", { firstName: "N", lastName: "One", birthDate: iso(yearsAgo(30)) });
+  await updatePlayerProfile("new1", { username: "new_one", firstName: "N", lastName: "One", birthDate: iso(yearsAgo(30)) });
   ok("the date of birth is locked once saved", iso((await prisma.playerProfile.findUnique({ where: { userId: "new1" } }))!.birthDate!) === iso(yearsAgo(14)));
 
   // tournament: the age requirement locks once anyone has registered

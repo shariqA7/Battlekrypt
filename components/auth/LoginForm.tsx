@@ -6,12 +6,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
 import ResultPanel, { type PanelCheck } from "@/components/auth/ResultPanel";
 import SocialLogin, { OrDivider } from "@/components/auth/SocialLogin";
+import ResendConfirmation from "@/components/auth/ResendConfirmation";
 import { PasswordField, TextField } from "@/components/auth/fields";
 import { loginChecks, allOk } from "@/lib/validation/auth";
 import { safeRedirect } from "@/lib/safe-redirect";
 
 const URL_ERRORS: Record<string, string> = {
-  auth_failed: "Sign-in didn't complete. Please try again.",
+  auth_failed: "That sign-in didn't complete. If you signed up on another device, just log in with your password.",
+  link_expired: "That link has expired or was already used. Log in, or use \"Recover now!\" to get a new one.",
+  too_many: "Too many attempts. Please wait a few minutes and try again.",
   twitch_off: "Twitch sign-in isn't available right now.",
 };
 
@@ -73,6 +76,9 @@ export default function LoginForm({ twitchEnabled }: { twitchEnabled: boolean })
 
       <div className="rounded-2xl border border-bk-border bg-bk-bg p-6 sm:p-7" style={{ boxShadow: "0 0 60px rgba(244,200,66,0.07)" }}>
         <ResultPanel checks={checks} successMessage="Signed in" />
+        {checks?.some((c) => c.id === "unconfirmed" && !c.ok) && (
+          <div className="-mt-2 mb-5"><ResendConfirmation email={email} redirectTo={redirectTo} /></div>
+        )}
 
         <SocialLogin
           redirectTo={redirectTo}
