@@ -11,10 +11,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   await requireAdminPage();
   const defaultCollapsed = (await cookies()).get(ADMIN_SIDEBAR_COOKIE)?.value === "collapsed";
 
-  const { total: pending } = await getAttentionCounts();
+  const { total: pending, items: counts } = await getAttentionCounts();
 
   return (
-    <AdminShell pending={pending} defaultCollapsed={defaultCollapsed}>
+    <AdminShell pending={pending} counts={counts} defaultCollapsed={defaultCollapsed}>
       {children}
     </AdminShell>
   );

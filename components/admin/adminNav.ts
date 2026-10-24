@@ -16,8 +16,10 @@ export type AdminNavItem = {
   href: string;
   label: string;
   icon: AdminIconName;
-  /** Shows the pending-work count on this item. */
-  badge?: boolean;
+  /** Shows a pending-work count on this item: the sum of these attention counts. */
+  badgeKeys?: string[];
+  /** Same, but the count is whatever is waiting inside this page's own sub tabs. */
+  badgeFromSubTabs?: boolean;
 };
 
 // An empty label means "no heading" (used for the Dashboard link at the top).
@@ -31,9 +33,9 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     label: "Review",
     items: [
-      { href: "/admin/approvals", label: "Approvals", icon: "approvals", badge: true },
-      { href: "/admin/change-requests", label: "Change requests", icon: "changeRequests" },
-      { href: "/admin/institutions", label: "Institutions", icon: "institutions" },
+      { href: "/admin/approvals", label: "Approvals", icon: "approvals", badgeFromSubTabs: true },
+      { href: "/admin/change-requests", label: "Change requests", icon: "changeRequests", badgeKeys: ["changeRequests"] },
+      { href: "/admin/institutions", label: "Institutions", icon: "institutions", badgeKeys: ["institutions"] },
       { href: "/admin/institution-proofs", label: "ID photos", icon: "idPhotos" },
       { href: "/admin/organizer-trust", label: "Organizer trust", icon: "organizerTrust" },
     ],
@@ -94,6 +96,17 @@ export const ADMIN_SUBTABS: Record<string, AdminSubTab[]> = {
 };
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV_GROUPS.flatMap((g) => g.items);
+
+// The number on a sidebar item: only what is waiting on THAT page. (Showing the grand total
+// on "Approvals" meant a waiting change request lit up Approvals while every Approvals tab
+// was empty, because change requests live on their own page.) `counts` is the `items` object
+// from getAttentionCounts() in lib/services/admin-attention.ts.
+export function navBadgeCount(item: AdminNavItem, counts: Record<string, number>): number {
+  const keys =
+    item.badgeKeys ??
+    (item.badgeFromSubTabs ? (ADMIN_SUBTABS[item.href] ?? []).flatMap((t) => (t.countKey ? [t.countKey] : [])) : []);
+  return keys.reduce((n, k) => n + (counts[k] ?? 0), 0);
+}
 
 export function isAdminItemActive(href: string, pathname: string): boolean {
   return href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(href + "/");
