@@ -817,3 +817,69 @@ When a guardian withdraws consent:
   the player can't join anything new until the guardian approves again.
 
 Run `npx prisma migrate deploy && npx prisma generate` for the new `ConsentCase` table.
+
+## Onboarding
+
+Everyone goes through onboarding **once**, right after their first sign-in (password sign-ups
+after confirming their email, social logins straight away). It is a step-by-step flow with a
+progress bar at `/onboarding`:
+
+1. **About you** (only if something is missing): name, username, date of birth and country as
+   pickers, and a guardian email if the player is 13 to 17. Password sign-ups already gave
+   these on the sign-up form, so they skip it. For a minor, the guardian is emailed as soon
+   as this step is saved.
+2. **Your games**: tiles from the catalog, filtered to the player's country like the Games
+   page, up to 10. Skippable.
+3. **Play style**: casual or competitive, plus gender and hobbies. All optional. Skippable.
+4. **Done**: shows guardian-approval status for minors, then sends them where they were headed.
+
+The "about you" step can't be skipped: without a username and date of birth the player is sent
+back to it at their next sign-in. Everything else can be skipped, and every step is saved as
+they go. Organizer accounts are not sent through it. Players already on the platform when
+this shipped count as done (the migration backfills them), so only new players see it.
+
+Profile settings now uses the same game picker, and has a play style field, so none of this
+is locked in. Tests: `npx tsx scripts/onboarding-test.ts` (no database) and the onboarding
+section of `scripts/guardian-db-test.ts` (needs the throwaway Postgres described above).
+
+## Email links that work on any device (Supabase email templates)
+
+By default Supabase's confirm/reset emails use a link that only works in the **same browser**
+that asked for it: sign up on a laptop, tap the email on a phone, and it fails. The app now
+supports a different link, built on a one-time token the server checks, which works anywhere.
+It needs a one-time change in the Supabase dashboard (the app can't do this for you).
+
+In **Authentication > Email Templates**, set these. Copy them exactly, including
+`{{ .SiteURL }}` and `{{ .TokenHash }}`; Supabase fills those in.
+
+**Confirm signup**
+
+```html
+<h2>Confirm your email</h2>
+<p>Press the button to finish creating your BattleKrypt account.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&redirect_to={{ .RedirectTo }}">Confirm my email</a></p>
+```
+
+**Reset password**
+
+```html
+<h2>Reset your password</h2>
+<p>Press the button to choose a new password.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password">Reset password</a></p>
+```
+
+Also check **Authentication > URL Configuration**: *Site URL* must be your real domain (for
+local testing, `http://localhost:3000`), since `{{ .SiteURL }}` becomes the start of every
+link. Until the templates are changed, sign-up still works exactly as before (same-browser
+links); nothing breaks, it just isn't cross-device yet.
+
+How it works: the email opens `/auth/confirm`, which shows a **Confirm** button and does
+*not* use the token. Only pressing the button (a POST to `/api/auth/confirm`) verifies it.
+That matters because some email systems (Outlook's link scanning, for one) open every link
+automatically, which would otherwise use up a one-time token before the person ever saw the
+email. If the link is old or already used, they land on login (or on "forgot password" for a
+reset link) with a clear message and can get a new one. The sign-up "check your email" screen
+and the login page both offer **Send it again**, with a 60-second wait between sends.
+
+Tests: `npx tsx scripts/auth-rules-test.ts` (link parsing) and the sign-in section of
+`scripts/guardian-db-test.ts`.

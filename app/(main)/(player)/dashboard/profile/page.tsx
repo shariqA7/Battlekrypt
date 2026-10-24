@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import ProfileForm from "./ProfileForm";
 import PayoutForm from "@/components/consent/PayoutForm";
 import { getPayoutSummary } from "@/lib/services/payout-methods";
+import { visibleGames } from "@/lib/services/onboarding";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
 import InstituteSelect from "./InstituteSelect";
 import StudentIdCard from "./StudentIdCard";
@@ -31,6 +32,7 @@ export default async function PlayerProfileSettingsPage({
   const studentId = institution?.institutionId ? await getStudentId(user.id) : null;
   const photoPath = studentId ? await getOwnStudentIdPath(user.id) : null;
   const payout = profile ? await getPayoutSummary(profile.id) : null;
+  const games = await visibleGames(profile?.country ?? null);
 
   return (
     <main className="flex-1 px-5 sm:px-6 py-10 max-w-xl mx-auto w-full">
@@ -41,7 +43,7 @@ export default async function PlayerProfileSettingsPage({
         initialAvatarUrl={profile?.user.avatarUrl ?? ""}
         initialFirstName={profile?.firstName ?? ""}
         initialLastName={profile?.lastName ?? ""}
-          initialUsername={profile?.username ?? ""}
+        initialUsername={profile?.username ?? ""}
         initialMobileNumber={profile?.mobileNumber ?? ""}
         initialRegion={profile?.region ?? ""}
         initialCountry={profile?.country ?? ""}
@@ -50,6 +52,8 @@ export default async function PlayerProfileSettingsPage({
         initialGender={profile?.gender ?? ""}
         initialHobbies={profile?.hobbies ?? ""}
         initialFavoriteGames={profile?.favoriteGames ?? []}
+        initialPlayStyle={profile?.playStyle ?? ""}
+        games={games}
       />
       </Panel>
       {profile && payout && (

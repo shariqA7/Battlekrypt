@@ -9,6 +9,7 @@ import { buildSignupMetadata } from "@/lib/signup-profile";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { requestSignupConsent } from "@/lib/services/parental-consent";
+import { needsOnboarding } from "@/lib/services/onboarding";
 
 export async function POST(request: Request) {
   const limit = rateLimit(`signup:${clientIp(request.headers)}`, 8, 60 * 60 * 1000);
@@ -61,7 +62,10 @@ export async function POST(request: Request) {
   if (data.session && data.user) {
     await ensureUserRecord(data.user);
     await requestSignupConsent(data.user.id, origin).catch(() => undefined);
-    return NextResponse.json({ ok: true, checks, status: "signed_in", next: redirectTo });
+    const next = (await needsOnboarding(data.user.id))
+      ? `/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`
+      : redirectTo;
+    return NextResponse.json({ ok: true, checks, status: "signed_in", next });
   }
 
   // Normal path. This is also what an already-registered email gets (Supabase hides

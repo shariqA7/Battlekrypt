@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "node scripts/run-tests.mjs"
   },
   "allowScripts": {
     "@prisma/engines": true,
@@ -36,6 +38,7 @@
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

@@ -1,11 +1,9 @@
-// Handles the redirect back from Google/Discord/Twitch OAuth and from the confirmation
-// email. Supabase sends the user here with a `code` to exchange for a session.
+// Handles the redirect back from Google/Discord/Twitch OAuth (and the older code-style
+// email links). Supabase sends the user here with a `code` to exchange for a session.
+// Emailed confirm/reset links now go through /auth/confirm instead (see lib/auth-confirm.ts).
 import { createClient } from "@/lib/supabase/server";
-import { ensureUserRecord } from "@/lib/ensure-user";
-import { createApplicationFromMetadata } from "@/lib/services/org-applications";
 import { getLoginOptions } from "@/lib/services/login-options";
-import { requestSignupConsent } from "@/lib/services/parental-consent";
-import { prisma } from "@/lib/prisma";
+import { completeSignIn } from "@/lib/post-login";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { NextResponse } from "next/server";
 
@@ -24,27 +22,7 @@ export async function GET(request: Request) {
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/login?error=twitch_off`);
       }
-
-      await ensureUserRecord(data.user);
-      // Under-18 sign-ups: ask the guardian they named, now that their own email is confirmed.
-      await requestSignupConsent(data.user.id, origin).catch(() => undefined);
-      // Organization sign-ups carry their application in the account
-      // metadata until the email is confirmed; create it now.
-      const application = await createApplicationFromMetadata(data.user);
-      if (application || data.user.user_metadata?.org_application) {
-        return NextResponse.redirect(`${origin}/organizer/application`);
-      }
-
-      // Password sign-ups already gave a date of birth and username on the form. Social
-      // logins (Google/Discord/Twitch) haven't, so they finish their profile first.
-      const profile = await prisma.playerProfile.findUnique({
-        where: { userId: data.user.id },
-        select: { birthDate: true, username: true },
-      });
-      if ((!profile?.birthDate || !profile?.username) && !redirectTo.startsWith("/reset-password")) {
-        return NextResponse.redirect(`${origin}/onboarding?redirectTo=${encodeURIComponent(redirectTo)}`);
-      }
-      return NextResponse.redirect(`${origin}${redirectTo}`);
+      return NextResponse.redirect(`${origin}${await completeSignIn(data.user, origin, redirectTo)}`);
     }
   }
 

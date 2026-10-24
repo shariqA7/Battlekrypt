@@ -81,7 +81,8 @@ export const updatePlayerProfileSchema = z.object({
   birthDate: z.string().max(10).optional(),
   gender: z.string().max(30).optional(),
   hobbies: z.string().max(1000).optional(),
-  favoriteGames: z.array(z.string()).optional(),
+  favoriteGames: z.array(z.string()).max(10).optional(),
+  playStyle: z.enum(["casual", "competitive"]).optional(),
 });
 
 // Shared helper: runs a schema against a parsed body, returning either the

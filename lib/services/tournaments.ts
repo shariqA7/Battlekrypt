@@ -1257,6 +1257,7 @@ export interface UpdatePlayerProfileInput {
   gender?: string;
   hobbies?: string;
   favoriteGames?: string[];
+  playStyle?: "casual" | "competitive";
 }
 
 export async function updatePlayerProfile(userId: string, input: UpdatePlayerProfileInput) {
@@ -1326,6 +1327,7 @@ export async function updatePlayerProfile(userId: string, input: UpdatePlayerPro
         gender: input.gender || null,
         hobbies: input.hobbies || null,
         favoriteGames: input.favoriteGames ?? [],
+        playStyle: input.playStyle ?? null,
       },
     }),
   ]);

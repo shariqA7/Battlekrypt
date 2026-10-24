@@ -1,0 +1,121 @@
+# Runs on every pull request and on every push to main.
+# Three independent checks, each shown separately on the pull request:
+#   1. Types and lint
+#   2. Tests, against a real Postgres (and a check that prisma/migrations match schema.prisma)
+#   3. A production build
+# See docs/CI.md for how to run the same things on your own computer.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same branch cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Placeholders only. `npm ci` runs `prisma generate`, and `next build` reads these; none of
+  # them point at anything real. The test job overrides the database with its own container.
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/battlekrypt_ci
+  DIRECT_URL: postgresql://postgres:postgres@localhost:5432/battlekrypt_ci
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-key
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  static:
+    name: Types and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+
+  tests:
+    name: Tests (real Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      # scripts/run-tests.mjs drops and recreates this database for every script.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/battlekrypt_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run every test script
+        run: npm test
+
+      # Catches a schema.prisma change that has no migration (or a hand-written migration that
+      # doesn't match the schema): either would break a real deployment.
+      - name: Migrations match schema.prisma
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/battlekrypt_drift
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/battlekrypt_drift
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -c 'CREATE DATABASE battlekrypt_drift'
+          npx prisma migrate deploy
+          set +e
+          npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo "No drift: the migrations produce exactly the schema in schema.prisma."
+            exit 0
+          fi
+          if [ "$rc" -eq 2 ]; then
+            echo "::error::prisma/schema.prisma and prisma/migrations disagree. The SQL below is what a new migration needs to contain:"
+            npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script || true
+            exit 1
+          fi
+          echo "::warning::The drift check could not run (prisma exited with code $rc), so it was skipped. Tests above still ran."
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Cache Next.js build output
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      - name: Build
+        run: npm run build

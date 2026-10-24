@@ -1,6 +1,7 @@
 "use client";
 
 import { latestAllowedBirthDate } from "@/lib/age";
+import GamePicker, { type PickerGame } from "@/components/onboarding/GamePicker";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FileUpload from "@/components/ui/FileUpload";
@@ -21,6 +22,9 @@ interface ProfileFormProps {
   initialGender: string;
   initialHobbies: string;
   initialFavoriteGames: string[];
+  initialPlayStyle?: string;
+  // The catalog the player can pick from (filtered to their country).
+  games: PickerGame[];
   // Onboarding-mode overrides. Omitted entirely on the settings page, so
   // that page's behavior (in-place "Saved!" message, no redirect) is
   // unchanged — only the dedicated /onboarding page passes these.
@@ -42,6 +46,8 @@ export default function ProfileForm({
   initialGender,
   initialHobbies,
   initialFavoriteGames,
+  initialPlayStyle = "",
+  games,
   submitLabel = "Save changes",
   onSaved,
 }: ProfileFormProps) {
@@ -57,7 +63,8 @@ export default function ProfileForm({
   const [birthDate, setBirthDate] = useState(initialBirthDate);
   const [gender, setGender] = useState(initialGender);
   const [hobbies, setHobbies] = useState(initialHobbies);
-  const [favoriteGamesText, setFavoriteGamesText] = useState(initialFavoriteGames.join(", "));
+  const [favoriteGames, setFavoriteGames] = useState(initialFavoriteGames);
+  const [playStyle, setPlayStyle] = useState(initialPlayStyle);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -85,10 +92,8 @@ export default function ProfileForm({
         birthDate: initialBirthDate ? undefined : birthDate || undefined,
         gender: gender || undefined,
         hobbies: hobbies || undefined,
-        favoriteGames: favoriteGamesText
-          .split(",")
-          .map((g) => g.trim())
-          .filter(Boolean),
+        favoriteGames,
+        playStyle: playStyle || undefined,
       }),
     });
 
@@ -227,13 +232,15 @@ export default function ProfileForm({
         </div>
       </div>
 
+      <label className={labelClass}>Play style</label>
+      <select value={playStyle} onChange={(e) => setPlayStyle(e.target.value)} className={inputClass}>
+        <option value="">Not set</option>
+        <option value="casual">Casual</option>
+        <option value="competitive">Competitive</option>
+      </select>
+
       <label className={labelClass}>Favorite games</label>
-      <input
-        value={favoriteGamesText}
-        onChange={(e) => setFavoriteGamesText(e.target.value)}
-        placeholder="e.g. PUBG Mobile, Valorant, FIFA"
-        className={inputClass}
-      />
+      <GamePicker games={games} selected={favoriteGames} onChange={setFavoriteGames} max={10} />
 
       <label className={labelClass}>Hobbies / interests</label>
       <textarea

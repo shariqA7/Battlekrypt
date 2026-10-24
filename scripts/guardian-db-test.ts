@@ -12,6 +12,9 @@ import { checkAgeGate } from "../lib/services/age-gate";
 import { getPayoutSummary, getPayoutText, savePayoutMethod, listPrizePayees } from "../lib/services/payout-methods";
 import { countOpenConsentCases, decideConsentCase, listConsentCases, openConsentCases } from "../lib/services/consent-cases";
 import { updatePlayerProfile } from "../lib/services/tournaments";
+import { completeSignIn } from "../lib/post-login";
+import type { User as SupaUser } from "@supabase/supabase-js";
+import { getOnboardingData, needsOnboarding, saveOnboardingStep } from "../lib/services/onboarding";
 import { getPlayerRanking, modesWithPlayers, rankedCounts } from "../lib/services/rankings";
 
 let fails = 0;
@@ -169,6 +172,95 @@ async function main() {
   ok("a good username is saved, lower-cased", !err(await updatePlayerProfile("so1", { ...prof, username: "Social_One" })) && (await prisma.playerProfile.findUnique({ where: { id: so.id } }))?.username === "social_one");
   ok("it can't be changed afterwards", !err(await updatePlayerProfile("so1", { ...prof, username: "something_else" })) && (await prisma.playerProfile.findUnique({ where: { id: so.id } }))?.username === "social_one");
   ok("later edits don't need the username again", !err(await updatePlayerProfile("so1", prof)));
+
+  // ---- onboarding
+  await prisma.game.create({ data: { name: "OnbGlobalGame", genre: "MOBA", format: "multiplayer", teamSizeMax: 5 } });
+  await prisma.game.create({ data: { name: "OnbIndiaOnlyGame", genre: "Battle Royale", format: "multiplayer", teamSizeMax: 4, onlyInCountries: ["IN"] } });
+  await prisma.user.createMany({ data: [
+    { id: "ob-social", email: "ob-social@x.com", displayName: "Social Person" },
+    { id: "ob-pw", email: "ob-pw@x.com", displayName: "Password Person" },
+    { id: "ob-kid", email: "ob-kid@x.com", displayName: "Kid Social" },
+  ]});
+  await prisma.playerProfile.create({ data: { userId: "ob-social" } });
+  await prisma.playerProfile.create({ data: { userId: "ob-pw", firstName: "Pat", lastName: "Word", username: "pat_word", birthDate: yearsAgo(28), age: 28, country: "Pakistan" } });
+  await prisma.playerProfile.create({ data: { userId: "ob-kid" } });
+  const o = (u: string, body: object) => saveOnboardingStep(u, body, "http://t");
+  const failedIds = (r: { checks: { id: string; ok: boolean }[] }) => r.checks.filter((c) => !c.ok).map((c) => c.id);
+
+  ok("a new social user needs onboarding", await needsOnboarding("ob-social"));
+  ok("a new PASSWORD user needs it too (first login, everyone)", await needsOnboarding("ob-pw"));
+  ok("an organizer account is left alone", !(await needsOnboarding("g-org")));
+  ok("someone with no profile isn't sent anywhere", !(await needsOnboarding("nobody-here")));
+  const dSocial = await getOnboardingData("ob-social");
+  const dPw = await getOnboardingData("ob-pw");
+  ok("a social user is asked the 'about you' step", !!dSocial?.needsAbout);
+  ok("a password user is NOT asked it again", dPw?.needsAbout === false);
+
+  // about step
+  const bad = await o("ob-social", { step: "about", firstName: "Sam", lastName: "Lee", username: "admin", birthDate: "1999-01-01", country: "PK" });
+  ok("a bad username is refused with a tick/cross list", !bad.ok && failedIds(bad).join() === "username_reserved");
+  ok("nothing is saved when a check fails", (await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } }))?.username === null);
+  ok("an under-13 is refused and no date of birth is stored", !(await o("ob-social", { step: "about", firstName: "Sam", lastName: "Lee", username: "sam_lee", birthDate: yearsAgo(12).toISOString().slice(0, 10), country: "PK" })).ok && (await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } }))?.birthDate === null);
+  ok("a taken username is refused", failedIds(await o("ob-social", { step: "about", firstName: "Sam", lastName: "Lee", username: "ALI_R", birthDate: "1999-01-01", country: "PK" })).join() === "username_free");
+  ok("finish is blocked until the details are in", !(await o("ob-social", { step: "finish" })).ok);
+  const aboutDone = await o("ob-social", { step: "about", firstName: "Sam", lastName: "Lee", username: "Sam_Lee", birthDate: "1999-01-01", country: "PK" });
+  const saved = await prisma.playerProfile.findUnique({ where: { userId: "ob-social" }, include: { user: true } });
+  ok("a good about step saves everything", aboutDone.ok && saved?.username === "sam_lee" && saved.firstName === "Sam" && saved.country === "Pakistan" && saved.birthDate !== null && saved.age !== null);
+  ok("the display name follows the name they typed", saved?.user.displayName === "Sam Lee");
+  ok("asking the about step again changes nothing (locked)", (await o("ob-social", { step: "about", firstName: "Hacker", username: "hacker", birthDate: "1980-01-01" })).ok && (await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } }))?.username === "sam_lee");
+
+  // a minor via social login: guardian email + consent request
+  ok("a minor must give a guardian email", failedIds(await o("ob-kid", { step: "about", firstName: "Kid", lastName: "Gamer", username: "kid_gamer", birthDate: yearsAgo(14).toISOString().slice(0, 10), country: "PK" })).join() === "guardian_email");
+  lastRequestToken = "";
+  const kidDone = await o("ob-kid", { step: "about", firstName: "Kid", lastName: "Gamer", username: "kid_gamer", birthDate: yearsAgo(14).toISOString().slice(0, 10), country: "PK", guardianEmail: "Parent@X.com" });
+  const kidProfile = await prisma.playerProfile.findUnique({ where: { userId: "ob-kid" } });
+  ok("the guardian email is saved lower-cased", kidDone.ok && kidProfile?.guardianEmail === "parent@x.com");
+  ok("the guardian is emailed right away", lastRequestToken.length > 30 && (await getConsentStateForPlayer(kidProfile!.id)).state === "pending");
+
+  // games step, filtered by the player's country
+  const gOk = await o("ob-social", { step: "games", games: ["OnbGlobalGame"] });
+  ok("picking a visible game works", gOk.ok && (await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } }))?.favoriteGames.join() === "OnbGlobalGame");
+  ok("a game restricted to another country is refused (PK player)", failedIds(await o("ob-social", { step: "games", games: ["OnbIndiaOnlyGame"] })).join() === "games_known");
+  ok("an invented game is refused", !(await o("ob-social", { step: "games", games: ["Totally Made Up"] })).ok);
+  ok("the picker only lists games this player may see", (await getOnboardingData("ob-social"))?.games.some((g) => g.name === "OnbIndiaOnlyGame") === false);
+  ok("an empty pick is allowed and clears it", (await o("ob-social", { step: "games", games: [] })).ok);
+
+  // style step
+  ok("an invalid play style is refused", failedIds(await o("ob-social", { step: "style", playStyle: "tryhard" })).join() === "play_style");
+  const st = await o("ob-social", { step: "style", playStyle: "competitive", gender: "female", hobbies: "chess" });
+  const sp = await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } });
+  ok("play style, gender and hobbies are saved", st.ok && sp?.playStyle === "competitive" && sp.gender === "female" && sp.hobbies === "chess");
+
+  // finishing
+  ok("finish succeeds once the details are in", (await o("ob-social", { step: "finish" })).ok);
+  ok("they are no longer sent to onboarding", !(await needsOnboarding("ob-social")) && (await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } }))?.onboardedAt !== null);
+  ok("a password user can finish without any about step", (await o("ob-pw", { step: "finish" })).ok && !(await needsOnboarding("ob-pw")));
+  ok("an unknown step is refused", !(await o("ob-pw", { step: "hack" })).ok);
+  ok("a user who skipped everything but finished still isn't re-sent", !(await needsOnboarding("ob-pw")));
+  await prisma.playerProfile.update({ where: { userId: "ob-pw" }, data: { username: null } });
+  ok("a finished player who somehow has no username is sent back (required details)", await needsOnboarding("ob-pw"));
+
+  // ---- what happens after ANY sign-in route (OAuth or an emailed link)
+  const fakeUser = (id: string, meta: Record<string, unknown>) =>
+    ({ id, email: `${id}@x.com`, user_metadata: meta, app_metadata: {}, aud: "authenticated", created_at: new Date().toISOString() }) as unknown as SupaUser;
+  const signupMeta = (over: object = {}) => ({
+    full_name: "Cee Ess",
+    signup_profile: { firstName: "Cee", lastName: "Ess", username: "cee_ess", country: "PK", birthDate: "1998-02-03", phone: "", guardianEmail: "", marketingEmail: false, terms: "v1", ...over },
+  });
+  const afterNew = await completeSignIn(fakeUser("cs-new", signupMeta()), "http://t", "/tournaments");
+  ok("a new password sign-up is sent to onboarding, remembering where they were going", afterNew === "/onboarding?redirectTo=%2Ftournaments");
+  const csProfile = await prisma.playerProfile.findUnique({ where: { userId: "cs-new" } });
+  ok("the profile was built from the sign-up form's answers", csProfile?.username === "cee_ess" && csProfile.country === "Pakistan" && csProfile.firstName === "Cee");
+  await prisma.playerProfile.update({ where: { userId: "cs-new" }, data: { onboardedAt: new Date() } });
+  ok("once onboarded, the same link goes straight to the destination", (await completeSignIn(fakeUser("cs-new", signupMeta()), "http://t", "/tournaments")) === "/tournaments");
+  ok("signing in twice doesn't duplicate or reset the profile", (await prisma.playerProfile.count({ where: { userId: "cs-new" } })) === 1);
+  ok("a password-reset link goes straight to the reset page, even for a brand-new account", (await completeSignIn(fakeUser("cs-reset", signupMeta({ username: "cee_reset" })), "http://t", "/reset-password")) === "/reset-password");
+  ok("an organization sign-up goes to its application page", (await completeSignIn(fakeUser("cs-org", { org_application: { orgName: "NotValidOnPurpose" } }), "http://t", "/")) === "/organizer/application");
+  lastRequestToken = "";
+  const minorMeta = signupMeta({ username: "cee_minor", birthDate: yearsAgo(14).toISOString().slice(0, 10), guardianEmail: "gran@x.com" });
+  const afterMinor = await completeSignIn(fakeUser("cs-minor", minorMeta), "http://t", "/");
+  ok("a minor is sent to onboarding AND the guardian is emailed on confirmation", afterMinor.startsWith("/onboarding") && lastRequestToken.length > 30);
+  ok("a forged under-13 date of birth in the metadata is dropped", (await prisma.playerProfile.findUnique({ where: { userId: "cs-minor" } }))?.guardianEmail === "gran@x.com" && !(await completeSignIn(fakeUser("cs-forged", signupMeta({ username: "cee_forged", birthDate: "2020-01-01" })), "http://t", "/")).includes("undefined") && (await prisma.playerProfile.findUnique({ where: { userId: "cs-forged" } }))?.birthDate === null);
 
   const counts = await rankedCounts([g2.id]);
   ok("the game picker counts ranked players", counts.players.get(g2.id) === 5);

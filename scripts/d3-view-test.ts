@@ -41,7 +41,7 @@ ok("in progress / completed / cancelled / draft", ctaFor({ status: "in_progress"
 // ---- prize tiers
 ok("ordinals", ordinal(1) === "1st" && ordinal(2) === "2nd" && ordinal(3) === "3rd" && ordinal(4) === "4th" && ordinal(11) === "11th" && ordinal(12) === "12th" && ordinal(13) === "13th" && ordinal(21) === "21st" && ordinal(112) === "112th");
 ok("labels", placeLabel(1, 1) === "1st place" && placeLabel(4, 8) === "4th–8th");
-let p = parsePrizeTiers([{ from: 4, to: 8, amount: 50000 }, { from: 1, amount: 750000 }, { from: 2, to: 2, amount: 350000 }, { from: 3, amount: 150000 }]);
+const p = parsePrizeTiers([{ from: 4, to: 8, amount: 50000 }, { from: 1, amount: 750000 }, { from: 2, to: 2, amount: 350000 }, { from: 3, amount: 150000 }]);
 ok("parse sorts and defaults 'to'", p.ok && p.tiers.map((t) => `${t.from}-${t.to}`).join() === "1-1,2-2,3-3,4-8");
 ok("payout: 750+350+150+5*50 = 1,500,000", p.ok && totalPayout(p.tiers) === 1500000);
 ok("fits a $1.5M pool exactly", p.ok && checkAgainstPool(p.tiers, 1500000) === null);

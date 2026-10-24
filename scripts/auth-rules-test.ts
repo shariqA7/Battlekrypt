@@ -2,6 +2,7 @@
 import { readSignupMetadata, buildSignupMetadata, SIGNUP_META_KEY } from "../lib/signup-profile";
 import { safeRedirect } from "../lib/safe-redirect";
 import { rateLimit } from "../lib/rate-limit";
+import { parseConfirmParams, isRecovery } from "../lib/auth-confirm";
 import { toE164, DIAL_CODES } from "../lib/dial-codes";
 import { COUNTRIES } from "../lib/geo-data";
 import { coerceOrgAccount, orgAccountChecks, signupChecks, coerceSignup, passwordChecks, allOk, resetChecks, loginChecks } from "../lib/validation/auth";
@@ -78,6 +79,25 @@ ok("organizer mismatch fails", failedIds(org({ confirmPassword: "x" })).join() =
 ok("organizer must accept terms and privacy", failedIds(org({ acceptTerms: false, acceptPrivacy: false })).join() === "terms,privacy");
 ok("organizer bad email fails", failedIds(org({ email: "nope" })).join() === "email");
 ok("organizer password can't contain the email name", failedIds(org({ email: "falconesports@x.com", password: "Falconesports1!", confirmPassword: "Falconesports1!" })).includes("pw_common"));
+
+// emailed confirm / reset links (token_hash, works across devices)
+const TOKEN = "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c";
+const q = (o: Record<string, string>) => (k: string) => o[k] ?? null;
+const SITE = "https://battlekrypt.test";
+ok("a valid confirm link parses", parseConfirmParams(q({ token_hash: TOKEN, type: "email" }), SITE)?.type === "email");
+ok("the older 'signup' type is accepted too", parseConfirmParams(q({ token_hash: TOKEN, type: "signup" }), SITE)?.type === "signup");
+ok("a recovery link is recognised", isRecovery(parseConfirmParams(q({ token_hash: TOKEN, type: "recovery", next: "/reset-password" }), SITE)!.type));
+ok("an unknown type is refused", parseConfirmParams(q({ token_hash: TOKEN, type: "admin" }), SITE) === null);
+ok("a missing token is refused", parseConfirmParams(q({ type: "email" }), SITE) === null);
+ok("a too-short token is refused", parseConfirmParams(q({ token_hash: "abc", type: "email" }), SITE) === null);
+ok("a token with odd characters is refused", parseConfirmParams(q({ token_hash: TOKEN + "<script>", type: "email" }), SITE) === null);
+ok("next must be a same-site path", parseConfirmParams(q({ token_hash: TOKEN, type: "email", next: "//evil.com" }), SITE)?.next === "/");
+ok("next @evil.com is refused", parseConfirmParams(q({ token_hash: TOKEN, type: "email", next: "@evil.com" }), SITE)?.next === "/");
+ok("a good next path is kept", parseConfirmParams(q({ token_hash: TOKEN, type: "email", next: "/tournaments" }), SITE)?.next === "/tournaments");
+ok("the destination can come from our own redirect_to", parseConfirmParams(q({ token_hash: TOKEN, type: "email", redirect_to: SITE + "/auth/callback?redirectTo=%2Fchallenges" }), SITE)?.next === "/challenges");
+ok("a redirect_to on another site is ignored", parseConfirmParams(q({ token_hash: TOKEN, type: "email", redirect_to: "https://evil.com/auth/callback?redirectTo=%2Fx" }), SITE)?.next === "/");
+ok("a garbage redirect_to falls back to home", parseConfirmParams(q({ token_hash: TOKEN, type: "email", redirect_to: "not a url" }), SITE)?.next === "/");
+ok("no destination at all -> home", parseConfirmParams(q({ token_hash: TOKEN, type: "email" }), SITE)?.next === "/");
 
 // login / reset
 ok("login needs email and password", failedIds(loginChecks("x", "")).join() === "email,password");

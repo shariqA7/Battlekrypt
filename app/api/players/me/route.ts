@@ -57,6 +57,7 @@ export async function PATCH(request: Request) {
     lastName: body.lastName,
     avatarUrl: body.avatarUrl,
     username: body.username,
+    playStyle: body.playStyle,
     mobileNumber: body.mobileNumber,
     region: body.region,
     country: body.country,
