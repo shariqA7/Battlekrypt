@@ -1,9 +1,12 @@
 // Organizer identity verification (Level 2 of organizer trust). Design notes live
 // on the IdentityVerification model in prisma/schema.prisma. In short: the ID
-// images are private, every admin view is logged, the typed name and number are
-// cleared at decision time, and the images are deleted after a retention period.
+// images are private and every admin view is logged; an approved check keeps the
+// verified name, number and address (number and address encrypted) so a scam can
+// be reported to the authorities; the photos are deleted once the organizer has
+// built a track record, or at the latest after a retention period.
 import { prisma } from "@/lib/prisma";
-import { getTrustConfig } from "@/lib/services/organizer-trust";
+import { countFullyConfirmedEvents, getPayoutHolds, getTrustConfig } from "@/lib/services/organizer-trust";
+import { identityCryptoReady, openIdentityDetails, sealIdentityDetails } from "@/lib/identity-crypto";
 import { notify } from "@/lib/services/notifications";
 import { hashDocNumber } from "@/lib/identity-hash";
 import {
@@ -11,6 +14,7 @@ import {
   identityState,
   isOwnUpload,
   isPlausibleDocNumber,
+  normalizeDocNumber,
   purgeAfterFor,
   DOC_TYPES,
   type DocType,
@@ -38,6 +42,7 @@ export type SubmitIdentityInput = {
   docType: string;
   fullName: string;
   documentNumber: string;
+  address: string;
   frontPath: unknown;
   backPath: unknown;
   selfiePath: unknown;
@@ -63,8 +68,12 @@ export async function submitIdentity(
 
   const docType = DOC_TYPES.find((t) => t === input.docType) as DocType | undefined;
   const fullName = input.fullName.trim();
+  const address = input.address.trim();
   if (!docType || fullName.length < 3 || fullName.length > 120 || !isPlausibleDocNumber(input.documentNumber)) {
     return { error: "invalid", message: "Enter the full name and document number exactly as on the document." };
+  }
+  if (address.length < 8 || address.length > 250) {
+    return { error: "invalid", message: "Enter your full home address (street, area, city)." };
   }
 
   const front = input.frontPath;
@@ -74,7 +83,7 @@ export async function submitIdentity(
   if (docType === "nic" && !isOwnUpload(organizer.userId, back)) return { error: "bad_files" };
 
   const secret = process.env.IDENTITY_HASH_SECRET;
-  if (!secret) return { error: "not_configured" };
+  if (!secret || !identityCryptoReady()) return { error: "not_configured" };
 
   const existing = await prisma.identityVerification.findUnique({ where: { organizerId: organizer.id } });
   if (existing?.status === "pending") return { error: "already_pending" };
@@ -84,7 +93,8 @@ export async function submitIdentity(
     status: "pending" as const,
     docType,
     fullName,
-    documentNumber: input.documentNumber.trim(),
+    documentNumber: null, // legacy column: the number now lives encrypted in detailsEnc
+    detailsEnc: sealIdentityDetails({ documentNumber: input.documentNumber.trim(), address }),
     frontPath: front as string,
     backPath: (back as string | null) ?? null,
     selfiePath: selfie as string,
@@ -113,6 +123,13 @@ export async function submitIdentity(
 const WITH_ORG = {
   organizer: { select: { orgName: true, user: { select: { email: true, id: true } } } },
 } as const;
+
+// The typed number and address, for the reviewer. Rows from before encryption
+// existed still hold the number in plain text (and no address).
+function readDetails(row: { detailsEnc: string | null; documentNumber: string | null }) {
+  const d = openIdentityDetails(row.detailsEnc);
+  return { documentNumber: d?.documentNumber ?? row.documentNumber ?? null, address: d?.address ?? null };
+}
 
 // Another organizer account that used the same document number. Strongest when
 // that account has an active ban (someone coming back under a new name).
@@ -149,7 +166,7 @@ export async function listPendingIdentity() {
       email: r.organizer.user.email,
       docType: r.docType,
       fullName: r.fullName,
-      documentNumber: r.documentNumber,
+      ...readDetails(r),
       hasBack: Boolean(r.backPath),
       attemptCount: r.attemptCount,
       submittedAt: r.submittedAt.toISOString(),
@@ -226,9 +243,16 @@ export async function decideIdentity(
         reviewedById: adminId,
         validUntil: approved ? addMonths(now, cfg.idValidityMonths) : null,
         purgeAfter: purgeAfterFor(input.action, cfg, now),
-        // The typed values were for the reviewer only; the keyed hash stays.
-        fullName: null,
         documentNumber: null,
+        // Approved: keep the verified name, number and address (encrypted) so a
+        // scam can be reported. Rejected: keep nothing but the keyed hash.
+        ...(approved
+          ? {
+              detailsEnc:
+                row.detailsEnc ??
+                (row.documentNumber ? sealIdentityDetails({ documentNumber: row.documentNumber, address: "" }) : null),
+            }
+          : { fullName: null, detailsEnc: null }),
       },
     }),
     prisma.adminActionLog.create({
@@ -260,24 +284,135 @@ export async function setIdentityRetentionHold(id: string, hold: boolean, adminI
   return { ok: true as const };
 }
 
+// ---------- finding and revealing verified details (admin) ----------
+
+export type IdentityHit = {
+  id: string;
+  orgName: string;
+  email: string | null;
+  fullName: string | null;
+  docType: string;
+  status: string;
+  reviewedAt: string | null;
+  validUntil: string | null;
+  photosStored: { front: boolean; back: boolean; selfie: boolean };
+  matchedBy: "number" | "text";
+};
+
+// Find an organizer by document number (exact, through the keyed fingerprint),
+// or by name, organization or email (partial).
+export async function searchIdentity(query: string): Promise<IdentityHit[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+  const secret = process.env.IDENTITY_HASH_SECRET;
+  const asNumber = normalizeDocNumber(q);
+  const looksLikeNumber = secret && /\d/.test(asNumber) && isPlausibleDocNumber(q);
+  const numberHash = looksLikeNumber ? hashDocNumber(q, secret!) : null;
+
+  const rows = await prisma.identityVerification.findMany({
+    where: {
+      OR: [
+        ...(numberHash ? [{ idNumberHash: numberHash }] : []),
+        { fullName: { contains: q, mode: "insensitive" as const } },
+        { organizer: { orgName: { contains: q, mode: "insensitive" as const } } },
+        { organizer: { user: { email: { contains: q, mode: "insensitive" as const } } } },
+      ],
+    },
+    include: WITH_ORG,
+    orderBy: { submittedAt: "desc" },
+    take: 25,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    orgName: r.organizer.orgName,
+    email: r.organizer.user.email,
+    fullName: r.fullName,
+    docType: r.docType,
+    status: r.status,
+    reviewedAt: r.reviewedAt?.toISOString() ?? null,
+    validUntil: r.validUntil?.toISOString() ?? null,
+    photosStored: { front: Boolean(r.frontPath), back: Boolean(r.backPath), selfie: Boolean(r.selfiePath) },
+    matchedBy: numberHash && r.idNumberHash === numberHash ? ("number" as const) : ("text" as const),
+  }));
+}
+
+// Shows the kept name, number and address. Every reveal is logged with the admin.
+export async function revealIdentityDetails(
+  id: string,
+  adminId: string
+): Promise<
+  | { data: { fullName: string | null; documentNumber: string | null; address: string | null; docType: string; status: string; reviewedAt: string | null } }
+  | { error: "not_found" | "unavailable" }
+> {
+  const r = await prisma.identityVerification.findUnique({ where: { id } });
+  if (!r) return { error: "not_found" };
+  const d = readDetails(r);
+  if (!r.fullName && !d.documentNumber && !d.address) return { error: "unavailable" };
+  await prisma.adminActionLog.create({
+    data: { adminId, action: "identity_details_viewed", targetType: "IdentityVerification", targetId: id },
+  });
+  return {
+    data: {
+      fullName: r.fullName,
+      documentNumber: d.documentNumber,
+      address: d.address,
+      docType: r.docType,
+      status: r.status,
+      reviewedAt: r.reviewedAt?.toISOString() ?? null,
+    },
+  };
+}
+
 // ---------- retention (called by the scheduled job) ----------
 
-// Deletes the images of every decided record that is past its date and not on
-// hold, then clears the paths. Files first: if deleting fails nothing is
-// cleared, so the next run tries again.
+// Deletes identity photos, then clears the paths. Files first: if deleting fails
+// nothing is cleared, so the next run tries again. Never touches a record that is
+// pending or on "keep longer". When it is time:
+//   rejected: idRejectedRetentionDays after the decision.
+//   approved: at the latest idRetentionDays after the decision, but SOONER once
+//   the organizer has built a track record (enough fully confirmed prize events,
+//   or an admin lifted the limits), and only while there is no payout hold and
+//   no active ban. The verified name, number and address are kept either way.
 export async function purgeDueIdentityFiles(removeFiles: (paths: string[]) => Promise<void>) {
-  const due = await prisma.identityVerification.findMany({
-    where: { status: { not: "pending" }, purgedAt: null, retentionHold: false, purgeAfter: { lte: new Date() } },
-    select: { id: true, frontPath: true, backPath: true, selfiePath: true },
-    take: 200,
+  const now = new Date();
+  const cfg = await getTrustConfig();
+  const candidates = await prisma.identityVerification.findMany({
+    where: { status: { not: "pending" }, purgedAt: null, retentionHold: false },
+    select: {
+      id: true,
+      status: true,
+      purgeAfter: true,
+      frontPath: true,
+      backPath: true,
+      selfiePath: true,
+      organizer: { select: { id: true, userId: true, limitsLifted: true } },
+    },
+    take: 500,
   });
+
   let purged = 0;
-  for (const r of due) {
+  for (const r of candidates) {
+    const pastLatest = r.purgeAfter !== null && r.purgeAfter <= now;
+    let due = pastLatest;
+    if (!due && r.status === "approved") {
+      const trusted = r.organizer.limitsLifted || (await countFullyConfirmedEvents(r.organizer.id)) >= cfg.graduationEvents;
+      if (trusted) {
+        const [holds, bans] = await Promise.all([
+          getPayoutHolds(r.organizer.id, cfg.payoutGraceDays),
+          prisma.accountBan.count({
+            where: { userId: r.organizer.userId, liftedAt: null, OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+          }),
+        ]);
+        due = holds.length === 0 && bans === 0;
+      }
+    }
+    if (!due) continue;
+
     const paths = [r.frontPath, r.backPath, r.selfiePath].filter((p): p is string => Boolean(p));
     if (paths.length) await removeFiles(paths);
     await prisma.identityVerification.update({
       where: { id: r.id },
-      data: { frontPath: null, backPath: null, selfiePath: null, purgedAt: new Date() },
+      data: { frontPath: null, backPath: null, selfiePath: null, purgedAt: now },
     });
     purged += 1;
   }

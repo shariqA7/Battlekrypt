@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { ClientGeo } from "@/lib/geo";
 import type { ParsedUA } from "@/lib/user-agent";
+import { visitDetailCutoff } from "@/lib/visit-retention";
 
 const SESSION_WINDOW_MS = 30 * 60 * 1000;
 
@@ -45,10 +46,18 @@ export async function recordVisit(input: {
   return { recorded: true };
 }
 
-// Privacy housekeeping: delete session rows (which include IP addresses)
-// older than `days`. Run it from a scheduled job.
-export async function purgeOldVisits(days = 365) {
-  const cutoff = new Date(Date.now() - days * 86_400_000);
-  const { count } = await prisma.visitSession.deleteMany({ where: { createdAt: { lt: cutoff } } });
+// Privacy housekeeping (run daily by /api/cron/visit-retention): once a visit is
+// older than VISIT_DETAIL_RETENTION_DAYS, erase everything that could point at a
+// person (IP address, city, browser string, the account link). The row itself
+// stays, as an anonymous count by day, country, region, device and page, so the
+// traffic and dashboard charts keep their history.
+export async function anonymizeOldVisits(now: Date = new Date()) {
+  const { count } = await prisma.visitSession.updateMany({
+    where: {
+      createdAt: { lt: visitDetailCutoff(now) },
+      OR: [{ ip: { not: null } }, { city: { not: null } }, { userAgent: { not: null } }, { userId: { not: null } }],
+    },
+    data: { ip: null, city: null, userAgent: null, userId: null },
+  });
   return count;
 }

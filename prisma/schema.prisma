@@ -2069,9 +2069,11 @@ model OrganizerTrustConfig {
   // Days after completion before an unpaid/unconfirmed payout puts the
   // organizer on hold, and before an unanswered "I paid" is treated as accepted.
   payoutGraceDays       Int      @default(7)
-  // Identity documents (see IdentityVerification): how long the images are kept
-  // after an admin decides, and how long an approval stays valid.
-  idRetentionDays         Int    @default(30)
+  // Identity documents (see IdentityVerification): the MOST days the photos of
+  // an approved check are kept (they go sooner once the organizer has built a
+  // track record), how long a rejected one's are kept, and how long an
+  // approval stays valid.
+  idRetentionDays         Int    @default(365)
   idRejectedRetentionDays Int    @default(7)
   idValidityMonths        Int    @default(24)
   updatedAt             DateTime @updatedAt
@@ -2208,12 +2210,17 @@ enum PlayStyle {
 // An approved identity earns the Verified badge (with a paid plan) and lifts
 // the new-organizer starter limits. Clubs do not use this.
 //
-// Data minimisation: the ID images live in the private "identity-documents"
-// bucket and are deleted by a scheduled job `purgeAfter` (retention days after
-// the decision). What outlives them is only: status, document type, who
-// decided and when, "18+ confirmed", the validity date, and a KEYED HASH of the
-// document number (to spot the same person behind another organizer account).
-// The typed name and number are cleared the moment a decision is made.
+// What we keep, and why: if an organizer scams people we must be able to report
+// them to the authorities, so an APPROVED check keeps the verified full name,
+// document number and address (number and address encrypted in detailsEnc) for
+// as long as the account exists, plus a KEYED HASH of the number to spot the
+// same person behind another account. The photos are the riskiest part: they
+// live in the private "identity-documents" bucket and are deleted by a
+// scheduled job once the organizer has built a track record (confirmed-paid
+// events), at the latest `purgeAfter`, and never while there is a payout
+// hold, an active ban or an admin "keep longer". A REJECTED check keeps
+// nothing but the hash: the typed details are cleared at the decision and the
+// photos go after a few days.
 
 enum IdentityStatus {
   pending
@@ -2234,9 +2241,14 @@ model IdentityVerification {
   status  IdentityStatus  @default(pending)
   docType IdentityDocType
 
-  // Typed by the organizer for the reviewer; cleared when a decision is made.
+  // Typed by the organizer (and checked by the reviewer against the document).
+  // Kept after approval, cleared on rejection.
   fullName       String?
+  // LEGACY plaintext number from before detailsEnc existed. Never written any
+  // more; moved into detailsEnc (and nulled) at the next decision.
   documentNumber String?
+  // AES-256-GCM (same key as payout details) of {documentNumber, address}.
+  detailsEnc     String?
 
   // Storage paths in the private bucket; null once purged.
   frontPath  String?

@@ -95,12 +95,14 @@ export default async function OrganizerVerificationPage() {
         <ul className="font-sans text-[12px] text-bk-body space-y-1.5 list-disc pl-4">
           <li>The photos are stored privately. Only platform admins can open them, and every time one is opened it is logged.</li>
           <li>
-            They are deleted automatically {cfg.idRetentionDays} days after an approval, or {cfg.idRejectedRetentionDays} days after a rejection (a little
-            longer only if a dispute needs them).
+            Once you have run enough events whose winners confirmed they were paid, your photos are deleted. If that hasn&apos;t happened, they are deleted
+            after at most {cfg.idRetentionDays} days, and never while a payout problem, a ban or a dispute is open. If a check is rejected, the photos
+            and details are deleted after {cfg.idRejectedRetentionDays} days.
           </li>
           <li>
-            After deletion we keep only the result of the check, the date, and an irreversible fingerprint of your document number, which stops
-            one person running several organizer accounts.
+            After an approval we keep your verified name, address and document number (the number and address are encrypted) for as long as your account
+            exists, plus a set period after it closes. We keep them so that, if someone is cheated, we can report it to the authorities and stop the same
+            person opening another organizer account.
           </li>
           <li>We never use your documents for anything else, and we never show them to players or other organizers.</li>
         </ul>

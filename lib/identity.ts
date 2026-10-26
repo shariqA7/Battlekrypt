@@ -60,7 +60,9 @@ export function addMonths(d: Date, months: number): Date {
   return out;
 }
 
-// When the images are deleted: sooner after a rejection than after an approval.
+// The LATEST day the photos are deleted: idRetentionDays after an approval (they
+// can go sooner, see purgeDueIdentityFiles) and idRejectedRetentionDays after a
+// rejection.
 export function purgeAfterFor(
   decision: "approve" | "reject",
   cfg: { idRetentionDays: number; idRejectedRetentionDays: number },

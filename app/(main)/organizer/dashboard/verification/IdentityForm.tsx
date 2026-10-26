@@ -17,6 +17,7 @@ export default function IdentityForm({ userId }: { userId: string }) {
   const [docType, setDocType] = useState<"nic" | "passport">("nic");
   const [fullName, setFullName] = useState("");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [address, setAddress] = useState("");
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [selfie, setSelfie] = useState("");
@@ -25,7 +26,7 @@ export default function IdentityForm({ userId }: { userId: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const needsBack = docType === "nic";
-  const ready = Boolean(fullName.trim() && documentNumber.trim() && front && selfie && (!needsBack || back) && consent);
+  const ready = Boolean(fullName.trim() && documentNumber.trim() && address.trim().length >= 8 && front && selfie && (!needsBack || back) && consent);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +35,7 @@ export default function IdentityForm({ userId }: { userId: string }) {
     const res = await fetch("/api/organizer/identity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ docType, fullName, documentNumber, frontPath: front, backPath: needsBack ? back : null, selfiePath: selfie, consent }),
+      body: JSON.stringify({ docType, fullName, documentNumber, address, frontPath: front, backPath: needsBack ? back : null, selfiePath: selfie, consent }),
     });
     if (!res.ok) {
       setError((await res.json().catch(() => ({}))).error?.message ?? "Couldn't submit your documents.");
@@ -71,6 +72,18 @@ export default function IdentityForm({ userId }: { userId: string }) {
         <label className={labelClass} htmlFor="idv-number">{docType === "nic" ? "NIC number" : "Passport number"}</label>
         <input id="idv-number" value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} maxLength={30} autoComplete="off" className={`${inputClass} font-mono`} />
 
+        <label className={labelClass} htmlFor="idv-address">Home address</label>
+        <textarea
+          id="idv-address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          rows={2}
+          maxLength={250}
+          autoComplete="street-address"
+          placeholder="Street, area, city (as on your ID if it shows one)"
+          className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
+        />
+
         <p className={labelClass}>Photos</p>
         <p className="font-sans text-[12px] text-bk-muted mb-3">Clear, in good light, all four corners visible. Nothing covered.</p>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -89,7 +102,9 @@ export default function IdentityForm({ userId }: { userId: string }) {
 
         <label className="flex items-start gap-2.5 mt-5 font-sans text-[12px] text-bk-body cursor-pointer">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 w-4 h-4 accent-[var(--bk-gold-light)]" />
-          <span>I agree that these documents are used only to verify my identity, as described below, and that I am 18 or older.</span>
+          <span>
+            I am 18 or older and I agree to how my documents and details are used, as described below: to verify my identity, and, if I am involved in fraud, to report it to the authorities.
+          </span>
         </label>
 
         {error && <p role="alert" className="text-bk-live text-[12px] mt-3">{error}</p>}
