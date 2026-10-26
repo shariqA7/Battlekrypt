@@ -888,7 +888,7 @@ Tests: `npx tsx scripts/auth-rules-test.ts` (link parsing) and the sign-in secti
 
 Level 2 of organizer trust. Level 1 is the approved organization application (`User.kycStatus`, which really means "organizer approved"). An approved **identity check** earns the Verified badge (with a paid plan) and lifts the new-organizer starter limits. Clubs do not use it. An organizer whose application was approved before this shipped keeps hosting, but their Verified badge pauses until an admin approves their ID.
 
-Run `npx prisma migrate dev` to apply `20261027100000_organizer_identity`.
+Run `npx prisma migrate dev` to apply `20261027100000_organizer_identity` and `20261028000000_identity_keep_details`.
 
 **Organizer:** Dashboard → "Verify your identity" (`/organizer/dashboard/verification`). **Admin:** Approvals → Identity checks. **Retention settings:** Admin → Organizer trust (days to keep images after approval / rejection, months a verification stays valid).
 
@@ -899,6 +899,7 @@ Run `npx prisma migrate dev` to apply `20261027100000_organizer_identity`.
 | `IDENTITY_HASH_SECRET` | Long random string (32+ chars). Keys the fingerprint of ID numbers. **Never change it once organizers have verified**, or old fingerprints stop matching. Submissions are refused until it is set. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Used ONLY by the scheduled deletion job (`lib/supabase/admin.ts`). Server-side, no `NEXT_PUBLIC_` prefix. Never expose it. |
 | `CRON_SECRET` | Authorizes the scheduled job. Vercel Cron sends it automatically. |
+| `PAYOUT_ENCRYPTION_KEY` | Already used for payout details; now also encrypts the verified ID number and address. Submissions are refused without it. |
 
 ### 2. Private storage bucket (Supabase → SQL editor)
 
@@ -925,22 +926,41 @@ on storage.objects for select to authenticated
 using (bucket_id = 'identity-documents' and public.bk_is_admin());
 ```
 
-### 3. Scheduled deletion
+### 3. Scheduled deletion of the photos
 
-`vercel.json` runs `/api/cron/identity-retention` daily at 03:00 UTC. It deletes (a) the images of decided checks past their retention date that are not "kept longer", and (b) abandoned uploads (older than 2 days and not attached to a check). If photos pass their date without being deleted, Approvals → Identity checks shows a red warning. Test it by hand:
+`vercel.json` runs `/api/cron/identity-retention` daily at 03:00 UTC. It deletes identity **photos** (never the kept details, see 4):
+
+- **Rejected** checks: `idRejectedRetentionDays` after the decision (default 7).
+- **Approved** checks: as soon as the organizer has built a track record (at least `graduationEvents` fully confirmed prize events, or an admin lifted their limits) AND they have no payout hold and no active ban; otherwise at the latest `idRetentionDays` after approval (default 365).
+- Never while an admin has set **Keep longer**, and never while a check is still pending.
+- Abandoned uploads (older than 2 days and not attached to a check).
+
+If photos pass their latest date without being deleted, Approvals → Identity checks shows a red warning. Test by hand:
 
 ```
 curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-SITE/api/cron/identity-retention
 ```
 
-### 4. What stays after the images are deleted
+### 4. What is kept, and why
 
-Status, document type, who decided and when, "18+ confirmed", the validity date, and a keyed fingerprint of the document number (used to warn an admin when the same document appears on another organizer account, especially a banned one). The typed name and number are cleared the moment an admin decides.
+If an organizer scams people we must be able to report them to the authorities. So an **approved** check keeps, for as long as the account exists (plus the retention period you set in the privacy policy once account deletion exists): the verified full name, document type, the document number and home address (the number and address are AES-256-GCM encrypted), the decision date and admin, "18+ confirmed", the validity date, and a keyed fingerprint of the number. A **rejected** check keeps only the fingerprint (typed details are cleared at the decision).
+
+Admins find an organizer under Approvals → Identity checks → "Find an organizer" (exact document number via the fingerprint, or name / organization / email). Showing the kept number and address is a separate click and is logged (`identity_details_viewed`).
+
+Checks approved BEFORE `20261028000000_identity_keep_details` only have the fingerprint (their name and number were cleared at approval, by the earlier rule). Ask those organizers to verify again if you want the full details on file.
 
 ### 5. Admin log
 
-Every opening of an image is written to `AdminActionLog` as `identity_document_viewed` (notes = which image). Decisions are logged as `identity_approved`, `identity_rejected`, `identity_retention_hold`, `identity_retention_release`.
+Every opening of an image is written to `AdminActionLog` as `identity_document_viewed` (notes = which image). Showing the kept details is logged as `identity_details_viewed`. Decisions are logged as `identity_approved`, `identity_rejected`, `identity_retention_hold`, `identity_retention_release`.
 
 ### 6. Privacy policy wording (draft: have a lawyer review before publishing)
 
-> **Identity verification (organizers).** To verify an organizer we collect a photo of a government ID (NIC or passport), a selfie holding it, the name and document number on it. We use them only to confirm that a real adult runs the organization. Only platform administrators can see them, and each viewing is logged. The photos are deleted automatically [30] days after we approve the check, or [7] days after we reject it, unless a dispute or a ban requires us to keep them longer. When they are deleted we keep the result of the check, its date, and an irreversible fingerprint of the document number, which we use to stop one person operating several organizer accounts.
+> **Identity verification (organizers).** To verify an organizer we collect a photo of a government ID (NIC or passport), a selfie holding it, and the name, document number and home address of the person. We use them to confirm that a real adult runs the organization and, if an organizer is involved in fraud, to report it to the authorities and to stop the same person opening another organizer account. Only platform administrators can see them, and each viewing is logged. The photos are deleted once the organizer has completed enough events whose winners confirmed payment, or at the latest [12] months after approval, and never while a payout problem, a ban or a dispute is open ([7] days after a rejection). After an approval we keep the verified name, address and document number (the number and address are stored encrypted) for as long as the account exists and for [3 years] afterwards, together with the result of the check, its date, and an irreversible fingerprint of the document number. We do not use them for anything else and never show them to players or other organizers.
+
+## Visit-log retention (privacy)
+
+Every session is logged with an IP address, city, browser string and (when signed in) the account. `/api/cron/visit-retention` runs daily (see `vercel.json`, needs `CRON_SECRET`) and, for visits older than `VISIT_DETAIL_RETENTION_DAYS` (90, in `lib/visit-retention.ts`), erases the IP, city, browser string and account link. The row stays as an anonymous count (day, country, region, device, page), so the traffic page and dashboard keep their history. Effects: the admin Users page shows no "last visit" for someone who has not visited in 90+ days, and "Unique IPs" on the traffic page only covers the last 90 days (its longest range anyway). Test by hand:
+
+```
+curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-SITE/api/cron/visit-retention
+```

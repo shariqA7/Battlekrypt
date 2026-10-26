@@ -1,6 +1,6 @@
 // GET  /api/organizer/identity — status of this organizer's identity check
 // POST /api/organizer/identity — submit it.
-//   Body: { docType: "nic"|"passport", fullName, documentNumber,
+//   Body: { docType: "nic"|"passport", fullName, documentNumber, address,
 //           frontPath, backPath (NIC only), selfiePath, consent: true }
 // The files are already in the private bucket (uploaded from the browser into
 // the organizer's own folder); this only records their paths.
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       docType: String(b.docType ?? ""),
       fullName: typeof b.fullName === "string" ? b.fullName : "",
       documentNumber: typeof b.documentNumber === "string" ? b.documentNumber : "",
+      address: typeof b.address === "string" ? b.address : "",
       frontPath: b.frontPath,
       backPath: b.backPath,
       selfiePath: b.selfiePath,
