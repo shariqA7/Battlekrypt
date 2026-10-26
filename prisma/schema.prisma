@@ -980,6 +980,9 @@ model Tournament {
   // the organizer must refund them directly and confirm by this date.
   cancelRefundsDueAt DateTime?
   refundsConfirmedAt DateTime?
+  // True once this event was locked (paid/prized with a registered player).
+  // Keeps the promise to its players even if the lock switch is turned off.
+  lockEnforced      Boolean  @default(false)
   changeRequests    TournamentChangeRequest[]
   prizeAwards       PrizeAward[]
 
@@ -1302,6 +1305,20 @@ model SiteSettings {
   depositRefundDays       Int      @default(30)
   // Live paid/prized events may total up to (held deposit in USD) x this.
   depositExposureMultiplier Decimal @default(5) @db.Decimal(6, 2)
+
+  // ---- Feature switches (Admin > Settings > Features). Existing behaviour is
+  // the default; "off" means NEW things stop following the feature, while
+  // promises already made to players (locked events, held deposits, existing
+  // consents) are kept. See lib/services/feature-flags.ts.
+  organizerTrustEnabled   Boolean  @default(true)
+  tournamentLockEnabled   Boolean  @default(true)
+  prizeBreakdownRequired  Boolean  @default(true)
+  specialAwardsEnabled    Boolean  @default(true)
+  entryConditionsEnabled  Boolean  @default(true)
+  challengesEnabled       Boolean  @default(true)
+  // null = follow NEXT_PUBLIC_PARENTAL_CONSENT_ENABLED (the old env switch), so
+  // existing deployments don't change until an admin flips it here.
+  guardianConsentEnabled  Boolean?
   updatedAt               DateTime @updatedAt
 }
 

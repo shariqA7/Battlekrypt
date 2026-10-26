@@ -1,3 +1,5 @@
+import FeatureOffNotice from "@/components/ui/FeatureOffNotice";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { gameVisibilityWhere } from "@/lib/game-region";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import Link from "next/link";
@@ -10,6 +12,13 @@ export default async function ChallengesPage({
 }: {
   searchParams: Promise<{ game?: string }>;
 }) {
+  if (!(await getFeatureFlags()).challenges) {
+    return (
+      <FeatureOffNotice title="Challenges are switched off">
+        Challenges aren&apos;t available right now. Challenges you already joined are still under your account.
+      </FeatureOffNotice>
+    );
+  }
   const { game } = await searchParams;
   const region = await getViewerRegion();
   const [challenges, games] = await Promise.all([

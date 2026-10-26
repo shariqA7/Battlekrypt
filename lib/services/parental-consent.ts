@@ -2,11 +2,11 @@
 // Consent belongs to the player, not a tournament: once a guardian approves, it
 // covers every tournament that asks for it until `validUntil` (one year).
 import { prisma } from "@/lib/prisma";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import {
   CONSENT_LINK_VALID_DAYS,
   CONSENT_MAX_REQUESTS_PER_DAY,
   CONSENT_VALID_DAYS,
-  parentalConsentEnabled,
 } from "@/lib/consent-config";
 import {
   childDisplayName,
@@ -67,7 +67,7 @@ export async function requestConsent(opts: {
   requestedFor?: string | null;
   origin: string;
 }) {
-  if (!parentalConsentEnabled()) return fail("consent_disabled", "Parental consent isn't switched on yet.");
+  if (!(await parentalConsentOn())) return fail("consent_disabled", "Parental consent isn't switched on yet.");
 
   const profile = await prisma.playerProfile.findUnique({
     where: { userId: opts.userId },
@@ -243,7 +243,7 @@ export type ConsentGateResult =
   | { error: "consent_required"; message: string };
 
 export async function checkConsentGate(tournamentId: string, playerId: string): Promise<ConsentGateResult> {
-  if (!parentalConsentEnabled()) return { ok: true as const };
+  if (!(await parentalConsentOn())) return { ok: true as const };
   const t = await prisma.tournament.findUnique({
     where: { id: tournamentId },
     select: { requireParentalConsent: true },
@@ -263,7 +263,7 @@ export async function checkConsentGate(tournamentId: string, playerId: string): 
 export async function consentStatusesForTournament(
   tournamentId: string
 ): Promise<Record<string, EntryConsentStatus> | null> {
-  if (!parentalConsentEnabled()) return null;
+  if (!(await parentalConsentOn())) return null;
   const t = await prisma.tournament.findUnique({
     where: { id: tournamentId },
     select: { requireParentalConsent: true },
@@ -311,7 +311,7 @@ export type JoinGateResult =
 // Run before ANY entry is created (tournament, scrim, league, challenge). Every player
 // on the entry must pass; a teammate's guardian counts the same as your own.
 export async function checkJoinGate(playerIds: string[], selfId?: string): Promise<JoinGateResult> {
-  if (!parentalConsentEnabled() || playerIds.length === 0) return { ok: true };
+  if (!(await parentalConsentOn()) || playerIds.length === 0) return { ok: true };
   const profiles = await prisma.playerProfile.findMany({
     where: { id: { in: playerIds } },
     select: { id: true, birthDate: true },
@@ -336,7 +336,7 @@ export async function checkJoinGate(playerIds: string[], selfId?: string): Promi
 // the sign-up form. Does nothing if there's no guardian email, the player isn't a minor,
 // or a request already exists, so it is safe to call on every login.
 export async function requestSignupConsent(userId: string, origin: string) {
-  if (!parentalConsentEnabled()) return { skipped: true as const };
+  if (!(await parentalConsentOn())) return { skipped: true as const };
   const profile = await prisma.playerProfile.findUnique({
     where: { userId },
     select: { id: true, guardianEmail: true, birthDate: true },

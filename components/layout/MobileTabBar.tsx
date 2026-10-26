@@ -32,7 +32,7 @@ const TABS: { label: string; href: string; icon: ReactElement; match: (p: string
   },
 ];
 
-export default function MobileTabBar() {
+export default function MobileTabBar({ showChallenges = true }: { showChallenges?: boolean }) {
   const pathname = usePathname();
   const item = "flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 font-sans text-[10px] tracking-[0.6px] uppercase transition-colors";
 
@@ -43,7 +43,7 @@ export default function MobileTabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="flex h-16">
-        {TABS.map((t) => {
+        {TABS.filter((t) => showChallenges || t.href !== "/challenges").map((t) => {
           const active = t.match(pathname);
           return (
             <Link

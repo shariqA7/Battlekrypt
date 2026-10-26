@@ -5,6 +5,7 @@ import SessionBeacon from "@/components/analytics/SessionBeacon";
 import MobileTabBar from "@/components/layout/MobileTabBar";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveBan } from "@/lib/services/bans";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 
 // Every route except (auth) lives under this group, so Nav shows
 // everywhere except the login/signup pages — which want a fully
@@ -18,6 +19,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     data: { user },
   } = await supabase.auth.getUser();
   const ban = user ? await getActiveBan(user.id) : null;
+  const featureFlags = await getFeatureFlags();
 
   return (
     <>
@@ -38,7 +40,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
       <Footer />
       {/* Phones only: fixed bottom tabs. The spacer keeps the footer from hiding behind them. */}
       <div className="md:hidden h-[calc(64px+env(safe-area-inset-bottom))]" aria-hidden="true" />
-      <MobileTabBar />
+      <MobileTabBar showChallenges={featureFlags.challenges} />
     </>
   );
 }

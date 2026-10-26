@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ageOn } from "@/lib/age";
 import { checkJoinGate } from "@/lib/services/parental-consent";
 import { minorsMissingGuardianPayout } from "@/lib/services/payout-methods";
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 
 export type AgeGateResult =
   | { ok: true }
@@ -64,7 +64,7 @@ export async function checkAgeGate(
 
   // Prizes for a minor are paid to their guardian, so a cash prize pool needs the guardian's
   // payment details on file before a minor can enter.
-  if (parentalConsentEnabled() && tournament.prizePoolAmount && Number(tournament.prizePoolAmount) > 0) {
+  if ((await parentalConsentOn()) && tournament.prizePoolAmount && Number(tournament.prizePoolAmount) > 0) {
     const missing = await minorsMissingGuardianPayout(ids);
     if (missing.length > 0) {
       return {

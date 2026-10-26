@@ -1,7 +1,7 @@
 // GET /api/tournaments/:id — full tournament detail, public
 // PATCH /api/tournaments/:id — organizer edits a draft
 import { isAgeRequirement } from "@/lib/age";
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { NextResponse } from "next/server";
 import { getTournamentById, updateTournament } from "@/lib/services/tournaments";
 import { requireOrganizer } from "@/lib/auth-helpers";
@@ -87,7 +87,7 @@ export async function PATCH(
   if (body.requireParentalConsent !== undefined && typeof body.requireParentalConsent !== "boolean") {
     return moneyError("requireParentalConsent must be true or false.");
   }
-  if (body.requireParentalConsent === true && !parentalConsentEnabled()) {
+  if (body.requireParentalConsent === true && !(await parentalConsentOn())) {
     return moneyError("Parental consent isn't switched on for this site yet.");
   }
 

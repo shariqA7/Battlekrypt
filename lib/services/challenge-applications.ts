@@ -15,7 +15,7 @@ import { cashAgeCheck } from "@/lib/challenge-integrity-rules";
 import { mainMode } from "@/lib/ranking-modes";
 import { checkJoinGate } from "@/lib/services/parental-consent";
 import { minorsMissingGuardianPayout } from "@/lib/services/payout-methods";
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { applyBlocker, selectionBlocker, type EntrantKind } from "@/lib/challenge-rules";
 import { checkChallengeInstitutionGate } from "@/lib/services/challenge-institutions";
 import { notifyNewQueueItem } from "@/lib/services/institution-notifications";
@@ -172,7 +172,7 @@ export async function applyToChallenge(userId: string, challengeId: string, inpu
 
     // Under-18s can only view until a guardian has approved. (Club team applications
     // are made by the club's owner, so this checks the person applying as a player.)
-    if (input.kind === "player" && parentalConsentEnabled()) {
+    if (input.kind === "player" && (await parentalConsentOn())) {
       const me = await prisma.playerProfile.findUnique({ where: { userId }, select: { id: true } });
       if (me) {
         const consent = await checkJoinGate([me.id], me.id);

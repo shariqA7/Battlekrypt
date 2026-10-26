@@ -1,5 +1,6 @@
 import ChangeRequestPanel from "./ChangeRequestPanel";
 import AwardWinnersPanel from "./AwardWinnersPanel";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { listEligiblePlayers } from "@/lib/services/award-winners";
 import { getLockState, listChangeRequestsFor } from "@/lib/services/change-requests";
 import { conditionsToLines } from "@/lib/entry-conditions";
@@ -71,7 +72,7 @@ export default async function ManageTournamentPage({
     redirect("/organizer/dashboard");
   }
   const registrations = result.data;
-  const [lock, changeRequests] = await Promise.all([getLockState(id), listChangeRequestsFor(id)]);
+  const [lock, changeRequests, flags] = await Promise.all([getLockState(id), listChangeRequestsFor(id), getFeatureFlags()]);
   const refundsDue = tournament.status === "cancelled" && tournament.cancelRefundsDueAt && !tournament.refundsConfirmedAt;
   const payoutRows =
     tournament.status === "completed"
@@ -119,7 +120,7 @@ export default async function ManageTournamentPage({
             tournamentId={id}
             status={tournament.status}
             submittedForReview={tournament.submittedForReview}
-            hasPrize={tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0}
+            hasPrize={tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0 && flags.tournamentLock}
           />
         </div>
         <p className="font-sans text-bk-body text-sm mb-5 pl-[19px]">Manage registrations and match rooms</p>
@@ -172,6 +173,7 @@ export default async function ManageTournamentPage({
               createdAt: r.createdAt.toISOString(),
             }))}
             refundsDueAt={refundsDue && tournament.cancelRefundsDueAt ? tournament.cancelRefundsDueAt.toISOString() : null}
+            flags={flags}
           />
         )}
 

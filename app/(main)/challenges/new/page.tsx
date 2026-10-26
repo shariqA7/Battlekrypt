@@ -1,3 +1,5 @@
+import FeatureOffNotice from "@/components/ui/FeatureOffNotice";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { gameVisibilityWhere } from "@/lib/game-region";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import { redirect } from "next/navigation";
@@ -8,6 +10,13 @@ import { getPosterRoles } from "@/lib/services/challenges";
 import ChallengeForm from "./ChallengeForm";
 
 export default async function NewChallengePage() {
+  if (!(await getFeatureFlags()).challenges) {
+    return (
+      <FeatureOffNotice title="Challenges are switched off">
+        New challenges can&apos;t be created right now.
+      </FeatureOffNotice>
+    );
+  }
   const supabase = await createClient();
   const {
     data: { user },
