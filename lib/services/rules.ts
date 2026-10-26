@@ -11,6 +11,7 @@
 //    disqualification's audit trail (spec §2) points at it.
 
 import { prisma } from "@/lib/prisma";
+import { getLockState } from "@/lib/services/change-requests";
 import {
   MAX_RULES_PER_TOURNAMENT,
   parseRuleFields,
@@ -179,13 +180,10 @@ async function loadEditableTournament(tournamentId: string, organizerId: string)
   if (!tournament) return fail("not_found");
   if (tournament.organizerId !== organizerId) return fail("forbidden");
   if (!RULES_EDITABLE_STATUSES.includes(tournament.status)) return fail("rules_locked");
-  // Paid or prized events: rules are a promise once anyone has registered.
-  const staked = tournament.entryType === "paid" || (tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount.toString()) > 0);
-  if (staked) {
-    const active = await prisma.registration.count({ where: { tournamentId, status: { in: ["pending", "approved"] } } });
-    if (active > 0) {
-      return fail("rules_locked", "Players have already registered for this paid or prized event, so its rules can't change. Ask an admin from the tournament page.");
-    }
+  // Paid or prized events: rules are a promise once anyone has registered
+  // (when the tournament lock is on, or the event was already locked).
+  if ((await getLockState(tournamentId))?.locked) {
+    return fail("rules_locked", "Players have already registered for this paid or prized event, so its rules can't change. Ask an admin from the tournament page.");
   }
   return { tournament };
 }

@@ -18,6 +18,7 @@ import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { checkOrganizerTrust, TrustLimitError, markPrizesPaid } from "@/lib/services/organizer-trust";
 import { getLockState } from "@/lib/services/change-requests";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { checkPrizeBreakdown, type AwardInput } from "@/lib/prize-awards";
 import { replacePrizeAwards, loadAwards } from "@/lib/services/prize-awards";
 import { conditionsOf } from "@/lib/entry-conditions";
@@ -309,7 +310,7 @@ export async function publishTournament(tournamentId: string, organizerId: strin
   // A prize pool must be fully described before players can see it: how many
   // teams win and how much each gets, plus any awards. (Also catches older
   // drafts that only had a total.)
-  if (tournament.prizePoolAmount && Number(tournament.prizePoolAmount) > 0) {
+  if (tournament.prizePoolAmount && Number(tournament.prizePoolAmount) > 0 && (await getFeatureFlags()).prizeBreakdown) {
     const [tierRows, awards] = await Promise.all([
       prisma.prizeTier.findMany({ where: { tournamentId } }),
       loadAwards(tournamentId),
@@ -1006,13 +1007,17 @@ export async function updateTournament(
   const data: Omit<UpdateTournamentInput, "prizeTiers" | "prizeAwards"> = { ...rest };
 
   // The prize pool, how it is split by place, and the extra awards are ONE
-  // promise to everyone who registered. Once players are in, any change goes
-  // through an admin (change request), never a direct edit. Before that, the
-  // result must still account for the whole pool.
+  // promise to everyone who registered. With the tournament lock on, any change
+  // once players are in goes through an admin (change request), not a direct
+  // edit. (The place split was always locked once players registered; the pool
+  // and awards follow the lock switch.) Before that, the result must account
+  // for the whole pool when "prize breakdown required" is on.
   {
-    const [existing, existingAwards] = await Promise.all([
+    const [existing, existingAwards, flags, lock] = await Promise.all([
       prisma.prizeTier.findMany({ where: { tournamentId }, orderBy: { positionFrom: "asc" } }),
       loadAwards(tournamentId),
+      getFeatureFlags(),
+      getLockState(tournamentId),
     ]);
     const existingTiers: PrizeTierInput[] = existing.map((r) => ({ from: r.positionFrom, to: r.positionTo, amount: Number(r.amount) }));
     const poolBefore = tournament.prizePoolAmount ? Number(tournament.prizePoolAmount) : 0;
@@ -1026,10 +1031,22 @@ export async function updateTournament(
     const poolChanged = poolAfter !== poolBefore;
     const tiersChanged = prizeTiers !== undefined && JSON.stringify(prizeTiers) !== JSON.stringify(existingTiers);
     const awardsChanged = prizeAwards !== undefined && JSON.stringify(prizeAwards) !== JSON.stringify(existingAwards);
-    if (poolChanged || tiersChanged || awardsChanged) {
-      if ((await getActiveRegistrationCount(tournamentId)) > 0) {
-        return { error: poolChanged ? ("pool_locked" as const) : ("prize_locked" as const) };
+
+    if (tiersChanged && (await getActiveRegistrationCount(tournamentId)) > 0) return { error: "prize_locked" as const };
+    if (lock?.locked) {
+      if (poolChanged) return { error: "pool_locked" as const };
+      if (awardsChanged) return { error: "prize_locked" as const };
+    }
+
+    // New awards can't be added while the feature is off (existing ones can be kept or removed).
+    if (awardsChanged && !flags.specialAwards) {
+      const known = new Set(existingAwards.map((a) => a.name.toLowerCase()));
+      if (awardsAfter.some((a) => !known.has(a.name.toLowerCase()))) {
+        return { error: "invalid_prize_tiers" as const, message: "Special awards are switched off on this site." };
       }
+    }
+
+    if ((poolChanged || tiersChanged || awardsChanged) && flags.prizeBreakdown) {
       const breakdown = checkPrizeBreakdown({ pool: poolAfter, tiers: tiersAfter, awards: awardsAfter });
       if (breakdown) return { error: "invalid_prize_tiers" as const, message: breakdown };
     }

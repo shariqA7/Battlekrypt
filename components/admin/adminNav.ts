@@ -93,6 +93,7 @@ export const ADMIN_SUBTABS: Record<string, AdminSubTab[]> = {
     { href: "/admin/settings/challenges", label: "Challenges", icon: "challenges" },
     { href: "/admin/settings/tiers", label: "Competitive tiers", icon: "tiers" },
     { href: "/admin/settings/plans", label: "Plans & ads", icon: "plans" },
+    { href: "/admin/settings/features", label: "Features", icon: "settings" },
   ],
 };
 

@@ -1,5 +1,6 @@
 // POST /api/challenges — post a challenge as a player, club or organization.
 // Plan limits (posts per month, prize cap) are enforced here, server-side.
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/player-helpers";
 import { ensureUserRecord } from "@/lib/ensure-user";
@@ -9,6 +10,12 @@ import { createChallenge } from "@/lib/services/challenges";
 export async function POST(request: Request) {
   const auth = await requireAuthenticatedUser();
   if ("response" in auth) return auth.response;
+  if (!(await getFeatureFlags()).challenges) {
+    return NextResponse.json(
+      { error: { code: "feature_off", message: "Challenges are switched off on this site." } },
+      { status: 403 }
+    );
+  }
 
   const parsed = validateChallenge(await request.json().catch(() => null));
   if ("errors" in parsed) {

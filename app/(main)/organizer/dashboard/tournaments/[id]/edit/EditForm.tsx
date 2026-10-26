@@ -9,6 +9,7 @@ import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } 
 import PrizeAwardsEditor, { awardRowsToBody, awardRowsFromAwards, type AwardRow } from "@/components/tournaments/PrizeAwardsEditor";
 import PrizeLockWarning from "@/components/tournaments/PrizeLockWarning";
 import { checkPrizeBreakdown, awardsCash } from "@/lib/prize-awards";
+import type { FeatureFlags } from "@/lib/feature-flags-shared";
 import VenuePicker, { venueToBody, toLocalInput, type VenueValue } from "@/components/tournaments/VenuePicker";
 import AgePicker from "@/components/tournaments/AgePicker";
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
@@ -44,7 +45,7 @@ interface TournamentForEdit {
   startAt: Date | null;
 }
 
-export default function EditForm({ tournament }: { tournament: TournamentForEdit }) {
+export default function EditForm({ tournament, flags }: { tournament: TournamentForEdit; flags: FeatureFlags }) {
   const router = useRouter();
   const [name, setName] = useState(tournament.name);
   const [description, setDescription] = useState(tournament.description ?? "");
@@ -103,7 +104,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         JSON.stringify(prizeRowsToBody(prizeRowsFromTiers(tournament.prizeTiers))) &&
       JSON.stringify(awardRowsToBody(awardRows)) ===
         JSON.stringify(awardRowsToBody(awardRowsFromAwards(tournament.prizeAwards)));
-    if (breakdownError && !prizeUntouched) {
+    if (flags.prizeBreakdown && breakdownError && !prizeUntouched) {
       setError(breakdownError);
       setSubmitting(false);
       return;
@@ -229,7 +230,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         }}
       />
 
-      {prizePoolAmount > 0 && <PrizeLockWarning />}
+      {prizePoolAmount > 0 && flags.tournamentLock && <PrizeLockWarning />}
 
       <PrizeSplitEditor
         rows={prizeRows}
@@ -239,7 +240,9 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         awardsCash={awardsCash(awardRowsToBody(awardRows))}
       />
 
-      <PrizeAwardsEditor rows={awardRows} onChange={setAwardRows} currency={prizePoolCurrency} />
+      {(flags.specialAwards || awardRows.length > 0) && (
+        <PrizeAwardsEditor rows={awardRows} onChange={setAwardRows} currency={prizePoolCurrency} />
+      )}
 
       <div className="mt-4">
         <TierPicker value={competitiveTier} onChange={setCompetitiveTier} />
@@ -266,6 +269,7 @@ export default function EditForm({ tournament }: { tournament: TournamentForEdit
         }}
         requireConsent={requireConsent}
         onConsentChange={setRequireConsent}
+        consentEnabled={flags.guardianConsent}
       />
 
       {error && <p className="text-bk-live text-[12px] font-sans mt-4">{error}</p>}

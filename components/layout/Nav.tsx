@@ -1,3 +1,4 @@
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -18,6 +19,8 @@ const NAV_LINKS = [
 ];
 
 export default async function Nav() {
+  const featureFlags = await getFeatureFlags();
+  const links = NAV_LINKS.filter((l) => l.href !== "/challenges" || featureFlags.challenges);
   const supabase = await createClient();
   const {
     data: { user },
@@ -68,7 +71,7 @@ export default async function Nav() {
         </div>
 
         <div className="hidden xl:block">
-          <NavLinks links={NAV_LINKS} />
+          <NavLinks links={links} />
         </div>
 
         {/* Phones and tablets: signed-in people keep their avatar menu in the bar;
@@ -86,7 +89,7 @@ export default async function Nav() {
               orgApplicationStatus={orgApplicationStatus}
             />
           )}
-          <MobileMenu links={NAV_LINKS} signedIn={!!user} />
+          <MobileMenu links={links} signedIn={!!user} />
         </div>
 
         <div className="hidden xl:flex items-center gap-3">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 
 // Site footer, from the design mockup: logo on the left, links in the middle,
 // copyright on the right. Only links to pages that exist. Support appears once
@@ -13,7 +14,8 @@ const LINKS = [
   { label: "Donate", href: "/donate" },
 ];
 
-export default function Footer() {
+export default async function Footer() {
+  const flags = await getFeatureFlags();
   const support = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
   const linkClass =
     "font-sans font-medium text-[12px] uppercase tracking-[1.4px] text-bk-body hover:text-bk-gold-light transition-colors";
@@ -25,7 +27,7 @@ export default function Footer() {
             BattleKrypt
           </Link>
           <nav aria-label="Footer" className="flex flex-wrap gap-x-7 gap-y-3 lg:justify-end">
-            {LINKS.map((l) => (
+            {LINKS.filter((l) => l.href !== "/challenges" || flags.challenges).map((l) => (
               <Link key={l.href} href={l.href} className={linkClass}>
                 {l.label}
               </Link>

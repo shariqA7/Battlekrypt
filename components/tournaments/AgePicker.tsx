@@ -1,7 +1,6 @@
 "use client";
 
 import { AGE_REQUIREMENTS, type AgeRequirement } from "@/lib/age";
-import { parentalConsentEnabled } from "@/lib/consent-config";
 
 // Youngest player allowed in (the platform's floor is 13). Shared by the
 // create and edit forms; the edit form locks it once players have registered.
@@ -11,12 +10,15 @@ export default function AgePicker({
   disabled = false,
   requireConsent = false,
   onConsentChange,
+  consentEnabled = false,
 }: {
   value: number;
   onChange: (age: AgeRequirement) => void;
   disabled?: boolean;
   requireConsent?: boolean;
   onConsentChange?: (v: boolean) => void;
+  /** Guardian consent switch (Admin > Settings > Features). */
+  consentEnabled?: boolean;
 }) {
   const btn = (active: boolean) =>
     `flex-1 h-[38px] text-[12px] font-sans uppercase tracking-[0.5px] disabled:opacity-60 ${
@@ -35,7 +37,7 @@ export default function AgePicker({
         ))}
       </div>
       {/* Only offered when the site has parental consent switched on, and only below 18. */}
-      {parentalConsentEnabled() && onConsentChange && value < 18 && (
+      {consentEnabled && onConsentChange && value < 18 && (
         <label className="flex items-start gap-3 mt-3 font-sans text-[12px] text-bk-body cursor-pointer">
           <input
             type="checkbox"

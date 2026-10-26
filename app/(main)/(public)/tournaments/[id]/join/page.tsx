@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import JoinForm from "./JoinForm";
 import ConsentPanel from "@/components/consent/ConsentPanel";
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { consentNeeded } from "@/lib/consent";
 import { getConsentStateForPlayer } from "@/lib/services/parental-consent";
 import ClubEntryPanel from "./ClubEntryPanel";
@@ -38,7 +38,7 @@ export default async function JoinTournamentPage({
   // Under-18 players need a guardian's consent when this tournament asks for it.
   // They can still register; room details and check-in unlock after approval.
   let consent: Awaited<ReturnType<typeof getConsentStateForPlayer>> | null = null;
-  if (parentalConsentEnabled() && full.requireParentalConsent) {
+  if ((await parentalConsentOn()) && full.requireParentalConsent) {
     const me = await prisma.playerProfile.findUnique({ where: { userId: user.id }, select: { id: true, birthDate: true } });
     if (me && consentNeeded(full, me.birthDate, true)) consent = await getConsentStateForPlayer(me.id);
   }

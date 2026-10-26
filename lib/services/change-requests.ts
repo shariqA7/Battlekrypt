@@ -9,10 +9,11 @@
 import { prisma } from "@/lib/prisma";
 import { parsePrizeTiers, replacePrizeTiers, type PrizeTierInput } from "@/lib/services/prize-tiers";
 import { replacePrizeAwards } from "@/lib/services/prize-awards";
-import { parsePrizeAwards, checkPrizeBreakdown, type AwardInput } from "@/lib/prize-awards";
+import { parsePrizeAwards, checkPrizeBreakdown, tiersTotal, awardsCash, type AwardInput } from "@/lib/prize-awards";
 import { getTrustConfig } from "@/lib/services/organizer-trust";
 import { asFields, parseConditionLines, type RegistrationField } from "@/lib/entry-conditions";
 import { notify, notifyMany } from "@/lib/services/notifications";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 
 const DAY_MS = 86_400_000;
 
@@ -28,14 +29,23 @@ export const LOCK_NOTICE =
   "Players have already registered for this paid or prized event, so this can't be changed directly. Ask an admin from the tournament page.";
 
 export async function getLockState(tournamentId: string) {
-  const t = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
-    select: { entryType: true, prizePoolAmount: true },
-  });
+  const [t, flags] = await Promise.all([
+    prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { entryType: true, prizePoolAmount: true, lockEnforced: true },
+    }),
+    getFeatureFlags(),
+  ]);
   if (!t) return null;
   const activeCount = await prisma.registration.count({ where: { tournamentId, status: { in: ["pending", "approved"] } } });
   const staked = t.entryType === "paid" || (t.prizePoolAmount != null && Number(t.prizePoolAmount.toString()) > 0);
-  return { staked, activeCount, locked: staked && activeCount > 0 };
+  // The switch decides whether NEW events lock; an event that was already
+  // locked stays locked even if the switch is later turned off.
+  const locked = staked && activeCount > 0 && (flags.tournamentLock || t.lockEnforced);
+  if (locked && !t.lockEnforced) {
+    await prisma.tournament.update({ where: { id: tournamentId }, data: { lockEnforced: true } }).catch(() => {});
+  }
+  return { staked, activeCount, locked };
 }
 
 async function registeredUserIds(tournamentId: string): Promise<string[]> {
@@ -78,6 +88,9 @@ export async function createChangeRequest(input: {
   if (input.kind === "prize_pool") {
     // The organizer sends the WHOLE new prize structure (pool, places, awards);
     // an admin approving it replaces the old one.
+    if (!lock.locked) {
+      return { error: "validation_error" as const, message: "The prize pool isn't locked for this event, so you can change it directly by editing the tournament." };
+    }
     const ps = input.prizeStructure;
     const amount = Number(ps?.amount);
     if (!Number.isFinite(amount) || amount <= 0) return { error: "validation_error" as const, message: "Enter the new prize pool." };
@@ -85,10 +98,19 @@ export async function createChangeRequest(input: {
     if (!tiers.ok) return { error: "validation_error" as const, message: tiers.message };
     const awards = parsePrizeAwards(ps?.awards);
     if (!awards.ok) return { error: "validation_error" as const, message: awards.message };
-    const breakdown = checkPrizeBreakdown({ pool: amount, tiers: tiers.tiers, awards: awards.awards });
+    const flags = await getFeatureFlags();
+    const breakdown = flags.prizeBreakdown
+      ? checkPrizeBreakdown({ pool: amount, tiers: tiers.tiers, awards: awards.awards })
+      : tiersTotal(tiers.tiers) + awardsCash(awards.awards) > amount + 0.005
+        ? "Places and cash awards add up to more than the prize pool."
+        : null;
     if (breakdown) return { error: "validation_error" as const, message: breakdown };
     payload = { amount, tiers: tiers.tiers, awards: awards.awards };
   } else if (input.kind === "conditions") {
+    const hasConditions = asFields(t.customFields).some((f) => f.type === "condition");
+    if (!(await getFeatureFlags()).entryConditions && !hasConditions) {
+      return { error: "validation_error" as const, message: "Entry conditions are switched off on this site." };
+    }
     const parsed = parseConditionLines(input.conditionsText ?? "");
     if (!parsed.ok) return { error: "validation_error" as const, message: parsed.message };
     payload = { conditions: parsed.fields };

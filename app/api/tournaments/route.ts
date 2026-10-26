@@ -4,10 +4,11 @@ import { getViewerRegion } from "@/lib/services/viewer-region";
 import { parseVenue } from "@/lib/venue-input";
 import { parsePrizeTiers, checkAgainstPool } from "@/lib/services/prize-tiers";
 import { parsePrizeAwards, checkPrizeBreakdown } from "@/lib/prize-awards";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { isCountryCode, isRegionKey, countryFromText } from "@/lib/geo-data";
 import { isAgeRequirement } from "@/lib/age";
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -106,8 +107,21 @@ export async function POST(request: Request) {
   if (tierError) return moneyError(tierError);
   const awards = parsePrizeAwards(body.prizeAwards);
   if (!awards.ok) return moneyError(awards.message);
+
+  // Admin feature switches: awards and conditions can only be added while on.
+  const flags = await getFeatureFlags();
+  if (!flags.specialAwards && awards.awards.length > 0) return moneyError("Special awards are switched off on this site.");
+  if (
+    !flags.entryConditions &&
+    Array.isArray(body.customFields) &&
+    body.customFields.some((f: { type?: string }) => f?.type === "condition")
+  ) {
+    return moneyError("Entry conditions are switched off on this site.");
+  }
   // The whole pool must be assigned: places + cash awards = the pool.
-  const breakdownError = checkPrizeBreakdown({ pool: money.prizePool?.amount, tiers: tiers.tiers, awards: awards.awards });
+  const breakdownError = flags.prizeBreakdown
+    ? checkPrizeBreakdown({ pool: money.prizePool?.amount, tiers: tiers.tiers, awards: awards.awards })
+    : null;
   if (breakdownError) return moneyError(breakdownError);
 
   // A valid currency can still be switched off by an admin (/admin/currencies).
@@ -147,7 +161,7 @@ export async function POST(request: Request) {
   if (body.requireParentalConsent !== undefined && typeof body.requireParentalConsent !== "boolean") {
     return moneyError("requireParentalConsent must be true or false.");
   }
-  if (body.requireParentalConsent === true && !parentalConsentEnabled()) {
+  if (body.requireParentalConsent === true && !(await parentalConsentOn())) {
     return moneyError("Parental consent isn't switched on for this site yet.");
   }
 

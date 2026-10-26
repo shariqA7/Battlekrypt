@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { tryToUsd } from "@/lib/currency-fx";
 import { notify, notifyMany } from "@/lib/services/notifications";
 import { isIdentityVerified } from "@/lib/identity";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 
 const DAY_MS = 86_400_000;
 
@@ -142,6 +143,10 @@ export async function getOrganizerTrustSummary(organizerId: string) {
   // still apply to everyone.
   const identityVerified = isIdentityVerified(organizer?.identity);
   const graduated = Boolean(organizer?.limitsLifted) || identityVerified || confirmed >= cfg.graduationEvents;
+  // Switched off: the dashboard shows no limits or holds (the admin queue still lists them).
+  if (!(await getFeatureFlags()).organizerTrust) {
+    return { cfg, graduated: true, identityVerified, limitsLifted: Boolean(organizer?.limitsLifted), confirmedEvents: confirmed, eventsNeeded: 0, holds: [] };
+  }
   return {
     cfg,
     graduated,
@@ -233,6 +238,9 @@ type TrustResult = { ok: true } | { ok: false; code: TrustErrorCode; message: st
 // real boundary — a draft made while eligible can't be published while on
 // hold). Free events with no prize are never restricted.
 export async function checkOrganizerTrust(input: TrustCheckInput): Promise<TrustResult> {
+  // Admin switch: with organizer trust off there are no starter limits, no
+  // deposit-backed cap and no payout hold when creating or publishing events.
+  if (!(await getFeatureFlags()).organizerTrust) return { ok: true };
   const paid = input.entryType === "paid" && !!input.entryFee && input.entryFee.amount > 0;
   const prized = !!input.prizePool && input.prizePool.amount > 0;
   if (!paid && !prized) return { ok: true };

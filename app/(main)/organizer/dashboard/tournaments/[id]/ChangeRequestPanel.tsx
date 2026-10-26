@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import PrizeSplitEditor, { prizeRowsToBody, prizeRowsFromTiers, type PrizeRow } from "@/components/tournaments/PrizeSplitEditor";
 import PrizeAwardsEditor, { awardRowsToBody, awardRowsFromAwards, type AwardRow } from "@/components/tournaments/PrizeAwardsEditor";
 import { awardsCash } from "@/lib/prize-awards";
+import type { FeatureFlags } from "@/lib/feature-flags-shared";
 
 interface RequestRow {
   id: string;
@@ -33,6 +34,7 @@ export default function ChangeRequestPanel({
   currentConditions,
   requests,
   refundsDueAt,
+  flags,
 }: {
   tournamentId: string;
   locked: boolean;
@@ -44,6 +46,7 @@ export default function ChangeRequestPanel({
   currentConditions: string;
   requests: RequestRow[];
   refundsDueAt: string | null;
+  flags: FeatureFlags;
 }) {
   const router = useRouter();
   const [kind, setKind] = useState(hasPrize ? "prize_pool" : "conditions");
@@ -111,6 +114,7 @@ export default function ChangeRequestPanel({
           <select value={kind} onChange={(e) => setKind(e.target.value)} className={`${box} h-[38px] mb-2`}>
             {Object.entries(KIND_LABEL)
               .filter(([k]) => k !== "prize_pool" || hasPrize)
+              .filter(([k]) => k !== "conditions" || flags.entryConditions || currentConditions.trim().length > 0)
               .map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
@@ -128,7 +132,9 @@ export default function ChangeRequestPanel({
                 currency={prizeCurrency}
                 awardsCash={awardsCash(awardRowsToBody(awardRows))}
               />
-              <PrizeAwardsEditor rows={awardRows} onChange={setAwardRows} currency={prizeCurrency} />
+              {(flags.specialAwards || awardRows.length > 0) && (
+                <PrizeAwardsEditor rows={awardRows} onChange={setAwardRows} currency={prizeCurrency} />
+              )}
               <p className="font-sans text-[11px] text-bk-muted mt-2 mb-2">
                 Send the complete new prize structure. If an admin approves it, it replaces the old one and every registered player is told.
               </p>

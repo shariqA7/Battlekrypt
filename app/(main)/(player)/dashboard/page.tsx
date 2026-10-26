@@ -11,7 +11,7 @@ import Stat from "@/components/ui/Stat";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/Button";
 import ConsentPanel from "@/components/consent/ConsentPanel";
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { consentNeeded } from "@/lib/consent";
 import { getConsentStateForPlayer } from "@/lib/services/parental-consent";
 import { redirect } from "next/navigation";
@@ -93,7 +93,7 @@ export default async function PlayerDashboard() {
 
   // One consent state for the player; shown under each registration that asks for it.
   const consent =
-    parentalConsentEnabled() && playerProfile?.birthDate && registrations.some((r) => r.tournament.requireParentalConsent)
+    (await parentalConsentOn()) && playerProfile?.birthDate && registrations.some((r) => r.tournament.requireParentalConsent)
       ? await getConsentStateForPlayer(playerProfile.id)
       : null;
   const needsConsent = (r: Reg) =>

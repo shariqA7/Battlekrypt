@@ -1,4 +1,5 @@
-import { parentalConsentEnabled } from "@/lib/consent-config";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
+import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
 import { countryName } from "@/lib/geo-data";
 import { toPublicTournament } from "@/lib/services/venue";
@@ -47,6 +48,7 @@ export default async function TournamentDetailPage({
   const cta = ctaFor(tournament, tournament._count.registrations);
   const hasPrize = !!tournament.prizePoolAmount;
   const prizeCurrency = tournament.prizePoolCurrency ?? "PKR";
+  const featureFlags = await getFeatureFlags();
 
   // Display names of special-award winners (set by the organizer after the event).
   const winnerIds = tournament.prizeAwards.flatMap((a) => (a.winnerUserId ? [a.winnerUserId] : []));
@@ -89,7 +91,7 @@ export default async function TournamentDetailPage({
             {tournament.venueType === "hybrid" && <Badge tone="neutral">Hybrid · online + LAN</Badge>}
             {tournament.audienceScope === "institution" && <Badge tone="amber">Students only</Badge>}
             {tournament.minAge > 13 && <Badge tone="amber">{tournament.minAge}+ only</Badge>}
-            {parentalConsentEnabled() && tournament.requireParentalConsent && <Badge tone="neutral">Under 18: parental consent</Badge>}
+            {(await parentalConsentOn()) && tournament.requireParentalConsent && <Badge tone="neutral">Under 18: parental consent</Badge>}
             {tournament.country && <Badge tone="neutral">{countryName(tournament.country)}</Badge>}
           </div>
 
@@ -236,7 +238,7 @@ export default async function TournamentDetailPage({
           <aside className="min-w-0 flex flex-col gap-6 lg:self-start">
             <PrizeDistribution tiers={tournament.prizeTiers} currency={prizeCurrency} />
             <PrizeAwardsList awards={tournament.prizeAwards} currency={prizeCurrency} winnerNames={winnerNames} />
-            {tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0 && (
+            {tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0 && (featureFlags.tournamentLock || tournament.lockEnforced) && (
               <p className="font-sans text-[11px] text-bk-muted -mt-3">
                 The prize pool and its split are locked once players register — the organizer can only change them with admin approval.
               </p>

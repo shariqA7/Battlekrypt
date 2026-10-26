@@ -1,3 +1,4 @@
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getTournamentById } from "@/lib/services/tournaments";
@@ -44,6 +45,7 @@ export default async function EditTournamentPage({
           prizeTiers: tournament.prizeTiers.map((t) => ({ positionFrom: t.positionFrom, positionTo: t.positionTo, amount: Number(t.amount) })),
           prizeAwards: tournament.prizeAwards.map((a) => ({ name: a.name, cashAmount: a.cashAmount == null ? null : Number(a.cashAmount), prizeText: a.prizeText })),
         }}
+        flags={await getFeatureFlags()}
       />
       </Panel>
     </main>
