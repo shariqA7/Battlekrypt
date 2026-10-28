@@ -4,19 +4,23 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isValidEmail, normalizeEmail } from "@/lib/validation/auth";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
+import { captchaCheck, verifyCaptcha } from "@/lib/captcha";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const email = normalizeEmail(body.email);
 
-  const byIp = rateLimit(`forgot-ip:${clientIp(request.headers)}`, 10, 60 * 60 * 1000);
-  const byEmail = rateLimit(`forgot-email:${email}`, 3, 60 * 60 * 1000);
+  const byIp = await rateLimit(`forgot-ip:${clientIp(request.headers)}`, 10, 60 * 60 * 1000);
+  const byEmail = await rateLimit(`forgot-email:${email}`, 3, 60 * 60 * 1000);
   if (!byIp.allowed || !byEmail.allowed) {
     return NextResponse.json(
       { ok: false, checks: tooManyChecks(Math.max(byIp.retryAfterSec, byEmail.retryAfterSec)) },
       { status: 429 }
     );
   }
+
+  const human = await verifyCaptcha(body.captchaToken, clientIp(request.headers));
+  if (!human.ok) return NextResponse.json({ ok: false, checks: [captchaCheck(human)] }, { status: 400 });
 
   const valid = isValidEmail(email);
   const checks = [{ id: "email", ok: valid, message: "Email address is valid" }];

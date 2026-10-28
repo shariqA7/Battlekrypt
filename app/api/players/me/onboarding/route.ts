@@ -9,7 +9,7 @@ export async function PATCH(request: Request) {
   const auth = await requireAuthenticatedUser();
   if ("response" in auth) return auth.response;
 
-  const limit = rateLimit(`onboarding:${auth.user.id}`, 60, 60 * 60 * 1000);
+  const limit = await rateLimit(`onboarding:${auth.user.id}`, 60, 60 * 60 * 1000);
   if (!limit.allowed) {
     return NextResponse.json({ ok: false, checks: tooManyChecks(limit.retryAfterSec) }, { status: 429 });
   }

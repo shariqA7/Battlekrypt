@@ -8,6 +8,7 @@ import ResultPanel, { CrossIcon, TickIcon, type PanelCheck } from "@/components/
 import SocialLogin, { OrDivider } from "@/components/auth/SocialLogin";
 import AuthStageRail from "@/components/auth/AuthStageRail";
 import ResendConfirmation from "@/components/auth/ResendConfirmation";
+import Turnstile, { captchaRequired } from "@/components/auth/Turnstile";
 import { Checkbox, PasswordField, SelectField, TextField, Label, fieldClass } from "@/components/auth/fields";
 import DobField from "@/components/auth/DobField";
 import { COUNTRY_LIST } from "@/components/auth/country-list";
@@ -38,6 +39,8 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [marketingEmail, setMarketingEmail] = useState(false);
 
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [checks, setChecks] = useState<PanelCheck[] | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -78,11 +81,12 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
         body: JSON.stringify({
           email, firstName, lastName, username, password, confirmPassword, country, birthDate,
           dialCountry: phone ? dialCountry : "", phone, guardianEmail: isMinor ? guardianEmail : "",
-          acceptTerms, acceptPrivacy, marketingEmail, redirectTo,
+          acceptTerms, acceptPrivacy, marketingEmail, redirectTo, captchaToken,
         }),
       });
       const data = await res.json();
       setChecks(data.checks);
+      setCaptchaReset((n) => n + 1); // a human-check token works once
       if (data.ok && data.status === "confirm_email") {
         setSentTo(data.email);
         window.scrollTo({ top: 0 });
@@ -223,7 +227,8 @@ export default function SignupForm({ twitchEnabled }: { twitchEnabled: boolean }
             </Checkbox>
           </div>
 
-          <button type="submit" disabled={submitting} className={buttonClass("primary", "lg", "w-full rounded-xl")}>
+          <Turnstile onToken={setCaptchaToken} resetKey={captchaReset} />
+          <button type="submit" disabled={submitting || (captchaRequired && !captchaToken)} className={buttonClass("primary", "lg", "w-full rounded-xl")}>
             {submitting ? "Creating account..." : "Create account"}
           </button>
         </form>

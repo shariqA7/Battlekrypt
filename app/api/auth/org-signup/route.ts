@@ -10,9 +10,10 @@ import { validateOrgApplication } from "@/lib/validation/org-application";
 import { allOk, coerceOrgAccount, orgAccountChecks, TERMS_VERSION } from "@/lib/validation/auth";
 import { SIGNUP_META_KEY } from "@/lib/signup-profile";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
+import { captchaCheck, verifyCaptcha } from "@/lib/captcha";
 
 export async function POST(request: Request) {
-  const limit = rateLimit(`org-signup:${clientIp(request.headers)}`, 8, 60 * 60 * 1000);
+  const limit = await rateLimit(`org-signup:${clientIp(request.headers)}`, 8, 60 * 60 * 1000);
   if (!limit.allowed) {
     return NextResponse.json({ ok: false, checks: tooManyChecks(limit.retryAfterSec) }, { status: 429 });
   }
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
   if (!body) {
     return NextResponse.json({ ok: false, checks: [{ id: "body", ok: false, message: "Something went wrong. Please try again." }] }, { status: 400 });
   }
+
+  const human = await verifyCaptcha(body.captchaToken, clientIp(request.headers));
+  if (!human.ok) return NextResponse.json({ ok: false, checks: [captchaCheck(human)] }, { status: 400 });
 
   const account = coerceOrgAccount(body);
   const checks = orgAccountChecks(account);

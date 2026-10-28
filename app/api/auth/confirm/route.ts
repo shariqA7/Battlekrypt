@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   const origin = new URL(request.url).origin;
   const see = (path: string) => NextResponse.redirect(`${origin}${path}`, 303);
 
-  if (!rateLimit(`confirm:${clientIp(request.headers)}`, 20, 15 * 60 * 1000).allowed) {
+  if (!(await rateLimit(`confirm:${clientIp(request.headers)}`, 20, 15 * 60 * 1000)).allowed) {
     return see("/login?error=too_many");
   }
 

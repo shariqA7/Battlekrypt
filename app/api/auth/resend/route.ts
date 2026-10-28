@@ -5,16 +5,20 @@ import { createClient } from "@/lib/supabase/server";
 import { isValidEmail, normalizeEmail } from "@/lib/validation/auth";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/safe-redirect";
+import { captchaCheck, verifyCaptcha } from "@/lib/captcha";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const email = normalizeEmail(body.email);
 
-  const byIp = rateLimit(`resend-ip:${clientIp(request.headers)}`, 10, 60 * 60 * 1000);
-  const byEmail = rateLimit(`resend-email:${email}`, 3, 60 * 60 * 1000);
+  const byIp = await rateLimit(`resend-ip:${clientIp(request.headers)}`, 10, 60 * 60 * 1000);
+  const byEmail = await rateLimit(`resend-email:${email}`, 3, 60 * 60 * 1000);
   if (!byIp.allowed || !byEmail.allowed) {
     return NextResponse.json({ ok: false, checks: tooManyChecks(Math.max(byIp.retryAfterSec, byEmail.retryAfterSec)) }, { status: 429 });
   }
+
+  const human = await verifyCaptcha(body.captchaToken, clientIp(request.headers));
+  if (!human.ok) return NextResponse.json({ ok: false, checks: [captchaCheck(human)] }, { status: 400 });
 
   if (!isValidEmail(email)) {
     return NextResponse.json({ ok: false, checks: [{ id: "email", ok: false, message: "Email address is valid" }] }, { status: 400 });

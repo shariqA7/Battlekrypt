@@ -5,7 +5,7 @@ import { withdrawConsent } from "@/lib/services/parental-consent";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
-  if (!rateLimit(`consent-manage:${clientIp(request.headers)}`, 20, 60 * 60 * 1000).allowed) {
+  if (!(await rateLimit(`consent-manage:${clientIp(request.headers)}`, 20, 60 * 60 * 1000)).allowed) {
     return NextResponse.json({ error: { code: "rate_limit", message: "Too many attempts. Please wait a while." } }, { status: 429 });
   }
   const { token } = await params;

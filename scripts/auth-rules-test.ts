@@ -1,7 +1,7 @@
 // Plain script (no framework): npx tsx scripts/auth-rules-test.ts
 import { readSignupMetadata, buildSignupMetadata, SIGNUP_META_KEY } from "../lib/signup-profile";
 import { safeRedirect } from "../lib/safe-redirect";
-import { rateLimit } from "../lib/rate-limit";
+import { memoryRateLimit as rateLimit } from "../lib/rate-limit";
 import { parseConfirmParams, isRecovery } from "../lib/auth-confirm";
 import { toE164, DIAL_CODES } from "../lib/dial-codes";
 import { COUNTRIES } from "../lib/geo-data";
