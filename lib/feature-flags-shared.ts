@@ -8,6 +8,7 @@ export interface FeatureFlags {
   entryConditions: boolean;
   challenges: boolean;
   guardianConsent: boolean;
+  playerReports: boolean;
 }
 
 export type FeatureKey = keyof FeatureFlags;
@@ -48,6 +49,12 @@ export const FEATURE_ROWS: { key: FeatureKey; label: string; on: string; off: st
     label: "Challenges",
     on: "Players and organizers can browse and create challenges.",
     off: "The challenges list and 'create' pages are hidden and no new challenge can be created. Challenges already open or in progress keep working for the people involved.",
+  },
+  {
+    key: "playerReports",
+    label: "Player reports",
+    on: "Players who took part in a paid or prized event can report its organizer. Enough reports pause the organizer's new paid registrations and events until an admin reviews.",
+    off: "The report button is hidden and no new reports can be filed. Existing reports and pauses stay for admins to handle.",
   },
   {
     key: "guardianConsent",

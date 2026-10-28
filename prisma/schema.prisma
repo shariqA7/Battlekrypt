@@ -350,6 +350,11 @@ model OrganizerProfile {
   // Admin override: skips the new-organizer starter limits (NOT the payout
   // hold). See lib/services/organizer-trust.ts.
   limitsLifted Boolean @default(false)
+  // Set when enough players reported this organizer: new paid registrations and
+  // new paid or prized events are paused until an admin lifts it.
+  reportsPausedAt     DateTime?
+  reportsPauseReason  String?
+  reports             OrganizerReport[]
   deposits     SecurityDeposit[]
   identity     IdentityVerification?
   bio         String?
@@ -985,6 +990,7 @@ model Tournament {
   lockEnforced      Boolean  @default(false)
   changeRequests    TournamentChangeRequest[]
   prizeAwards       PrizeAward[]
+  reports           OrganizerReport[]
 
   competitiveTier CompetitiveTier @default(none)
 
@@ -1319,6 +1325,8 @@ model SiteSettings {
   // null = follow NEXT_PUBLIC_PARENTAL_CONSENT_ENABLED (the old env switch), so
   // existing deployments don't change until an admin flips it here.
   guardianConsentEnabled  Boolean?
+  // Players can report an organizer; enough reports pause its new paid registrations.
+  playerReportsEnabled    Boolean  @default(true)
   updatedAt               DateTime @updatedAt
 }
 
@@ -2069,6 +2077,8 @@ model OrganizerTrustConfig {
   // Days after completion before an unpaid/unconfirmed payout puts the
   // organizer on hold, and before an unanswered "I paid" is treated as accepted.
   payoutGraceDays       Int      @default(7)
+  // Distinct players reporting an organizer (last 30 days) before its paid events are paused.
+  reportPauseThreshold  Int      @default(3)
   // Identity documents (see IdentityVerification): the MOST days the photos of
   // an approved check are kept (they go sooner once the organizer has built a
   // track record), how long a rejected one's are kept, and how long an
@@ -2277,6 +2287,50 @@ model IdentityVerification {
 
   @@index([idNumberHash])
   @@index([status, purgeAfter])
+}
+
+// ------------------------------------------------------------
+// PLAYER REPORTS AGAINST ORGANIZERS
+// ------------------------------------------------------------
+// A player who took part in a staked (paid or prized) event can report the
+// organizer. Enough distinct reporters in 30 days pause the organizer's new
+// paid registrations and new paid or prized events (OrganizerProfile.reportsPausedAt)
+// until an admin reviews. The platform never holds the money, so reports lead to
+// a pause, a decision and optionally a ban, not a refund.
+
+enum ReportKind {
+  rejected_after_paying // paid, but was rejected
+  not_delivered         // the event didn't happen or the organizer vanished
+  refund_not_received   // event cancelled, no refund
+  misleading            // fake or misleading event
+  other
+}
+
+enum ReportStatus {
+  open
+  upheld
+  dismissed
+}
+
+model OrganizerReport {
+  id             String           @id @default(uuid())
+  organizerId    String
+  organizer      OrganizerProfile @relation(fields: [organizerId], references: [id])
+  tournamentId   String
+  tournament     Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  reporterUserId String
+  kind           ReportKind
+  description    String
+
+  status       ReportStatus @default(open)
+  adminNote    String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  @@index([organizerId, status])
+  @@index([reporterUserId, createdAt])
+  @@index([tournamentId])
 }
 
 // ------------------------------------------------------------

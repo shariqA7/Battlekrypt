@@ -20,6 +20,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     challenges: s?.challengesEnabled ?? true,
     // Unset means "follow the old environment switch" so nothing changes by surprise.
     guardianConsent: s?.guardianConsentEnabled ?? parentalConsentEnabled(),
+    playerReports: s?.playerReportsEnabled ?? true,
   };
 }
 
@@ -41,6 +42,7 @@ const COLUMN: Record<keyof FeatureFlags, string> = {
   entryConditions: "entryConditionsEnabled",
   challenges: "challengesEnabled",
   guardianConsent: "guardianConsentEnabled",
+  playerReports: "playerReportsEnabled",
 };
 
 export async function updateFeatureFlags(adminId: string, input: Partial<Record<keyof FeatureFlags, unknown>>) {

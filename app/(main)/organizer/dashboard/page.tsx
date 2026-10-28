@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getMyTournaments } from "@/lib/services/tournaments";
 import { countPendingCoHostInvites } from "@/lib/services/institutions";
 import { getOrganizerTrustSummary, HOLD_REASON_TEXT } from "@/lib/services/organizer-trust";
+import { getOrganizerPause } from "@/lib/services/organizer-reports";
 import { getIdentityForOrganizer } from "@/lib/services/identity";
 import Link from "next/link";
 import { Badge, TierBadge } from "@/components/ui/Badge";
@@ -45,6 +46,8 @@ export default async function OrganizerDashboard() {
   const tournaments = await getMyTournaments(organizerProfile.id);
   const pendingInvites = await countPendingCoHostInvites(organizerProfile.id);
   const trust = await getOrganizerTrustSummary(organizerProfile.id);
+  const reportsPause = await getOrganizerPause(organizerProfile.id);
+  const openReports = await prisma.organizerReport.count({ where: { organizerId: organizerProfile.id, status: "open" } });
   const identity = await getIdentityForOrganizer(organizerProfile.id);
   const idState = identity?.state ?? "none";
 
@@ -101,6 +104,19 @@ export default async function OrganizerDashboard() {
                 ? "see what to fix and submit again."
                 : "earn your Verified badge (with a paid plan) and lift the new-organizer limits."}
           </Link>
+        )}
+
+        {reportsPause.paused && (
+          <p className="bg-bk-live/[0.12] text-bk-live font-sans text-[12px] px-3 py-2 mb-6">
+            Your new paid registrations and new paid or prized events are paused while an admin reviews player reports
+            {reportsPause.reason ? ` (${reportsPause.reason})` : ""}. Events already running are not affected. Contact support to resolve it.
+          </p>
+        )}
+        {!reportsPause.paused && openReports > 0 && (
+          <p className="bg-bk-amber/[0.12] text-bk-amber font-sans text-[12px] px-3 py-2 mb-6">
+            {openReports} player report{openReports === 1 ? "" : "s"} about your events {openReports === 1 ? "is" : "are"} waiting for an admin.
+            Check that registrations, refunds and prizes are in order. Several reports pause your new paid events automatically.
+          </p>
         )}
 
         {trust.holds.length > 0 && (

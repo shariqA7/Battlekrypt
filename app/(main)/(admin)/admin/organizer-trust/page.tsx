@@ -33,6 +33,7 @@ export default async function AdminOrganizerTrustPage() {
           starterMaxPaidEntrants: cfg.starterMaxPaidEntrants,
           graduationEvents: cfg.graduationEvents,
           payoutGraceDays: cfg.payoutGraceDays,
+          reportPauseThreshold: cfg.reportPauseThreshold,
           idRetentionDays: cfg.idRetentionDays,
           idRejectedRetentionDays: cfg.idRejectedRetentionDays,
           idValidityMonths: cfg.idValidityMonths,

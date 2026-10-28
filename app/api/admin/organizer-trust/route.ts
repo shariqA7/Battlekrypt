@@ -13,6 +13,7 @@ export async function PUT(request: Request) {
     starterMaxPaidEntrants: Number(b.starterMaxPaidEntrants),
     graduationEvents: Number(b.graduationEvents),
     payoutGraceDays: Number(b.payoutGraceDays),
+    reportPauseThreshold: Number(b.reportPauseThreshold),
     idRetentionDays: Number(b.idRetentionDays),
     idRejectedRetentionDays: Number(b.idRejectedRetentionDays),
     idValidityMonths: Number(b.idValidityMonths),

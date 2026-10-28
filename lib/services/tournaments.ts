@@ -19,6 +19,7 @@ import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { checkOrganizerTrust, TrustLimitError, markPrizesPaid } from "@/lib/services/organizer-trust";
 import { getLockState } from "@/lib/services/change-requests";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
+import { getOrganizerPause } from "@/lib/services/organizer-reports";
 import { checkPrizeBreakdown, type AwardInput } from "@/lib/prize-awards";
 import { replacePrizeAwards, loadAwards } from "@/lib/services/prize-awards";
 import { conditionsOf } from "@/lib/entry-conditions";
@@ -544,6 +545,11 @@ export async function registerForTournament(input: RegisterInput) {
         ? ("unpaid" as const) // stays unpaid until organizer verifies the screenshot
         : null;
 
+  // An organizer paused after player reports takes no NEW paid registrations
+  // until an admin reviews (existing registrations are untouched).
+  if (tournament.entryType === "paid" && (await getOrganizerPause(tournament.organizerId)).paused) {
+    return { error: "organizer_paused" as const };
+  }
   if (tournament.entryType === "paid" && !input.paymentProofUrl) {
     return { error: "payment_proof_required" as const };
   }
