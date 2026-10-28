@@ -6,7 +6,7 @@ import { allOk, resetChecks } from "@/lib/validation/auth";
 import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
-  const limit = rateLimit(`reset:${clientIp(request.headers)}`, 10, 60 * 60 * 1000);
+  const limit = await rateLimit(`reset:${clientIp(request.headers)}`, 10, 60 * 60 * 1000);
   if (!limit.allowed) {
     return NextResponse.json({ ok: false, checks: tooManyChecks(limit.retryAfterSec) }, { status: 429 });
   }

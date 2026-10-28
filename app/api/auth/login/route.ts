@@ -16,8 +16,8 @@ export async function POST(request: Request) {
   const redirectTo = safeRedirect(typeof body.redirectTo === "string" ? body.redirectTo : null);
 
   const ip = clientIp(request.headers);
-  const byIp = rateLimit(`login-ip:${ip}`, 30, 15 * 60 * 1000);
-  const byAccount = rateLimit(`login-acct:${email}`, 8, 15 * 60 * 1000);
+  const byIp = await rateLimit(`login-ip:${ip}`, 30, 15 * 60 * 1000);
+  const byAccount = await rateLimit(`login-acct:${email}`, 8, 15 * 60 * 1000);
   if (!byIp.allowed || !byAccount.allowed) {
     const wait = Math.max(byIp.retryAfterSec, byAccount.retryAfterSec);
     return NextResponse.json({ ok: false, checks: tooManyChecks(wait) }, { status: 429 });

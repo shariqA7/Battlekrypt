@@ -10,9 +10,10 @@ import { clientIp, rateLimit, tooManyChecks } from "@/lib/rate-limit";
 import { safeRedirect } from "@/lib/safe-redirect";
 import { requestSignupConsent } from "@/lib/services/parental-consent";
 import { needsOnboarding } from "@/lib/services/onboarding";
+import { captchaCheck, verifyCaptcha } from "@/lib/captcha";
 
 export async function POST(request: Request) {
-  const limit = rateLimit(`signup:${clientIp(request.headers)}`, 8, 60 * 60 * 1000);
+  const limit = await rateLimit(`signup:${clientIp(request.headers)}`, 8, 60 * 60 * 1000);
   if (!limit.allowed) {
     return NextResponse.json({ ok: false, checks: tooManyChecks(limit.retryAfterSec) }, { status: 429 });
   }
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+  const human = await verifyCaptcha(body.captchaToken, clientIp(request.headers));
+  if (!human.ok) return NextResponse.json({ ok: false, checks: [captchaCheck(human)] }, { status: 400 });
+
   const input = coerceSignup(body);
   const redirectTo = safeRedirect(typeof body.redirectTo === "string" ? body.redirectTo : null);
 

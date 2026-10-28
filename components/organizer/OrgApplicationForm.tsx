@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ResultPanel, { type PanelCheck } from "@/components/auth/ResultPanel";
+import Turnstile, { captchaRequired } from "@/components/auth/Turnstile";
 import { PasswordField } from "@/components/auth/fields";
 import { passwordChecks } from "@/lib/validation/auth";
 import Link from "next/link";
@@ -129,6 +130,10 @@ export default function OrgApplicationForm({
   const [checks, setChecks] = useState<PanelCheck[] | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaReset, setCaptchaReset] = useState(0);
+  // The human check guards the account creation (signed-out "create" path); the other paths are for people already signed in.
+  const needsCaptcha = captchaRequired && mode === "create" && !loggedIn;
   const [submitting, setSubmitting] = useState(false);
 
   // Blocked until the cooldown from the last rejection ends (the server
@@ -215,9 +220,10 @@ export default function OrgApplicationForm({
       const res = await fetch("/api/auth/org-signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, confirmPassword, acceptTerms, acceptPrivacy, application: v }),
+        body: JSON.stringify({ email, password, confirmPassword, acceptTerms, acceptPrivacy, application: v, captchaToken }),
       });
       const out = await res.json();
+      setCaptchaReset((n) => n + 1); // a human-check token works once
       setChecks(out.checks ?? null);
       if (out.fieldErrors) setErrors(out.fieldErrors);
       if (!out.ok) {
@@ -381,9 +387,10 @@ export default function OrgApplicationForm({
         </p>
       )}
 
+      {needsCaptcha && <Turnstile onToken={setCaptchaToken} resetKey={captchaReset} />}
       <button
         type="submit"
-        disabled={submitting || blocked}
+        disabled={submitting || blocked || (needsCaptcha && !captchaToken)}
         className="mt-6 w-full bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-3 disabled:opacity-50"
       >
         {submitting ? "Submitting…" : mode === "resubmit" ? "Resubmit for review" : "Submit for review"}

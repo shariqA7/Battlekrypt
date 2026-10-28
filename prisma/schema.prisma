@@ -2278,3 +2278,21 @@ model IdentityVerification {
   @@index([idNumberHash])
   @@index([status, purgeAfter])
 }
+
+// ------------------------------------------------------------
+// RATE LIMIT BUCKET — counters for the sign-in / sign-up / email routes (lib/rate-limit.ts).
+// Kept in Postgres so every server instance sees the same counts; an in-memory counter only
+// slows a script down per server. Keys are hashed (they contain emails and IP addresses)
+// and rows expire on their own.
+// ------------------------------------------------------------
+
+model RateLimitBucket {
+  keyHash   String
+  // floor(time / window): one row per key per time window.
+  bucket    BigInt
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@id([keyHash, bucket])
+  @@index([expiresAt])
+}
