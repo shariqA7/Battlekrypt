@@ -7,6 +7,7 @@ import MobileMenu from "@/components/layout/MobileMenu";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import NavLinks from "@/components/layout/NavLinks";
 import SearchBox from "@/components/layout/SearchBox";
+import NavFrame from "@/components/layout/NavFrame";
 import { buttonClass } from "@/components/ui/Button";
 
 const NAV_LINKS = [
@@ -62,7 +63,7 @@ export default async function Nav() {
     // The full bar (inline search + five links + buttons) needs ~1200px, so
     // anything narrower than xl gets the menu button and drawer instead.
     <nav className="nav-safe bg-bk-bg-nav border-b border-bk-border-nav">
-      <div className="max-w-[1400px] mx-auto h-16 flex items-center justify-between gap-4">
+      <NavFrame>
         <div className="flex items-center gap-8 min-w-0">
           <Link href="/" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight shrink-0">
             BattleKrypt
@@ -92,7 +93,7 @@ export default async function Nav() {
           <MobileMenu links={links} signedIn={!!user} />
         </div>
 
-        <div className="hidden xl:flex items-center gap-3">
+        <div className="hidden xl:flex items-center gap-3 xl:justify-self-end">
           <ThemeToggle />
           {!user ? (
             <>
@@ -127,7 +128,7 @@ export default async function Nav() {
             </>
           )}
         </div>
-      </div>
+      </NavFrame>
     </nav>
   );
 }

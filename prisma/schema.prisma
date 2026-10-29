@@ -373,6 +373,19 @@ model OrganizerProfile {
   country String?
   region  String?
 
+  // Contact and registration details. Filled when an admin adds the organization
+  // directly (an organization that applied keeps these on its application, see
+  // OrganizationApplication). All optional.
+  orgType            String?
+  registrationNumber String?
+  website            String?
+  city               String?
+  address            String?
+  contactEmail       String?
+  contactPhone       String?
+  // Set when an admin created this organization instead of it applying.
+  createdByAdminId   String?
+
   tournaments    Tournament[]
   gameRequests   GameRequest[]
   templates      TournamentTemplate[]
@@ -1810,6 +1823,12 @@ model Institution {
   verified     Boolean   @default(false)
   verifiedAt   DateTime?
   verifiedById String?
+
+  // Kind of institute (school, college, university, academy, other) and the
+  // photo of its registration or affiliation document, stored in the private
+  // identity-documents bucket (<ownerUserId>/<file>). Set when an admin adds it.
+  kind      String?
+  proofPath String?
 
   createdAt DateTime @default(now())
 

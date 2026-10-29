@@ -711,3 +711,15 @@ export async function countPendingCoHostInvites(organizerId: string): Promise<nu
   ]);
   return tournaments + challenges;
 }
+
+// An institute's registration document (private bucket). Logs WHO opened it, then hands back
+// the storage path; the browser signs it with the admin's own login, same as ID photos.
+export async function requestInstituteProofView(id: string, adminId: string): Promise<Result<{ path: string }>> {
+  const row = await prisma.institution.findUnique({ where: { id }, select: { proofPath: true } });
+  if (!row) return { error: "not_found" };
+  if (!row.proofPath) return { error: "no_file" };
+  await prisma.adminActionLog.create({
+    data: { adminId, action: "institute_proof_viewed", targetType: "Institution", targetId: id },
+  });
+  return { data: { path: row.proofPath } };
+}

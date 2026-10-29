@@ -151,7 +151,7 @@ export default function AdminShell({
         aria-label="Admin sidebar"
       >
         {/* Sticks while the page scrolls. Scrolls too, just without a visible scrollbar. */}
-        <div className="sticky top-0 max-h-dvh overflow-y-auto overflow-x-hidden no-scrollbar pb-6">
+        <div className="sticky top-0 max-h-[calc(100dvh_-_4rem)] overflow-y-auto overflow-x-hidden no-scrollbar pb-6">
           <div className={`flex items-center h-12 ${collapsed ? "justify-center" : "justify-end pr-2"}`}>
             <button
               type="button"
@@ -169,7 +169,7 @@ export default function AdminShell({
       </aside>
 
       <div className="min-w-0 flex-1 py-6 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-6">
-        <div className="w-full max-w-[1400px] mx-auto">
+        <div className="w-full">
           {/* Breadcrumb bar (+ menu button on phones) */}
           <div className="flex items-center gap-3 mb-6 pb-3 border-b border-bk-border-soft">
             <button
