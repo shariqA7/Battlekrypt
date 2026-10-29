@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyRegistrations } from "@/lib/services/tournaments";
+import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { listPlayerInvites, getPlayerMembership } from "@/lib/services/club-roster";
 import ClubInvites from "./ClubInvites";
 import Link from "next/link";
@@ -33,11 +34,13 @@ const PAYMENT_NOTE: Record<string, string> = {
 
 type Reg = Awaited<ReturnType<typeof getMyRegistrations>>[number];
 
-function RegistrationCard({ r }: { r: Reg }) {
+function RegistrationCard({ r, canReport = false }: { r: Reg; canReport?: boolean }) {
   const status = REG_STATUS[r.status];
   const t = r.tournament;
+  const staked = t.entryType === "paid" || (t.prizePoolAmount != null && Number(t.prizePoolAmount) > 0);
   const live = t.status === "in_progress";
   return (
+    <div>
     <Link
       href={`/tournaments/${t.slug}`}
       className="group block bg-bk-surface border border-bk-border p-4 transition-colors hover:border-bk-gold-from hover:bg-bk-surface-hover"
@@ -67,10 +70,19 @@ function RegistrationCard({ r }: { r: Reg }) {
         </p>
       )}
     </Link>
+    {canReport && staked && (
+      <p className="font-sans text-[11px] mt-1">
+        <Link href={`/reports/new?tournamentId=${t.id}`} className="text-bk-muted underline">
+          Report a problem with this event
+        </Link>
+      </p>
+    )}
+    </div>
   );
 }
 
 export default async function PlayerDashboard() {
+  const reportsOn = (await getFeatureFlags()).playerReports;
   const supabase = await createClient();
   const {
     data: { user },
@@ -154,7 +166,7 @@ export default async function PlayerDashboard() {
               <div className="flex flex-col gap-3">
                 {current.map((r) => (
                   <div key={r.id} className="flex flex-col gap-2">
-                    <RegistrationCard r={r} />
+                    <RegistrationCard r={r} canReport={reportsOn} />
                     {needsConsent(r) && consent && (
                       <ConsentPanel
                         state={consent.state}
@@ -172,7 +184,7 @@ export default async function PlayerDashboard() {
                 <p className="font-sans font-bold text-[11px] uppercase tracking-[1.6px] text-bk-muted mt-8 mb-3">Past tournaments</p>
                 <div className="flex flex-col gap-3">
                   {past.map((r) => (
-                    <RegistrationCard key={r.id} r={r} />
+                    <RegistrationCard key={r.id} r={r} canReport={reportsOn} />
                   ))}
                 </div>
               </>

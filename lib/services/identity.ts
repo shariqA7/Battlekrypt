@@ -422,9 +422,17 @@ export async function purgeDueIdentityFiles(removeFiles: (paths: string[]) => Pr
 // Every path still referenced by a record, so the job can find abandoned uploads
 // (a file uploaded but never submitted, or replaced by a resubmission).
 export async function referencedIdentityPaths(): Promise<Set<string>> {
-  const rows = await prisma.identityVerification.findMany({
-    where: { purgedAt: null },
-    select: { frontPath: true, backPath: true, selfiePath: true },
-  });
-  return new Set(rows.flatMap((r) => [r.frontPath, r.backPath, r.selfiePath]).filter((p): p is string => Boolean(p)));
+  const [rows, institutes] = await Promise.all([
+    prisma.identityVerification.findMany({
+      where: { purgedAt: null },
+      select: { frontPath: true, backPath: true, selfiePath: true },
+    }),
+    // An institute's registration document lives in the same bucket, so it must count as
+    // referenced or the abandoned-upload sweep would delete it after two days.
+    prisma.institution.findMany({ where: { proofPath: { not: null } }, select: { proofPath: true } }),
+  ]);
+  return new Set([
+    ...rows.flatMap((r) => [r.frontPath, r.backPath, r.selfiePath]),
+    ...institutes.map((i) => i.proofPath),
+  ].filter((p): p is string => Boolean(p)));
 }

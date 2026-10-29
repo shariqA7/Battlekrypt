@@ -18,10 +18,11 @@ import { tryToUsd } from "@/lib/currency-fx";
 import { notify, notifyMany } from "@/lib/services/notifications";
 import { isIdentityVerified } from "@/lib/identity";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
+import { getOrganizerPause } from "@/lib/services/organizer-reports";
 
 const DAY_MS = 86_400_000;
 
-export type TrustErrorCode = "payout_hold" | "starter_limit" | "fx_unavailable";
+export type TrustErrorCode = "payout_hold" | "starter_limit" | "fx_unavailable" | "reports_pause";
 
 export class TrustLimitError extends Error {
   readonly code: TrustErrorCode;
@@ -44,22 +45,23 @@ export async function updateTrustConfig(input: {
   starterMaxPaidEntrants: number;
   graduationEvents: number;
   payoutGraceDays: number;
+  reportPauseThreshold: number;
   idRetentionDays: number;
   idRejectedRetentionDays: number;
   idValidityMonths: number;
 }) {
   const { starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d } = input;
-  const { idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: valid } = input;
-  if (![fee, prize, n, g, d, keep, keepRejected, valid].every((v) => Number.isFinite(v) && v >= 0)) {
+  const { idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: valid, reportPauseThreshold: rp } = input;
+  if (![fee, prize, n, g, d, keep, keepRejected, valid, rp].every((v) => Number.isFinite(v) && v >= 0)) {
     return { error: "validation_error" as const, message: "Every value must be a number, zero or more." };
   }
-  if (![n, g, d, keep, keepRejected, valid].every(Number.isInteger)) {
+  if (![n, g, d, keep, keepRejected, valid, rp].every(Number.isInteger)) {
     return { error: "validation_error" as const, message: "Entrants, events and days must be whole numbers." };
   }
   const data = await prisma.organizerTrustConfig.upsert({
     where: { id: "default" },
-    update: { starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d, idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: Math.max(1, valid) },
-    create: { id: "default", starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d, idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: Math.max(1, valid) },
+    update: { starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d, reportPauseThreshold: rp, idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: Math.max(1, valid) },
+    create: { id: "default", starterMaxEntryFeeUsd: fee, starterMaxPrizeUsd: prize, starterMaxPaidEntrants: n, graduationEvents: g, payoutGraceDays: d, reportPauseThreshold: rp, idRetentionDays: keep, idRejectedRetentionDays: keepRejected, idValidityMonths: Math.max(1, valid) },
   });
   return { data };
 }
@@ -238,12 +240,25 @@ type TrustResult = { ok: true } | { ok: false; code: TrustErrorCode; message: st
 // real boundary — a draft made while eligible can't be published while on
 // hold). Free events with no prize are never restricted.
 export async function checkOrganizerTrust(input: TrustCheckInput): Promise<TrustResult> {
-  // Admin switch: with organizer trust off there are no starter limits, no
-  // deposit-backed cap and no payout hold when creating or publishing events.
-  if (!(await getFeatureFlags()).organizerTrust) return { ok: true };
   const paid = input.entryType === "paid" && !!input.entryFee && input.entryFee.amount > 0;
   const prized = !!input.prizePool && input.prizePool.amount > 0;
   if (!paid && !prized) return { ok: true };
+
+  // Player reports: an organizer paused after enough reports can't create or
+  // publish new paid or prized events until an admin lifts it (independent of
+  // the organizer-trust switch).
+  const pause = await getOrganizerPause(input.organizerId);
+  if (pause.paused) {
+    return {
+      ok: false,
+      code: "reports_pause",
+      message: "Your paid and prized events are paused while an admin reviews player reports. Contact support to resolve it.",
+    };
+  }
+
+  // Admin switch: with organizer trust off there are no starter limits, no
+  // deposit-backed cap and no payout hold when creating or publishing events.
+  if (!(await getFeatureFlags()).organizerTrust) return { ok: true };
 
   const s = await getOrganizerTrustSummary(input.organizerId);
 

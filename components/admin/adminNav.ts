@@ -35,6 +35,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     items: [
       { href: "/admin/approvals", label: "Approvals", icon: "approvals", badgeFromSubTabs: true },
       { href: "/admin/change-requests", label: "Change requests", icon: "changeRequests", badgeKeys: ["changeRequests"] },
+      { href: "/admin/reports", label: "Player reports", icon: "reports", badgeKeys: ["playerReports"] },
       { href: "/admin/institutions", label: "Institutions", icon: "institutions", badgeKeys: ["institutions"] },
       { href: "/admin/institution-proofs", label: "ID photos", icon: "idPhotos" },
       { href: "/admin/organizer-trust", label: "Organizer trust", icon: "organizerTrust" },
@@ -130,8 +131,11 @@ export function adminCrumbs(pathname: string): Crumb[] {
     const known =
       ADMIN_NAV_ITEMS.find((i) => i.href === href) ??
       Object.values(ADMIN_SUBTABS).flat().find((t) => t.href === href);
+    // A record id in the address (a UUID) reads as "Details", not as the id itself.
     const label = known
       ? known.label
+      : /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg)
+      ? "Details"
       : decodeURIComponent(seg).replace(/[-_]+/g, " ").replace(/^\w/, (c) => c.toUpperCase());
     crumbs.push({ label, href });
   }

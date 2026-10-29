@@ -1,60 +1,60 @@
 import { requireAdminPage } from "@/lib/admin-page";
-import { listOrganizations } from "@/lib/services/admin-analytics";
+import { prisma } from "@/lib/prisma";
+import { ADMIN_PAGE_SIZE } from "@/lib/admin-paging";
+import { listOrganizationsPage } from "@/lib/services/admin-organizations";
+import { listPlans } from "@/lib/services/plan-requests";
+import { listPlanFields, describeExtras } from "@/lib/services/plan-fields";
+import { getTrustConfig } from "@/lib/services/organizer-trust";
+import { describeLimits, PAID_PERKS } from "@/lib/plan-copy";
+import { formatMoney } from "@/lib/money";
 import { Stat } from "@/components/admin/charts";
 import { SectionHeading } from "@/components/ui/Panel";
-import { listPlans } from "@/lib/services/plan-requests";
-import AddOrganizationForm from "./AddOrganizationForm";
-import AssignPlan from "./AssignPlan";
+import OrganizationsList from "./OrganizationsList";
+import AddOrganizationSheet, { type PlanCardData, type StarterRules } from "./AddOrganizationSheet";
 
 export default async function AdminOrganizationsPage() {
   await requireAdminPage();
-  const [{ organizers, applications }, allPlans] = await Promise.all([listOrganizations(), listPlans({ audience: "organizer" })]);
-  const plans = allPlans.map((p) => ({ code: p.code, name: p.name, isPaid: p.isPaid }));
-  const n = (s: string) => applications.find((a) => a.status === s)?._count ?? 0;
+  const [initial, allPlans, fields, cfg, institutes, pending, rejected, total, unverified] = await Promise.all([
+    listOrganizationsPage({ q: "", cursor: null, limit: ADMIN_PAGE_SIZE }),
+    listPlans({ audience: "organizer", activeOnly: true }),
+    listPlanFields("organizer"),
+    getTrustConfig(),
+    prisma.institution.count(),
+    prisma.organizationApplication.count({ where: { status: "pending" } }),
+    prisma.organizationApplication.count({ where: { status: "rejected" } }),
+    prisma.organizerProfile.count(),
+    prisma.institution.count({ where: { verified: false } }),
+  ]);
+
+  const plans: PlanCardData[] = allPlans.map((p) => ({
+    code: p.code,
+    name: p.name,
+    isPaid: p.isPaid,
+    price: p.isPaid && p.priceAmount !== null && p.priceCurrency ? formatMoney(p.priceAmount, p.priceCurrency) : null,
+    days: p.durationDays,
+    deposit: p.depositAmount && p.priceCurrency ? formatMoney(p.depositAmount, p.priceCurrency) : null,
+    perks: [...describeLimits("organizer", p.limits), ...(p.isPaid ? PAID_PERKS : []), ...describeExtras(fields, p.extras).map((e) => `${e.label}: ${e.value}`)],
+  }));
+  const starter: StarterRules = {
+    maxEntryFeeUsd: Number(cfg.starterMaxEntryFeeUsd.toString()),
+    maxPrizeUsd: Number(cfg.starterMaxPrizeUsd.toString()),
+    maxPaidEntrants: cfg.starterMaxPaidEntrants,
+    graduationEvents: cfg.graduationEvents,
+  };
 
   return (
     <div className="space-y-5">
-      <SectionHeading>Organizations</SectionHeading>
-      <AddOrganizationForm plans={plans} />
-      <div className="grid grid-cols-1 min-[420px]:grid-cols-3 gap-3">
-        <Stat label="Approved" value={organizers.length} />
-        <Stat label="Pending review" value={n("pending")} />
-        <Stat label="Rejected (fixing)" value={n("rejected")} />
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <SectionHeading>Organizations</SectionHeading>
+        <AddOrganizationSheet plans={plans} starter={starter} />
       </div>
-      <div className="overflow-x-auto border border-bk-border">
-        <table className="w-full font-sans text-[12px]">
-          <thead className="bg-bk-surface text-bk-muted text-left uppercase tracking-[0.6px] text-[10px]">
-            <tr>
-              <th className="px-3 py-2">Organization</th>
-              <th className="px-3 py-2">Owner</th>
-              <th className="px-3 py-2">Plan</th>
-              <th className="px-3 py-2">Plan until</th>
-              <th className="px-3 py-2">Tournaments</th>
-              <th className="px-3 py-2">Members</th>
-              <th className="px-3 py-2">Since</th>
-              <th className="px-3 py-2">Plan</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-bk-border">
-            {organizers.map((o) => (
-              <tr key={o.id}>
-                <td className="px-3 py-2 text-bk-heading">{o.orgName}</td>
-                <td className="px-3 py-2 text-bk-muted">{o.user.email ?? "no email"}</td>
-                <td className="px-3 py-2 text-bk-gold-light">{o.planCode.replace("organizer_", "")}</td>
-                <td className="px-3 py-2 text-bk-muted">
-                  {o.planCode === "organizer_free" ? "—" : o.planExpiresAt ? o.planExpiresAt.toLocaleDateString("en-GB") : "No expiry"}
-                </td>
-                <td className="px-3 py-2">{o._count.tournaments}</td>
-                <td className="px-3 py-2">{o._count.members}</td>
-                <td className="px-3 py-2 text-bk-muted">{o.createdAt.toLocaleDateString()}</td>
-                <td className="px-3 py-2">
-                  <AssignPlan organizerId={o.id} currentPlan={o.planCode} plans={plans} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Stat label="Organizations & institutes" value={total} hint={`${institutes} institute${institutes === 1 ? "" : "s"}`} />
+        <Stat label="Pending review" value={pending} />
+        <Stat label="Rejected (fixing)" value={rejected} />
+        <Stat label="Institutes to verify" value={unverified} />
       </div>
+      <OrganizationsList initial={initial} />
     </div>
   );
 }

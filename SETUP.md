@@ -919,6 +919,13 @@ create policy "organizers upload own identity documents"
 on storage.objects for insert to authenticated
 with check (bucket_id = 'identity-documents' and (storage.foldername(name))[1] = auth.uid()::text);
 
+-- admins may upload into ANY folder: used when an admin adds an organization or institute and
+-- does the identity check for the organizer (Admin → Organizations → Add). Insert only; no delete.
+drop policy if exists "admins upload identity documents" on storage.objects;
+create policy "admins upload identity documents"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'identity-documents' and public.bk_is_admin());
+
 -- admins can open a file (the app only offers this on Approvals → Identity checks and logs every view)
 drop policy if exists "admins read identity documents" on storage.objects;
 create policy "admins read identity documents"

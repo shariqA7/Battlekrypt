@@ -10,6 +10,7 @@ interface Config {
   starterMaxPaidEntrants: number;
   graduationEvents: number;
   payoutGraceDays: number;
+  reportPauseThreshold: number;
   idRetentionDays: number;
   idRejectedRetentionDays: number;
   idValidityMonths: number;
@@ -27,6 +28,7 @@ const FIELDS: { key: keyof Config; label: string; hint: string }[] = [
   { key: "starterMaxPaidEntrants", label: "Max paid entrants", hint: "Capacity of a paid event" },
   { key: "graduationEvents", label: "Events to graduate", hint: "Prize events with every winner confirming" },
   { key: "payoutGraceDays", label: "Payout grace (days)", hint: "Before an unpaid or disputed payout blocks new events" },
+  { key: "reportPauseThreshold", label: "Reports before a pause", hint: "Different players reporting one organizer in 30 days; 0 turns the automatic pause off" },
   { key: "idRetentionDays", label: "Keep ID photos at most (days, after approval)", hint: "Deleted sooner once the organizer has enough confirmed-paid events; never while a payout hold, ban or keep-longer applies. The verified name, number and address are kept." },
   { key: "idRejectedRetentionDays", label: "Keep ID photos after rejection (days)", hint: "Then photos are deleted (the typed details are cleared at once)" },
   { key: "idValidityMonths", label: "Identity check valid for (months)", hint: "After that the organizer verifies again" },

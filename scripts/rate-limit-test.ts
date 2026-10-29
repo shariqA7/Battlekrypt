@@ -9,6 +9,12 @@ const W = 60_000; // one-minute windows
 const T0 = Math.floor(1_900_000_000_000 / W) * W; // the exact start of a window
 
 async function main() {
+  // The limiter randomly (1 in 100 hits) deletes counters whose window is over. This test uses
+  // timestamps in 2030, so a purge triggered by a later "now" can delete counters it is about
+  // to inspect: the test failed about 1 run in 14. Switch the random purge off; the purge itself
+  // is still tested directly below (purgeExpiredBuckets).
+  Math.random = () => 0.5;
+
   // ---- basics
   const r = [];
   for (let i = 0; i < 4; i++) r.push(await rateLimit("t-basic", 3, W, T0 + i * 100));

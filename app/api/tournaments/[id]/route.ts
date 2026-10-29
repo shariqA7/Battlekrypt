@@ -150,7 +150,7 @@ export async function PATCH(
       { status: 409 }
     );
   }
-  if (result.error === "payout_hold" || result.error === "starter_limit") {
+  if (result.error === "payout_hold" || result.error === "starter_limit" || result.error === "reports_pause") {
     return NextResponse.json({ error: { code: result.error, message: result.message } }, { status: 409 });
   }
   if (result.error === "fx_unavailable") {
