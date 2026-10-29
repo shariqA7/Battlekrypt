@@ -3,7 +3,9 @@
 //   body: { userId, type, orgName, country?, bio?, orgType?, registrationNumber?, website?, city?, address?,
 //           contactEmail?, contactPhone?, institute?: { kind, verified, proofPath },
 //           kyc?: { docType, fullName, documentNumber, address, frontPath, backPath, selfiePath, checked },
-//           planCode?, duration?, liftLimits?, sendSetupEmail? }
+//           planCode?, duration?, liftLimits?, sendSetupEmail?,
+//           invoice?: { planCode?, planAmount?, currency?, includeSecurityFee?, securityFeeAmount?, dueDate?, taxRate?, note? } }
+//   invoice: bill the organization instead of giving the plan for free (the plan starts when the invoice is paid).
 //   sendSetupEmail: the account was just created for this person, so email them the link to choose a password.
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-helpers";
@@ -67,6 +69,19 @@ export async function POST(request: Request) {
     planCode: str(b.planCode) || undefined,
     duration: b.duration,
     liftLimits: b.liftLimits === true,
+    invoice:
+      b.invoice && typeof b.invoice === "object"
+        ? {
+            planCode: str(b.invoice.planCode) || null,
+            planAmount: typeof b.invoice.planAmount === "number" ? b.invoice.planAmount : null,
+            currency: str(b.invoice.currency),
+            includeSecurityFee: b.invoice.includeSecurityFee === true,
+            securityFeeAmount: typeof b.invoice.securityFeeAmount === "number" ? b.invoice.securityFeeAmount : null,
+            dueDate: b.invoice.dueDate,
+            taxRate: typeof b.invoice.taxRate === "number" ? b.invoice.taxRate : null,
+            note: str(b.invoice.note) ?? null,
+          }
+        : null,
   });
 
   if ("error" in result) {

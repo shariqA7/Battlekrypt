@@ -9,10 +9,11 @@ import FileUpload from "@/components/ui/FileUpload";
 import Avatar from "@/components/ui/Avatar";
 import { buttonClass } from "@/components/ui/Button";
 import { DOC_LABEL, ID_BUCKET, type DocType } from "@/lib/identity";
+import { LAUNCH_CURRENCIES } from "@/lib/money";
 import type { UserHit, INSTITUTE_KINDS } from "@/lib/services/admin-organizations";
 import type { getUserForOrganizer } from "@/lib/services/admin-organizations";
 
-export type PlanCardData = { code: string; name: string; isPaid: boolean; price: string | null; days: number; deposit: string | null; perks: string[] };
+export type PlanCardData = { code: string; name: string; isPaid: boolean; price: string | null; days: number; deposit: string | null; priceAmount: number | null; priceCurrency: string | null; depositAmount: number | null; perks: string[] };
 export type StarterRules = { maxEntryFeeUsd: number; maxPrizeUsd: number; maxPaidEntrants: number; graduationEvents: number };
 type UserDetail = NonNullable<Awaited<ReturnType<typeof getUserForOrganizer>>>;
 type Kind = (typeof INSTITUTE_KINDS)[number];
@@ -94,6 +95,18 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
   const kycRequired = isInst;
   const kycActive = kycRequired || doKyc;
   const plan = plans.find((p) => p.code === planCode);
+
+  // ---- billing: create an invoice instead of giving the plan free ----
+  const [bill, setBill] = useState(false);
+  const [invCurrency, setInvCurrency] = useState("PKR");
+  const [invPlanAmount, setInvPlanAmount] = useState("");
+  const [invSecFee, setInvSecFee] = useState(true);
+  const [invSecAmount, setInvSecAmount] = useState("");
+  const [invHasDue, setInvHasDue] = useState(false);
+  const [invDue, setInvDue] = useState("");
+  const [invTax, setInvTax] = useState("");
+  const planPriceHere = plan?.isPaid && plan.priceAmount !== null && plan.priceCurrency === invCurrency ? plan.priceAmount : null;
+  const depositHere = plan?.isPaid && plan.depositAmount !== null && plan.priceCurrency === invCurrency ? plan.depositAmount : null;
   const dirty = step > 0 || user !== null || person.name !== "" || person.email !== "" || org.name !== "";
 
   function reset() {
@@ -110,6 +123,14 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
     setProof("");
     setDoKyc(false);
     setKyc(blankKyc);
+    setBill(false);
+    setInvCurrency("PKR");
+    setInvPlanAmount("");
+    setInvSecFee(true);
+    setInvSecAmount("");
+    setInvHasDue(false);
+    setInvDue("");
+    setInvTax("");
     setPlanCode(plans.find((p) => !p.isPaid)?.code ?? "");
     setDuration(DEFAULT_DURATION);
     setLift(false);
@@ -196,7 +217,13 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
 
   async function submit() {
     if (!userId) return;
-    if (plan?.isPaid && duration.choice === "permanent" && !confirm("Give this plan with no expiry date?")) return;
+    if (!bill && plan?.isPaid && duration.choice === "permanent" && !confirm("Give this plan with no expiry date?")) return;
+    if (bill) {
+      if (!plan?.isPaid && !invSecFee) return setError("An invoice needs a paid plan, a security fee, or both.");
+      if (plan?.isPaid && planPriceHere === null && !(Number(invPlanAmount) > 0)) return setError(`Enter the plan amount in ${invCurrency}.`);
+      if (invSecFee && depositHere === null && !(Number(invSecAmount) > 0)) return setError("Enter the security fee amount.");
+      if (invHasDue && !invDue) return setError("Pick the due date, or untick “Set a due date”.");
+    }
     setBusy(true);
     setError(null);
     const res = await fetch("/api/admin/organizations", {
@@ -219,8 +246,19 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
         kyc: kycActive
           ? { docType: kyc.docType, fullName: kyc.fullName, documentNumber: kyc.documentNumber, address: kyc.address, frontPath: kyc.front, backPath: kyc.docType === "nic" ? kyc.back : null, selfiePath: kyc.selfie, checked: kyc.checked }
           : undefined,
-        planCode: plan?.isPaid ? plan.code : undefined,
-        duration: plan?.isPaid ? toPlanDuration(duration) : undefined,
+        planCode: !bill && plan?.isPaid ? plan.code : undefined,
+        duration: !bill && plan?.isPaid ? toPlanDuration(duration) : undefined,
+        invoice: bill
+          ? {
+              planCode: plan?.isPaid ? plan.code : null,
+              planAmount: plan?.isPaid && planPriceHere === null ? Number(invPlanAmount) : null,
+              currency: invCurrency,
+              includeSecurityFee: invSecFee,
+              securityFeeAmount: invSecFee && depositHere === null ? Number(invSecAmount) : null,
+              dueDate: invHasDue ? invDue : null,
+              taxRate: invTax.trim() === "" ? null : Number(invTax),
+            }
+          : undefined,
         liftLimits: lift,
         sendSetupEmail: newAccount,
       }),
@@ -230,7 +268,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
     if (!res.ok) return setError(body.error?.message ?? "Something went wrong.");
     setDone({
       id: body.organizerId,
-      emailNote: newAccount ? (body.setupEmailSent ? `An email to choose a password was sent to ${person.email}.` : `The email to choose a password could not be sent to ${person.email}. Ask them to use “Forgot password”.`) : "",
+      emailNote: `${body.invoice ? `Invoice ${body.invoice.number} was created and sent to them. ` : ""}${body.invoiceError ? `The invoice could not be created (${body.invoiceError}) — create it from Admin > Invoices. ` : ""}` + (newAccount ? (body.setupEmailSent ? `An email to choose a password was sent to ${person.email}.` : `The email to choose a password could not be sent to ${person.email}. Ask them to use “Forgot password”.`) : ""),
     });
     router.refresh();
   }
@@ -489,7 +527,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
             {step === 2 && (
               <div>
                 <p className="font-sans font-bold text-[13px] text-bk-heading mt-4">Choose a plan</p>
-                <p className="font-sans text-[12px] text-bk-muted">Given free of charge: no payment is recorded and no security deposit is collected.</p>
+                <p className="font-sans text-[12px] text-bk-muted">{bill ? "The plan starts when you mark the invoice paid." : "Given free of charge: no payment is recorded and no security deposit is collected. Tick “Bill this organization” below to send an invoice instead."}</p>
                 <div className="grid gap-3 mt-3" role="radiogroup" aria-label="Plan">
                   {plans.map((p) => (
                     <button
@@ -516,12 +554,76 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                     </button>
                   ))}
                 </div>
-                {plan?.isPaid && (
+                {plan?.isPaid && !bill && (
                   <div className="mt-3">
                     <p className="font-sans text-[11px] text-bk-muted mb-1">How long should it last?</p>
                     <DurationPicker value={duration} onChange={setDuration} />
                   </div>
                 )}
+
+                <div className="mt-4 border border-bk-border bg-bk-surface p-3">
+                  <label className="flex items-start gap-2 font-sans text-[13px] text-bk-heading cursor-pointer">
+                    <input type="checkbox" checked={bill} onChange={(e) => setBill(e.target.checked)} className="mt-0.5" />
+                    <span>
+                      Bill this organization (create an invoice)
+                      <span className="block text-[12px] text-bk-muted">They pay and upload a screenshot; you mark it paid and the plan starts.</span>
+                    </span>
+                  </label>
+                  {bill && (
+                    <div className="mt-3 space-y-3 font-sans text-[12px]">
+                      <div className="flex flex-wrap items-end gap-3">
+                        <label className="block">
+                          <span className="block text-bk-muted mb-1">Currency</span>
+                          <select value={invCurrency} onChange={(e) => setInvCurrency(e.target.value)} className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px]">
+                            {LAUNCH_CURRENCIES.map((c) => <option key={c}>{c}</option>)}
+                          </select>
+                        </label>
+                        {plan?.isPaid && (
+                          <label className="block">
+                            <span className="block text-bk-muted mb-1">Plan amount</span>
+                            {planPriceHere !== null ? (
+                              <span className="block h-[36px] leading-[36px] font-mono text-bk-heading">{planPriceHere.toLocaleString()} {invCurrency}</span>
+                            ) : (
+                              <input type="number" min={1} step="any" value={invPlanAmount} onChange={(e) => setInvPlanAmount(e.target.value)} placeholder={`Amount in ${invCurrency}`} className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px] w-40" />
+                            )}
+                          </label>
+                        )}
+                        <label className="block">
+                          <span className="block text-bk-muted mb-1">Tax % (blank = default)</span>
+                          <input type="number" min={0} max={100} step="any" value={invTax} onChange={(e) => setInvTax(e.target.value)} className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px] w-28" />
+                        </label>
+                      </div>
+                      {plan?.isPaid && planPriceHere === null && (
+                        <p className="text-bk-muted">{plan.name} is priced in {plan.priceCurrency ?? "another currency"}; enter its amount in {invCurrency}.</p>
+                      )}
+                      <div>
+                        <label className="flex items-center gap-2 text-bk-heading cursor-pointer">
+                          <input type="checkbox" checked={invSecFee} onChange={(e) => setInvSecFee(e.target.checked)} />
+                          Include a refundable security fee
+                        </label>
+                        {invSecFee && (
+                          <div className="mt-2 pl-6">
+                            {depositHere !== null ? (
+                              <span className="font-mono text-bk-heading">{depositHere.toLocaleString()} {invCurrency}</span>
+                            ) : (
+                              <input type="number" min={1} step="any" value={invSecAmount} onChange={(e) => setInvSecAmount(e.target.value)} placeholder={`Security fee in ${invCurrency}`} className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px] w-48" />
+                            )}
+                            <p className="text-bk-muted mt-1">Held for them, refundable later, and never counted as income.</p>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="flex items-center gap-2 text-bk-heading cursor-pointer">
+                          <input type="checkbox" checked={invHasDue} onChange={(e) => setInvHasDue(e.target.checked)} />
+                          Set a due date
+                        </label>
+                        {invHasDue && (
+                          <input type="date" value={invDue} onChange={(e) => setInvDue(e.target.value)} className="mt-2 ml-6 bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px]" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="mt-6 border border-bk-border bg-bk-surface p-3">
                   <label className="flex items-start gap-2 font-sans text-[13px] text-bk-heading cursor-pointer">
@@ -551,7 +653,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                     ["Adding", `${org.name} (${isInst ? `institute${kind ? `, ${KIND_LABEL[kind as Kind].toLowerCase()}` : ""}` : "organization"})`],
                     ["Owner", person.name ? `${person.name} · ${person.email}` : "—"],
                     ["Identity check", kycActive ? "Done by you" : "Skipped"],
-                    ["Plan", plan ? plan.name : "—"],
+                    ["Plan", plan ? `${plan.name}${bill ? " (billed by invoice)" : ""}` : "—"],
                   ].map(([k, v]) => (
                     <div key={k} className="min-w-0">
                       <dt className="text-bk-muted">{k}</dt>

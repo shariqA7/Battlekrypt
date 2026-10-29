@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { createInvoiceForApprovedApplication } from "@/lib/services/invoices";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { orgNameKey } from "@/lib/org-name";
 import { cooldownMs } from "@/lib/org-resubmit";
@@ -212,6 +213,13 @@ export async function approveApplication(id: string, adminId: string) {
       data: { adminId, action: "approved_org_application", targetType: "OrganizationApplication", targetId: id },
     }),
   ]);
+  // Bill the plan the applicant picked. Best-effort: a billing problem must never undo the
+  // approval — the admin can still create the invoice from Admin > Invoices.
+  try {
+    await createInvoiceForApprovedApplication(app.userId, app.plan, adminId);
+  } catch (e) {
+    console.error("invoice for approved application failed", e);
+  }
   return { data: { id } };
 }
 

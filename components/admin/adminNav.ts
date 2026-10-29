@@ -53,6 +53,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Money",
     items: [
       { href: "/admin/plans", label: "Plans", icon: "plans" },
+      { href: "/admin/invoices", label: "Invoices", icon: "payments", badgeKeys: ["invoices"] },
       { href: "/admin/payments", label: "Payments", icon: "payments" },
       { href: "/admin/deposits", label: "Deposits", icon: "deposits" },
       { href: "/admin/currencies", label: "Currencies", icon: "currencies" },
@@ -94,6 +95,7 @@ export const ADMIN_SUBTABS: Record<string, AdminSubTab[]> = {
     { href: "/admin/settings/challenges", label: "Challenges", icon: "challenges" },
     { href: "/admin/settings/tiers", label: "Competitive tiers", icon: "tiers" },
     { href: "/admin/settings/plans", label: "Plans & ads", icon: "plans" },
+    { href: "/admin/settings/billing", label: "Billing", icon: "payments" },
     { href: "/admin/settings/features", label: "Features", icon: "settings" },
   ],
 };

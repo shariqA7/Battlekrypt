@@ -356,6 +356,7 @@ model OrganizerProfile {
   reportsPauseReason  String?
   reports             OrganizerReport[]
   deposits     SecurityDeposit[]
+  invoices     Invoice[]
   identity     IdentityVerification?
   bio         String?
   socialLinks Json?
@@ -1340,6 +1341,14 @@ model SiteSettings {
   guardianConsentEnabled  Boolean?
   // Players can report an organizer; enough reports pause its new paid registrations.
   playerReportsEnabled    Boolean  @default(true)
+
+  // ---- Invoicing (Admin > Invoices). The gateway switch is OFF until a payment gateway is
+  // wired in: invoices are then paid by screenshot proof and an admin marks them paid.
+  paymentGatewayEnabled   Boolean  @default(false)
+  // Default tax on new invoices, in percent. Each invoice stores its own rate, so changing
+  // this never alters an invoice that was already issued.
+  invoiceTaxRate          Decimal  @default(0) @db.Decimal(5, 2)
+  invoiceTaxLabel         String   @default("Tax")
   updatedAt               DateTime @updatedAt
 }
 
@@ -2368,4 +2377,161 @@ model RateLimitBucket {
 
   @@id([keyHash, bucket])
   @@index([expiresAt])
+}
+
+
+// ------------------------------------------------------------
+// INVOICES + ADMIN PAYMENT METHODS
+// ------------------------------------------------------------
+
+enum PaymentMethodType {
+  bank
+  wallet
+  crypto
+  other
+}
+
+// Where an organization can send money for an invoice while the payment gateway is off.
+// Admin-managed (Admin > Settings > Payment methods). A method that was used is never deleted,
+// only switched off, so old payments keep pointing at it.
+model PaymentMethod {
+  id   String            @id @default(uuid())
+  type PaymentMethodType
+  name String // "Meezan Bank", "JazzCash", "USDT (BNB Chain)"
+
+  // Currencies it can receive, e.g. ["PKR"] or ["USD"]. Empty = any.
+  currencies String[] @default([])
+
+  // bank
+  bankName      String?
+  accountTitle  String?
+  accountNumber String?
+  iban          String?
+  branch        String?
+  swiftCode     String?
+  // wallet (Easypaisa, JazzCash…): provider is `name`; the number is `walletNumber`.
+  walletNumber  String?
+  // crypto
+  cryptoAsset   String? // "USDT", "BTC"
+  cryptoNetwork String? // "BNB Smart Chain (BEP20)", "TRON (TRC20)"
+  cryptoAddress String?
+  cryptoMemo    String? // memo / tag, for networks that need one
+
+  instructions String?
+  isActive     Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoices Invoice[]
+
+  @@index([isActive, sortOrder])
+}
+
+enum InvoiceStatus {
+  unpaid
+  proof_submitted
+  paid
+  cancelled
+}
+
+enum InvoiceSource {
+  admin_added
+  application_approved
+  admin_manual
+}
+
+enum InvoiceLineKind {
+  plan
+  security_deposit
+  other
+}
+
+// One bill to an organization. "Overdue" is not stored: it is an unpaid invoice whose dueDate has
+// passed, worked out when it is read. dueDate = null means the admin chose not to set one.
+// Amounts are in `currency`, which is fixed once the invoice is issued.
+//
+// Ledger-ready: every invoice keeps its subtotal (income), tax and gateway fee separately, and
+// each line says whether it is refundable (a security deposit is held for the organization, not
+// income).
+model Invoice {
+  id     String @id @default(uuid())
+  number String @unique // BK-2026-0001
+
+  organizerId String
+  organizer   OrganizerProfile @relation(fields: [organizerId], references: [id])
+  // The account that pays (the organization's owner).
+  userId String
+
+  status   InvoiceStatus @default(unpaid)
+  source   InvoiceSource @default(admin_manual)
+  currency String
+
+  planCode       String?
+  planName       String?
+  planPeriodDays Int?
+
+  subtotal   Decimal @db.Decimal(14, 2)
+  taxRate    Decimal @default(0) @db.Decimal(5, 2)
+  taxLabel   String  @default("Tax")
+  taxAmount  Decimal @default(0) @db.Decimal(14, 2)
+  gatewayFee Decimal @default(0) @db.Decimal(14, 2)
+  total      Decimal @db.Decimal(14, 2)
+
+  issuedAt  DateTime  @default(now())
+  dueDate   DateTime?
+  note      String?
+  createdById String?
+
+  // Proof of payment the organization uploaded (while the gateway is off).
+  proofUrl          String?
+  proofSubmittedAt  DateTime?
+  proofMethodId     String?
+  proofReference    String?
+  proofRejectedNote String?
+
+  // Set when an admin marks it paid.
+  paidAt          DateTime?
+  paidAmount      Decimal?       @db.Decimal(14, 2)
+  paidMethodId    String?
+  paidMethod      PaymentMethod? @relation(fields: [paidMethodId], references: [id])
+  paidMethodName  String? // kept even if the method is later edited or removed
+  paidReference   String?
+  paidById        String?
+  paidNote        String?
+
+  cancelledAt DateTime?
+  cancelNote  String?
+
+  lines InvoiceLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizerId, status])
+  @@index([status, issuedAt])
+  @@index([userId])
+}
+
+model InvoiceLine {
+  id        String          @id @default(uuid())
+  invoiceId String
+  invoice   Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  kind      InvoiceLineKind
+  description String
+  quantity  Int     @default(1)
+  unitAmount Decimal @db.Decimal(14, 2)
+  amount    Decimal @db.Decimal(14, 2)
+  // A refundable line (security deposit) is held for the organization: it is not income.
+  refundable Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  @@index([invoiceId])
+}
+
+// Hands out invoice numbers: one counter per year, bumped atomically.
+model InvoiceCounter {
+  year Int @id
+  last Int @default(0)
 }
