@@ -21,6 +21,7 @@ import { isSupportedCurrency, ZERO_DECIMAL_CURRENCIES } from "@/lib/money";
 import { currenciesNotEnabled } from "@/lib/services/currencies";
 import { getDepositDue } from "@/lib/services/security-deposits";
 import { validateExtras } from "@/lib/services/plan-fields";
+import { hasOpenPlanInvoice } from "@/lib/services/invoices";
 
 export const PLAN_REQUEST_ERRORS = {
   validation_error: { status: 400, message: "Invalid request." },
@@ -30,6 +31,7 @@ export const PLAN_REQUEST_ERRORS = {
   already_pending: { status: 409, message: "You already have a plan request waiting for review." },
   not_found: { status: 404, message: "Request not found." },
   not_pending: { status: 409, message: "That request has already been reviewed." },
+  invoice_open: { status: 409, message: "You have an unpaid invoice for your plan. Pay that invoice instead of buying the plan again." },
 } as const;
 
 export type PlanRequestErrorCode = keyof typeof PLAN_REQUEST_ERRORS;
@@ -200,6 +202,9 @@ export async function createPlanRequest(
     where: { userId, audience, status: "pending" },
   });
   if (pending) return fail("already_pending");
+
+  // An organization with an open plan invoice pays that, so the plan isn't bought twice.
+  if (audience === "organizer" && (await hasOpenPlanInvoice(userId))) return fail("invoice_open");
 
   // Refundable security deposit to include with the payment (0 when deposits
   // are off, this plan has none, or they already hold enough).

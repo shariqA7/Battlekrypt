@@ -33,6 +33,9 @@ export default async function AdminOrganizationsPage() {
     price: p.isPaid && p.priceAmount !== null && p.priceCurrency ? formatMoney(p.priceAmount, p.priceCurrency) : null,
     days: p.durationDays,
     deposit: p.depositAmount && p.priceCurrency ? formatMoney(p.depositAmount, p.priceCurrency) : null,
+    priceAmount: p.priceAmount,
+    priceCurrency: p.priceCurrency,
+    depositAmount: p.depositAmount,
     perks: [...describeLimits("organizer", p.limits), ...(p.isPaid ? PAID_PERKS : []), ...describeExtras(fields, p.extras).map((e) => `${e.label}: ${e.value}`)],
   }));
   const starter: StarterRules = {

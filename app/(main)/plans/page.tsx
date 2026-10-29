@@ -8,6 +8,8 @@ import PlanRequestForm from "./PlanRequestForm";
 import DepositRefundButton from "./DepositRefundButton";
 import { getDepositDue, getMyDeposits } from "@/lib/services/security-deposits";
 import { describeExtras, listPlanFields } from "@/lib/services/plan-fields";
+import { hasOpenPlanInvoice } from "@/lib/services/invoices";
+import Link from "next/link";
 
 const AUDIENCE_LABEL = { organizer: "Organizer", club: "Club", player: "Player" } as const;
 
@@ -21,6 +23,7 @@ export default async function PlansPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectTo=/plans");
 
+  const openInvoice = await hasOpenPlanInvoice(user.id);
   const [states, plans, settings, planFields, myDeposits] = await Promise.all([
     getMyPlanStates(user.id),
     listPlans({ activeOnly: true }),
@@ -50,6 +53,15 @@ export default async function PlansPage() {
         Paid plans add convenience and remove ads. Joining tournaments, playing and your rating are
         never locked behind a plan.
       </p>
+
+      <p className="font-sans text-[12px] mb-6">
+        <Link href="/invoices" className="text-bk-gold-light underline">View my invoices</Link>
+      </p>
+      {openInvoice && (
+        <p className="font-sans text-[13px] text-bk-amber border border-bk-amber/40 p-3 mb-6">
+          You have an unpaid invoice for your plan. <Link href="/invoices" className="underline">Open it</Link> to pay — no need to buy the plan here as well.
+        </p>
+      )}
 
       {states.length === 0 && (
         <p className="font-sans text-bk-muted text-sm">

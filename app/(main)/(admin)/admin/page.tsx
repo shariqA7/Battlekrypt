@@ -44,6 +44,7 @@ export default async function AdminDashboardPage({
           <AttentionCard index={10} href="/admin/institutions" icon="institutions" label="Institutions to verify" count={attention.items.institutions} />
           <AttentionCard index={11} href="/admin/change-requests" icon="changeRequests" label="Tournament change requests" count={attention.items.changeRequests} />
           <AttentionCard index={13} href="/admin/reports" icon="reports" label="Player reports" count={attention.items.playerReports} />
+          <AttentionCard index={14} href="/admin/invoices?filter=proof_submitted" icon="payments" label="Invoice payments to check" count={attention.items.invoices} />
         </div>
       </section>
 

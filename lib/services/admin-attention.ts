@@ -13,7 +13,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
   const [
     orgApps, legacyOrganizers, clubUpgrades, games, claims, planRequests, tierReviews,
     heldChallenges, challengeDisputes, reportedChallenges, challengeFlags, institutions,
-    consentCases, changeRequests, identityChecks, playerReports,
+    consentCases, changeRequests, identityChecks, playerReports, invoiceProofs,
   ] = await Promise.all([
     prisma.organizationApplication.count({ where: { status: "pending" } }),
     prisma.organizerProfile.count({ where: { user: { kycStatus: { in: ["none", "pending"] } } } }),
@@ -31,6 +31,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     countPendingChangeRequests(),
     prisma.identityVerification.count({ where: { status: "pending" } }),
     countOpenReports(),
+    prisma.invoice.count({ where: { status: "proof_submitted" } }),
   ]);
 
   const items = {
@@ -47,6 +48,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     changeRequests,
     identity: identityChecks,
     playerReports,
+    invoices: invoiceProofs,
   };
   const total = Object.values(items).reduce((n, v) => n + v, 0);
   return { items, total, pendingOrgApps: orgApps };

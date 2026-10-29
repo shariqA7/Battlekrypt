@@ -10,6 +10,7 @@ import { computeAssignedExpiry, parsePlanDuration } from "@/lib/plan-duration";
 import type { Prisma } from "@prisma/client";
 import { cursorArgs, toPage, type Page, type PageQuery } from "@/lib/admin-paging";
 import { getTrustConfig } from "@/lib/services/organizer-trust";
+import { createInvoice } from "@/lib/services/invoices";
 import { identityCryptoReady, sealIdentityDetails } from "@/lib/identity-crypto";
 import { hashDocNumber } from "@/lib/identity-hash";
 import { addMonths, DOC_TYPES, isOwnUpload, isPlausibleDocNumber, purgeAfterFor, type DocType } from "@/lib/identity";
@@ -196,6 +197,18 @@ export type AdminCreateOrganizationInput = {
   planCode?: string;
   duration?: unknown;
   liftLimits?: boolean;
+  // Bill the organization instead of giving the plan for free: the plan is granted when an
+  // admin marks the invoice paid. When set, `planCode`/`duration` above are not used.
+  invoice?: {
+    planCode?: string | null;
+    planAmount?: number | null;
+    currency?: string;
+    includeSecurityFee?: boolean;
+    securityFeeAmount?: number | null;
+    dueDate?: unknown;
+    taxRate?: number | null;
+    note?: string | null;
+  } | null;
 };
 
 type CreateError =
@@ -207,7 +220,7 @@ const clean = (v: string | undefined, max: number) => (v?.trim() ? v.trim().slic
 // Adds an organization (or an institute, which is an organization that also runs one) for an
 // existing account, with no application and no payment proof. Optional: the organizer's
 // identity check done by the admin, an institute's registration document, and a plan.
-export async function adminCreateOrganization(input: AdminCreateOrganizationInput): Promise<CreateError | { data: { organizerId: string; plan: { planName: string; expiresAt: Date | null } | null } }> {
+export async function adminCreateOrganization(input: AdminCreateOrganizationInput): Promise<CreateError | { data: { organizerId: string; plan: { planName: string; expiresAt: Date | null } | null; invoice: { id: string; number: string } | null; invoiceError: string | null } }> {
   const orgName = input.orgName.trim();
   if (orgName.length < 2 || orgName.length > 60) {
     return { error: "validation_error", message: "The organization name must be 2–60 characters." };
@@ -298,7 +311,12 @@ export async function adminCreateOrganization(input: AdminCreateOrganizationInpu
 
   // Validate the plan choice before creating anything.
   let planToAssign: { code: string } | null = null;
-  if (input.planCode && input.planCode !== FREE_PLAN_CODE.organizer) {
+  if (input.invoice) {
+    // Billing: the plan is not given now, so check the invoice has something to bill.
+    if (!input.invoice.planCode && !input.invoice.includeSecurityFee) {
+      return { error: "validation_error", message: "An invoice needs a plan, a security fee, or both." };
+    }
+  } else if (input.planCode && input.planCode !== FREE_PLAN_CODE.organizer) {
     const plan = await prisma.plan.findUnique({ where: { code: input.planCode } });
     if (!plan || plan.audience !== "organizer") return { error: "validation_error", message: "Choose an organizer plan." };
     if (plan.isPaid) {
@@ -361,6 +379,26 @@ export async function adminCreateOrganization(input: AdminCreateOrganizationInpu
   ]);
 
   let plan: { planName: string; expiresAt: Date | null } | null = null;
+  let invoice: { id: string; number: string } | null = null;
+  let invoiceError: string | null = null;
+  if (input.invoice) {
+    const r = await createInvoice({
+      organizerId: org.id,
+      source: "admin_added",
+      createdById: input.adminId,
+      currency: input.invoice.currency,
+      planCode: input.invoice.planCode || null,
+      planAmount: input.invoice.planAmount ?? null,
+      includeSecurityFee: input.invoice.includeSecurityFee === true,
+      securityFeeAmount: input.invoice.securityFeeAmount ?? null,
+      dueDate: input.invoice.dueDate,
+      taxRate: input.invoice.taxRate ?? null,
+      note: input.invoice.note ?? null,
+    });
+    if ("data" in r) invoice = { id: r.data.id, number: r.data.number };
+    // The organization already exists at this point, so a bad invoice is reported, not fatal.
+    else invoiceError = r.message ?? "The invoice could not be created.";
+  }
   if (planToAssign) {
     const r = await adminAssignOrganizerPlan({ adminId: input.adminId, organizerId: org.id, planCode: planToAssign.code, duration: input.duration });
     if ("data" in r && r.data) plan = { planName: r.data.planName, expiresAt: r.data.expiresAt };
@@ -372,7 +410,7 @@ export async function adminCreateOrganization(input: AdminCreateOrganizationInpu
       href: "/organizer/dashboard",
     });
   }
-  return { data: { organizerId: org.id, plan } };
+  return { data: { organizerId: org.id, plan, invoice, invoiceError } };
 }
 
 // ---------- the organizations list ----------
