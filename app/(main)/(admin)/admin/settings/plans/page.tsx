@@ -3,7 +3,7 @@ import { getPlanSettings } from "@/lib/services/plan-requests";
 import PlanSettings from "../../PlanSettings";
 
 export default async function SettingsPlansPage() {
-  await requireAdminPage();
+  await requireAdminPage("settings");
   const planSettings = await getPlanSettings();
   return (
     <PlanSettings

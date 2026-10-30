@@ -68,6 +68,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/settings", label: "Settings", icon: "settings" },
     ],
   },
+  {
+    label: "Team",
+    items: [{ href: "/admin/staff", label: "Staff", icon: "users" }],
+  },
 ];
 
 // Pages that are split into sub tabs. Each sub tab is its own page (and loads

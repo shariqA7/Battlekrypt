@@ -10,7 +10,7 @@ const money = (byCur: Record<string, number>) =>
   Object.entries(byCur).map(([cur, amt]) => formatMoney(amt, cur)).join(" · ") || "—";
 
 export default async function AdminPaymentsPage() {
-  await requireAdminPage();
+  await requireAdminPage("payments");
   const p = await getPayments();
   const kindLabel = (k: string) => PAYMENT_KINDS.find((x) => x.value === k)?.label ?? k;
 

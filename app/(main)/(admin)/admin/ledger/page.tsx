@@ -24,7 +24,7 @@ function Line({ label, value, currency, sub, strong, minus }: { label: string; v
 }
 
 export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ preset?: string; from?: string; to?: string }> }) {
-  await requireAdminPage();
+  await requireAdminPage("ledger");
   const sp = await searchParams;
   const range = resolveRange(sp.preset, sp.from, sp.to);
   const [ledger, enabled] = await Promise.all([getLedger(range), getEnabledCurrencies()]);

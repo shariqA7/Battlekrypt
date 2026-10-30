@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-helpers";
 import { getDashboard, parseDashRange } from "@/lib/services/admin-analytics";
+import { hasAccess } from "@/lib/staff-permissions";
 
 // GET /api/admin/dashboard?range=today|week|month|6m|12m|all
 // Lets the dashboard swap just its numbers and charts when the time range
@@ -10,6 +11,6 @@ export async function GET(request: Request) {
   if ("response" in auth) return auth.response;
 
   const range = parseDashRange(new URL(request.url).searchParams.get("range") ?? undefined);
-  const data = await getDashboard(range);
+  const data = await getDashboard(range, { withMoney: hasAccess(auth.staff, "payments") });
   return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
 }

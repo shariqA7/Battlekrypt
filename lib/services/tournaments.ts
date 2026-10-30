@@ -12,6 +12,7 @@ import { checkAgeGate } from "@/lib/services/age-gate";
 import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
 import { normalizeUsername, usernameChecks } from "@/lib/validation/auth";
 import { prisma } from "@/lib/prisma";
+import { queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { isIdentityVerified } from "@/lib/identity";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
@@ -596,6 +597,7 @@ export async function registerForTournament(input: RegisterInput) {
     if ("error" in created) return { error: created.error, message: created.message };
     const registration = created;
     await bumpRegistrationCount(input.tournamentId);
+    await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl);
     if (institutionGate.routedInstitutionId) {
       await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
     }
@@ -620,6 +622,7 @@ export async function registerForTournament(input: RegisterInput) {
   if ("error" in created) return { error: created.error, message: created.message };
   const registration = created;
   await bumpRegistrationCount(input.tournamentId);
+  await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl);
 
   if (institutionGate.routedInstitutionId) {
     await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);

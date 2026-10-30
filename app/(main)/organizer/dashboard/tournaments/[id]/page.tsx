@@ -11,6 +11,7 @@ import { listRegistrations, getTournamentById, getTournamentCapacity } from "@/l
 import { redirect, notFound } from "next/navigation";
 import RegistrationQueue from "./RegistrationQueue";
 import { consentStatusesForTournament } from "@/lib/services/parental-consent";
+import { findProofMatches } from "@/lib/services/proof-fingerprints";
 import StageManager from "./StageManager";
 import HybridStageManager from "./HybridStageManager";
 import { listStageEntries } from "@/lib/services/stages";
@@ -80,6 +81,10 @@ export default async function ManageTournamentPage({
       : [];
   // Parental consent status per registration (null when this tournament doesn't ask for it).
   const consentStatuses = await consentStatusesForTournament(id);
+  // Possible duplicate payment screenshots (flag only; the organizer decides).
+  const duplicates = Object.fromEntries(
+    await findProofMatches("registration", registrations.filter((r) => r.paymentProofUrl).map((r) => r.id)),
+  );
   const capacity = await getTournamentCapacity(id);
   const myInstitutionId =
     (await prisma.institution.findUnique({ where: { organizerId: organizerProfile.id }, select: { id: true } }))?.id ?? null;
@@ -295,6 +300,7 @@ export default async function ManageTournamentPage({
           isLan={isLan}
           rules={tournament.rules.map((r) => ({ id: r.id, title: r.title, description: r.description }))}
           consent={consentStatuses}
+          duplicates={duplicates}
           noShowPolicy={{ penalty: tournament.noShowPenalty, points: tournament.noShowPenaltyPoints }}
           myInstitutionId={myInstitutionId}
         />

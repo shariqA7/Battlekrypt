@@ -5,7 +5,7 @@ import { prizeLabel } from "@/lib/challenge-format";
 import ChallengeIntegrity from "../../ChallengeIntegrity";
 
 export default async function ApprovalsReportsPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const [reportedChallenges, openFlags] = await Promise.all([listReportedChallenges(), listOpenFlags()]);
 
   return (

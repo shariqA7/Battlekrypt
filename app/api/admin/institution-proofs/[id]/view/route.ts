@@ -7,7 +7,7 @@ import { requestProofView } from "@/lib/services/institution-proofs";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("institutions");
   if ("response" in auth) return auth.response;
 
   const result = await requestProofView(id, auth.admin.id);

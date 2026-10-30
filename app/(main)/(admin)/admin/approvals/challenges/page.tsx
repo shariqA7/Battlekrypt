@@ -4,7 +4,7 @@ import { prizeLabel } from "@/lib/challenge-format";
 import ChallengeReview from "../../ChallengeReview";
 
 export default async function ApprovalsChallengeReviewPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const [challengeReviewUsd, heldChallenges] = await Promise.all([getChallengeReviewUsd(), listChallengesAwaitingReview()]);
 
   return (

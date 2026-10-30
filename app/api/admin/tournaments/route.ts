@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { listFlaggedTournaments } from "@/lib/services/tournaments";
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("approvals", "view");
   if ("response" in auth) return auth.response;
 
   const { searchParams } = new URL(request.url);

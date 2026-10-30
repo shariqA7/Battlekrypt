@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { decideChangeRequest } from "@/lib/services/change-requests";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("change_requests");
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const b = await request.json().catch(() => ({}));

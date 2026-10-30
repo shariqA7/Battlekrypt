@@ -13,7 +13,7 @@ const MESSAGES: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("organizations");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   const result = await adminEnsureAccount({

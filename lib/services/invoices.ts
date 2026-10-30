@@ -14,6 +14,7 @@
 // recorded as a payment.
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { computeNewExpiry } from "@/lib/plans";
 import { isSupportedCurrency, formatMoney } from "@/lib/money";
 import {
@@ -372,6 +373,7 @@ export async function submitInvoiceProof(
       proofRejectedNote: null,
     },
   });
+  await queueProofCheck({ kind: "invoice", refId: invoiceId, userId }, input.proofUrl);
   return { data: { ok: true as const } };
 }
 

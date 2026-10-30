@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 // POST { email, kind, amount, currency, method, reference?, note? }
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));

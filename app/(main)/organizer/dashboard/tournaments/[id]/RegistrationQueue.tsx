@@ -1,5 +1,7 @@
 "use client";
 
+import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
+import type { ProofMatch } from "@/lib/proof-match";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
@@ -133,6 +135,7 @@ export default function RegistrationQueue({
   isLan = false,
   rules,
   consent = null,
+  duplicates = {},
   noShowPolicy,
   myInstitutionId,}: {
   tournamentId: string;
@@ -142,6 +145,8 @@ export default function RegistrationQueue({
   rules: TournamentRuleOption[];
   // registrationId -> consent status, or null when this tournament doesn't ask for it.
   consent?: Record<string, "not_required" | "approved" | "pending" | "declined"> | null;
+  // registrationId -> a possible duplicate of its payment screenshot (flag only).
+  duplicates?: Record<string, ProofMatch>;
   noShowPolicy: NoShowPolicy;
   // The host's own institute, if it has one (a penalty it issued can be revoked by it).
   myInstitutionId: string | null;
@@ -438,6 +443,7 @@ export default function RegistrationQueue({
                     View payment proof
                   </a>
                 )}
+                {r.paymentProofUrl && <DuplicateProofBadge match={duplicates[r.id]} scope="organizer" />}
                 {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}
               </div>
               {r.routedInstitution && (

@@ -7,7 +7,7 @@ import { methodError } from "@/lib/invoice-helpers";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   const result = await updatePaymentMethod(auth.admin.id, id, body && typeof body === "object" ? body : {});
@@ -17,7 +17,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const result = await deletePaymentMethod(auth.admin.id, id);
   if ("error" in result) return methodError(result);

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { listPendingGameRequests } from "@/lib/services/tournaments";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("approvals", "view");
   if ("response" in auth) return auth.response;
 
   const requests = await listPendingGameRequests();

@@ -14,7 +14,7 @@ export default async function AdminInstitutionProofsPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
-  await requireAdminPage();
+  await requireAdminPage("institutions");
   const sp = await searchParams;
   const status = STATUSES.includes(sp.status as Status) ? (sp.status as Status) : undefined;
   const { rows, total, page, pages } = await listInstitutionProofs({

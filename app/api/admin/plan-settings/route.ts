@@ -5,7 +5,7 @@ import { updatePlanSettings } from "@/lib/services/plan-requests";
 import { planError } from "@/lib/plan-helpers";
 
 export async function PATCH(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("settings");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));

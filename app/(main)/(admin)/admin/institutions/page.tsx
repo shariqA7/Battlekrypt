@@ -8,7 +8,7 @@ import { SectionHeading } from "@/components/ui/Panel";
 
 
 export default async function AdminInstitutionsPage() {
-  await requireAdminPage();
+  await requireAdminPage("institutions");
   const [counts, institutions] = await Promise.all([institutionCounts(), listInstitutionsForAdmin()]);
 
   return (

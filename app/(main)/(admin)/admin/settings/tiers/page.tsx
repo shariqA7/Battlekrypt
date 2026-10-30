@@ -3,7 +3,7 @@ import { listTierSettings } from "@/lib/services/competitive-tiers";
 import TierSettingsManager from "../../TierSettingsManager";
 
 export default async function SettingsTiersPage() {
-  await requireAdminPage();
+  await requireAdminPage("settings");
   const tierSettings = await listTierSettings();
   return (
     <TierSettingsManager

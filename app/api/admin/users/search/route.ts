@@ -5,7 +5,7 @@ import { parsePageQuery } from "@/lib/admin-paging";
 import { listUsersPage } from "@/lib/services/admin-lists";
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("users", "view");
   if ("response" in auth) return auth.response;
   return NextResponse.json(await listUsersPage(parsePageQuery(request.url)));
 }

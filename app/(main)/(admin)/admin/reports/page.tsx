@@ -4,7 +4,7 @@ import { SectionHeading } from "@/components/ui/Panel";
 import ReportsManager from "./ReportsManager";
 
 export default async function AdminPlayerReportsPage() {
-  await requireAdminPage();
+  await requireAdminPage("reports");
   const orgs = await listReportsForAdmin();
 
   return (

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { settlePayout } from "@/lib/services/organizer-trust";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const b = await request.json().catch(() => ({}));

@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { createCarouselSlide } from "@/lib/services/tournaments";
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("settings");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));

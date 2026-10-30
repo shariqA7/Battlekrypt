@@ -13,7 +13,7 @@ import OrganizationsList from "./OrganizationsList";
 import AddOrganizationSheet, { type PlanCardData, type StarterRules } from "./AddOrganizationSheet";
 
 export default async function AdminOrganizationsPage() {
-  await requireAdminPage();
+  await requireAdminPage("organizations");
   const [initial, allPlans, fields, cfg, institutes, pending, rejected, total, unverified] = await Promise.all([
     listOrganizationsPage({ q: "", cursor: null, limit: ADMIN_PAGE_SIZE }),
     listPlans({ audience: "organizer", activeOnly: true }),

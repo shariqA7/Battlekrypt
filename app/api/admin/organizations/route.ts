@@ -15,7 +15,7 @@ import { sendPasswordSetupEmail } from "@/lib/services/admin-accounts";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("organizations", "view");
   if ("response" in auth) return auth.response;
   const t = new URL(request.url).searchParams.get("type");
   return NextResponse.json(await listOrganizationsPage({ ...parsePageQuery(request.url), type: t === "organization" || t === "institute" ? t : null }));
@@ -33,7 +33,7 @@ const MESSAGES: Record<string, { status: number; message: string }> = {
 };
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("organizations");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   const k = b.kyc && typeof b.kyc === "object" ? b.kyc : null;

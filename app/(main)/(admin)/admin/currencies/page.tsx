@@ -5,7 +5,7 @@ import CurrencyToggle from "./CurrencyToggle";
 import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminCurrenciesPage() {
-  await requireAdminPage();
+  await requireAdminPage("currencies");
   const settings = await listCurrencySettings();
   const on = settings.filter((s) => s.enabled).length;
 

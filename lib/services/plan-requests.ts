@@ -8,6 +8,7 @@
 
 import type { PaymentKind, PlanAudience } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { findProofMatches, queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { isIdentityVerified } from "@/lib/identity";
 import {
   FREE_PLAN_CODE,
@@ -219,6 +220,7 @@ export async function createPlanRequest(
       depositAmount: depositDue > 0 ? depositDue : null,
     },
   });
+  await queueProofCheck({ kind: "plan_request", refId: request.id, userId }, input.proofUrl);
   return { data: request };
 }
 
@@ -232,7 +234,9 @@ export async function listPendingPlanRequests() {
     orderBy: { createdAt: "asc" },
     include: { user: { select: { displayName: true, email: true } }, plan: true },
   });
+  const duplicates = await findProofMatches("plan_request", rows.map((r) => r.id));
   return rows.map((r) => ({
+    duplicate: duplicates.get(r.id) ?? null,
     id: r.id,
     audience: r.audience,
     planCode: r.planCode,

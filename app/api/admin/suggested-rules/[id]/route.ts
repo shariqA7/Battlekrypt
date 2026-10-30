@@ -10,7 +10,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("approvals");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));
@@ -24,7 +24,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("approvals");
   if ("response" in auth) return auth.response;
 
   const result = await deleteSuggestedRule(id);

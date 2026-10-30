@@ -9,6 +9,7 @@
 // which an admin verifies; that is the only thing admins approve for clubs.
 
 import { prisma } from "@/lib/prisma";
+import { findProofMatches, queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { Prisma } from "@prisma/client";
 import { orgNameKey } from "@/lib/org-name";
 import { isSupportedCurrency } from "@/lib/money";
@@ -127,6 +128,7 @@ export async function updateClub(clubId: string, input: ClubUpdateInput) {
       },
     });
     if (nameKey) await fulfillClaim(club.userId, nameKey);
+    if (input.feeProofUrl) await queueProofCheck({ kind: "club_fee", refId: clubId, userId: club.userId }, input.feeProofUrl);
     return { data: updated };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -145,11 +147,13 @@ export async function updateClub(clubId: string, input: ClubUpdateInput) {
 }
 
 export async function listPendingClubs() {
-  return prisma.clubProfile.findMany({
+  const clubs = await prisma.clubProfile.findMany({
     where: { upgradeStatus: "pending" },
     include: { user: { select: { displayName: true, email: true } } },
     orderBy: { createdAt: "asc" },
   });
+  const duplicates = await findProofMatches("club_fee", clubs.map((c) => c.id));
+  return clubs.map((c) => ({ ...c, duplicate: duplicates.get(c.id) ?? null }));
 }
 
 export async function approveClub(

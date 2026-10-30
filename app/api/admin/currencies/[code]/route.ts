@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("currencies");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));

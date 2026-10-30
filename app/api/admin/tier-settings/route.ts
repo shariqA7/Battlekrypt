@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { listTierSettings, upsertTierSetting } from "@/lib/services/competitive-tiers";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("settings", "view");
   if ("response" in auth) return auth.response;
 
   return NextResponse.json({ data: await listTierSettings() });
@@ -16,7 +16,7 @@ const VALID_SCOPES = ["world", "region", "country"];
 const VALID_PUBLISH_PATHS = ["instant", "admin_review", "always_admin"];
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("settings");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));

@@ -3,7 +3,7 @@ import { listPendingIdentity, listStoredIdentityImages } from "@/lib/services/id
 import IdentityChecks from "./IdentityChecks";
 
 export default async function ApprovalsIdentityPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const [pending, stored] = await Promise.all([listPendingIdentity(), listStoredIdentityImages()]);
   return <IdentityChecks pending={pending} stored={stored} />;
 }

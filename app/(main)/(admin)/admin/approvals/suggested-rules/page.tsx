@@ -3,7 +3,7 @@ import { listAllSuggestedRules } from "@/lib/services/rules";
 import SuggestedRulesManager from "../../SuggestedRulesManager";
 
 export default async function ApprovalsSuggestedRulesPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const suggestedRules = await listAllSuggestedRules();
   return <SuggestedRulesManager initialRules={suggestedRules} />;
 }

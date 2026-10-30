@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { createExpense } from "@/lib/services/ledger";
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("ledger");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   const r = await createExpense(auth.admin.id, b && typeof b === "object" ? b : {});

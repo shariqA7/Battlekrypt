@@ -4,7 +4,7 @@ import { SectionHeading } from "@/components/ui/Panel";
 import DepositsManager from "./DepositsManager";
 
 export default async function AdminDepositsPage() {
-  await requireAdminPage();
+  await requireAdminPage("deposits");
   const [deposits, settings] = await Promise.all([listDepositsForAdmin(), getDepositSettings()]);
 
   return (

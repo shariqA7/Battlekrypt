@@ -3,7 +3,7 @@
 // requireAdminPage() first.
 import { prisma } from "@/lib/prisma";
 import { countryName } from "@/lib/geo";
-import { formatMoney, toNumber } from "@/lib/money";
+import { formatMoney, toNumber, type AmountLike } from "@/lib/money";
 
 const DAY = 86_400_000;
 
@@ -137,7 +137,9 @@ export interface DashStat {
   previous: number | null; // the equally long range before it (null for "all time")
 }
 
-export async function getDashboard(range: DashRange) {
+/** `withMoney: false` leaves the revenue figure out entirely (never fetched, never sent to the browser). */
+export async function getDashboard(range: DashRange, opts: { withMoney?: boolean } = {}) {
+  const withMoney = opts.withMoney !== false;
   const [first] = await prisma.user.findMany({ orderBy: { createdAt: "asc" }, take: 1, select: { createdAt: true } });
   const { now, since, unit, prev, filterSince } = dashWindow(range, first?.createdAt ?? null);
 
@@ -177,7 +179,7 @@ export async function getDashboard(range: DashRange) {
     prisma.user.findMany({ where: cur ? { createdAt: cur } : {}, select: { createdAt: true } }),
     prisma.visitSession.findMany({ where: cur ? { createdAt: cur } : {}, select: { createdAt: true, country: true } }),
     prisma.registration.findMany({ where: cur ? { registeredAt: cur } : {}, select: { registeredAt: true } }),
-    prisma.paymentRecord.findMany({ select: { amount: true, currency: true, createdAt: true } }),
+    withMoney ? prisma.paymentRecord.findMany({ select: { amount: true, currency: true, createdAt: true } }) : Promise.resolve([] as { amount: AmountLike; currency: string; createdAt: Date }[]),
   ]);
 
   // Revenue inside the range, per currency (never blended into one number).
@@ -199,8 +201,8 @@ export async function getDashboard(range: DashRange) {
       activeBans,
     },
     rangeLong: DASH_RANGES.find((r) => r.key === range)!.long,
-    revenueText: Object.entries(revenue).map(([cur, amt]) => formatMoney(amt, cur)).join(" · ") || "—",
-    paymentCount,
+    revenueText: withMoney ? Object.entries(revenue).map(([cur, amt]) => formatMoney(amt, cur)).join(" · ") || "—" : null,
+    paymentCount: withMoney ? paymentCount : null,
     signups: bucketSeries(userDates.map((u) => u.createdAt), since, now, unit),
     sessionsSeries: bucketSeries(sessionRows.map((s) => s.createdAt), since, now, unit),
     registrationsSeries: bucketSeries(registrationDates.map((r) => r.registeredAt), since, now, unit),

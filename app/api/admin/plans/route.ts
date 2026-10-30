@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { listPlans } from "@/lib/services/plan-requests";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("plans", "view");
   if ("response" in auth) return auth.response;
   return NextResponse.json(await listPlans());
 }

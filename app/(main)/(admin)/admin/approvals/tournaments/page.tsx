@@ -4,7 +4,7 @@ import AdminQueues from "../../AdminQueues";
 import TierReviewQueue from "../../TierReviewQueue";
 
 export default async function ApprovalsTournamentsPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const [flaggedTournaments, pendingTierReviews] = await Promise.all([listFlaggedTournaments(), listPendingTierReviewTournaments()]);
 
   return (

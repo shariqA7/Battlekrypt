@@ -6,9 +6,11 @@ import { listPaymentMethods } from "@/lib/services/payment-methods";
 import { formatMoney } from "@/lib/money";
 import InvoiceDocument from "@/components/invoices/InvoiceDocument";
 import InvoiceActions from "./InvoiceActions";
+import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
+import { findProofMatches } from "@/lib/services/proof-fingerprints";
 
 export default async function AdminInvoicePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdminPage();
+  await requireAdminPage("payments");
   const { id } = await params;
   const detail = await getInvoiceDetail(id);
   if (!detail) notFound();
@@ -16,6 +18,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
   const methods = (await listPaymentMethods({ activeOnly: true, currency: i.currency })).map((m) => ({ id: m.id, name: m.name }));
   const open = i.status === "unpaid" || i.status === "proof_submitted";
   const total = Number(i.total.toString());
+  const duplicate = i.status === "proof_submitted" ? (await findProofMatches("invoice", [id])).get(id) : undefined;
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -34,7 +37,9 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
 
       {i.status === "proof_submitted" && i.proofUrl && (
         <div className="bg-bk-surface border border-bk-amber/40 p-4">
-          <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-amber mb-2">Payment proof to check</p>
+          <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-amber mb-2">
+            Payment proof to check <DuplicateProofBadge match={duplicate} scope="admin" />
+          </p>
           <p className="font-sans text-[12px] text-bk-body mb-2">
             Sent {i.proofSubmittedAt?.toLocaleString("en-GB")}
             {detail.proofMethodName ? ` · says they paid via ${detail.proofMethodName}` : ""}

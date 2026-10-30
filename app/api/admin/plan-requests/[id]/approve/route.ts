@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
 
   const result = await approvePlanRequest(id, auth.admin.id);
