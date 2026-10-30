@@ -101,7 +101,14 @@ async function getAccount(userId: string, audience: PlanAudience) {
   if (audience === "organizer") {
     const o = await prisma.organizerProfile.findUnique({ where: { userId } });
     return o
-      ? { planCode: o.planCode, planExpiresAt: o.planExpiresAt, approved: undefined as boolean | undefined }
+      ? {
+          planCode: o.planCode,
+          planExpiresAt: o.planExpiresAt,
+          nextPlanCode: o.nextPlanCode,
+          nextPlanStartsAt: o.nextPlanStartsAt,
+          nextPlanDays: o.nextPlanDays,
+          approved: undefined as boolean | undefined,
+        }
       : null;
   }
   if (audience === "club") {
