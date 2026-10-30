@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { createDueRenewalInvoices } from "@/lib/services/renewals";
 
 export async function POST() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   return NextResponse.json(await createDueRenewalInvoices());
 }

@@ -5,7 +5,7 @@ import { setAutoRenew } from "@/lib/services/renewals";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("organizations");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   if (typeof b.autoRenew !== "boolean") return NextResponse.json({ error: { code: "validation_error", message: "autoRenew must be true or false." } }, { status: 400 });
