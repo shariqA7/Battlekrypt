@@ -100,7 +100,7 @@ export default function CreateInvoiceForm({
           renderItem={(o) => (
             <span className="block">
               <span className="block font-sans text-[13px] text-bk-heading truncate">{o.name}</span>
-              <span className="block font-sans text-[11px] text-bk-muted truncate">{o.ownerName} Â· {o.planName}</span>
+              <span className="block font-sans text-[11px] text-bk-muted truncate">{o.ownerName} · {o.planName}</span>
             </span>
           )}
         />
@@ -183,7 +183,7 @@ export default function CreateInvoiceForm({
 
       {error && <p role="alert" className="font-sans text-[12px] text-bk-live">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={busy} className={buttonClass("primary", "sm")}>{busy ? "Creatingâ€¦" : "Create invoice"}</button>
+        <button type="submit" disabled={busy} className={buttonClass("primary", "sm")}>{busy ? "Creating…" : "Create invoice"}</button>
         <button type="button" onClick={() => setOpen(false)} disabled={busy} className={buttonClass("outline", "sm")}>Cancel</button>
       </div>
     </form>

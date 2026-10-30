@@ -151,7 +151,7 @@ export async function adminAssignOrganizerPlan(input: {
         action: "assigned_organizer_plan",
         targetType: "OrganizerProfile",
         targetId: org.id,
-        notes: `${describe(plan.name, expiresAt)}${input.note?.trim() ? ` â€” ${input.note.trim()}` : ""}`,
+        notes: `${describe(plan.name, expiresAt)}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}`,
       },
     }),
   ]);
@@ -226,7 +226,7 @@ const clean = (v: string | undefined, max: number) => (v?.trim() ? v.trim().slic
 export async function adminCreateOrganization(input: AdminCreateOrganizationInput): Promise<CreateError | { data: { organizerId: string; plan: { planName: string; expiresAt: Date | null } | null; invoice: { id: string; number: string } | null; invoiceError: string | null } }> {
   const orgName = input.orgName.trim();
   if (orgName.length < 2 || orgName.length > 60) {
-    return { error: "validation_error", message: "The organization name must be 2â€“60 characters." };
+    return { error: "validation_error", message: "The organization name must be 2–60 characters." };
   }
   const isInstitute = input.type === "institute";
 
@@ -376,7 +376,7 @@ export async function adminCreateOrganization(input: AdminCreateOrganizationInpu
         action: isInstitute ? "created_institute" : "created_organization",
         targetType: "User",
         targetId: input.userId,
-        notes: `${orgName}${identity ? " Â· identity checked by admin" : " Â· no identity check"}${input.liftLimits ? " Â· starter limits lifted" : ""}${duplicateNote}`,
+        notes: `${orgName}${identity ? " · identity checked by admin" : " · no identity check"}${input.liftLimits ? " · starter limits lifted" : ""}${duplicateNote}`,
       },
     }),
   ]);

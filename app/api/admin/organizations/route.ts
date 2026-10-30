@@ -1,5 +1,5 @@
-﻿// GET  /api/admin/organizations?q=&cursor=&limit=&type=organization|institute â€” the list, 10 at a time
-// POST /api/admin/organizations â€” add an organization or an institute for an existing account.
+﻿// GET  /api/admin/organizations?q=&cursor=&limit=&type=organization|institute — the list, 10 at a time
+// POST /api/admin/organizations — add an organization or an institute for an existing account.
 //   body: { userId, type, orgName, country?, bio?, orgType?, registrationNumber?, website?, city?, address?,
 //           contactEmail?, contactPhone?, institute?: { kind, verified, proofPath },
 //           kyc?: { docType, fullName, documentNumber, address, frontPath, backPath, selfiePath, checked },

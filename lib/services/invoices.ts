@@ -122,7 +122,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
           : `${plan.name} is priced in ${plan.priceCurrency ?? "another currency"}. Enter the amount in ${currency}.`
       );
     }
-    lines.push({ kind: "plan", description: `${plan.name} plan â€” ${plan.durationDays} days`, amount: roundMoney(amount, currency), refundable: false });
+    lines.push({ kind: "plan", description: `${plan.name} plan — ${plan.durationDays} days`, amount: roundMoney(amount, currency), refundable: false });
   }
   if (input.discountValue !== null && input.discountValue !== undefined) {
     const planLine = lines.find((l) => l.kind === "plan");
@@ -130,7 +130,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
     const d = computeDiscount(planLine.amount, input.discountType === "percent" ? "percent" : "amount", input.discountValue, currency);
     if (!d.ok) return fail("validation_error", d.message);
     const why = input.discountReason?.trim().slice(0, 120);
-    lines.push({ kind: "discount", description: why ? `${d.label} â€” ${why}` : d.label, amount: -d.amount, refundable: false });
+    lines.push({ kind: "discount", description: why ? `${d.label} — ${why}` : d.label, amount: -d.amount, refundable: false });
   }
   if (input.includeSecurityFee) {
     const sameCurrency = plan?.priceCurrency === currency;
@@ -190,14 +190,14 @@ export async function createInvoice(input: CreateInvoiceInput) {
         action: "created_invoice",
         targetType: "Invoice",
         targetId: invoice.id,
-        notes: `${invoice.number} Â· ${org.orgName} Â· ${formatMoney(totals.total, currency)}`,
+        notes: `${invoice.number} · ${org.orgName} · ${formatMoney(totals.total, currency)}`,
       },
     });
   }
   await notify(org.userId, {
     type: "invoice",
     title: `New invoice ${invoice.number}`,
-    body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` Â· due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
+    body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` · due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
     href: `/invoices/${invoice.id}`,
   });
   return { data: invoice };
@@ -493,7 +493,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
     // 3. Money received goes in the admin payments record: the deposit on its own (it is not
     //    income), everything else (plan + tax + gateway fee) as one entry.
     const incomePart = roundMoney(money(inv.total) - depositTotal, inv.currency);
-    const note = `Invoice ${inv.number}${reference ? ` Â· ref ${reference}` : ""}`;
+    const note = `Invoice ${inv.number}${reference ? ` · ref ${reference}` : ""}`;
     if (incomePart > 0) {
       await tx.paymentRecord.create({
         data: {
@@ -517,7 +517,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
           currency: inv.currency,
           method: methodName!,
           reference: `${inv.number}-deposit`,
-          note: `${note} Â· security fee (refundable)`,
+          note: `${note} · security fee (refundable)`,
           recordedById: input.adminId,
         },
       });
@@ -528,7 +528,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
         action: "marked_invoice_paid",
         targetType: "Invoice",
         targetId: inv.id,
-        notes: `${inv.number} Â· ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` Â· plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
+        notes: `${inv.number} · ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` · plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
       },
     });
     return { data: { number: inv.number, userId: inv.userId, expiresAt, planName: inv.planName, total: money(inv.total), currency: inv.currency, id: inv.id } };
@@ -593,7 +593,7 @@ export async function setInvoiceDiscount(
       const d = computeDiscount(money(planLine.amount), input.type === "percent" ? "percent" : "amount", Number(input.value), inv.currency);
       if (!d.ok) return fail("validation_error", d.message);
       const why = typeof input.reason === "string" ? input.reason.trim().slice(0, 120) : "";
-      discountLine = { description: why ? `${d.label} â€” ${why}` : d.label, amount: -d.amount };
+      discountLine = { description: why ? `${d.label} — ${why}` : d.label, amount: -d.amount };
     }
 
     const totals = computeInvoiceTotals({
@@ -628,7 +628,7 @@ export async function setInvoiceDiscount(
         action: discountLine ? "set_invoice_discount" : "removed_invoice_discount",
         targetType: "Invoice",
         targetId: invoiceId,
-        notes: `${inv.number}: ${discountLine ? `${discountLine.description} â†’ total ${formatMoney(totals.total, inv.currency)}` : `back to ${formatMoney(totals.total, inv.currency)}`}`,
+        notes: `${inv.number}: ${discountLine ? `${discountLine.description} → total ${formatMoney(totals.total, inv.currency)}` : `back to ${formatMoney(totals.total, inv.currency)}`}`,
       },
     });
     return { data: { number: inv.number, userId: inv.userId, total: totals.total, currency: inv.currency, hasDiscount: !!discountLine } };
@@ -707,7 +707,7 @@ export async function waiveInvoice(adminId: string, invoiceId: string, input: { 
         action: "waived_invoice",
         targetType: "Invoice",
         targetId: inv.id,
-        notes: `${inv.number} Â· waived ${parts}: ${why}${expiresAt ? ` Â· plan until ${expiresAt.toISOString().slice(0, 10)}` : ""} Â· ${nothingLeft ? "nothing left to pay" : `${formatMoney(totals.total, inv.currency)} still to pay`}`,
+        notes: `${inv.number} · waived ${parts}: ${why}${expiresAt ? ` · plan until ${expiresAt.toISOString().slice(0, 10)}` : ""} · ${nothingLeft ? "nothing left to pay" : `${formatMoney(totals.total, inv.currency)} still to pay`}`,
       },
     });
     return {
