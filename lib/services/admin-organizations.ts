@@ -1,4 +1,4 @@
-// Admin-side organization management: add an organization directly for an
+﻿// Admin-side organization management: add an organization directly for an
 // existing account (no application or payment screenshot), and assign any
 // organizer plan for a chosen period. Assigned plans are complimentary: they
 // create no payment record and no security deposit.
@@ -151,7 +151,7 @@ export async function adminAssignOrganizerPlan(input: {
         action: "assigned_organizer_plan",
         targetType: "OrganizerProfile",
         targetId: org.id,
-        notes: `${describe(plan.name, expiresAt)}${input.note?.trim() ? ` — ${input.note.trim()}` : ""}`,
+        notes: `${describe(plan.name, expiresAt)}${input.note?.trim() ? ` â€” ${input.note.trim()}` : ""}`,
       },
     }),
   ]);
@@ -205,6 +205,9 @@ export type AdminCreateOrganizationInput = {
     currency?: string;
     includeSecurityFee?: boolean;
     securityFeeAmount?: number | null;
+    discountType?: "amount" | "percent" | null;
+    discountValue?: number | null;
+    discountReason?: string | null;
     dueDate?: unknown;
     taxRate?: number | null;
     note?: string | null;
@@ -223,7 +226,7 @@ const clean = (v: string | undefined, max: number) => (v?.trim() ? v.trim().slic
 export async function adminCreateOrganization(input: AdminCreateOrganizationInput): Promise<CreateError | { data: { organizerId: string; plan: { planName: string; expiresAt: Date | null } | null; invoice: { id: string; number: string } | null; invoiceError: string | null } }> {
   const orgName = input.orgName.trim();
   if (orgName.length < 2 || orgName.length > 60) {
-    return { error: "validation_error", message: "The organization name must be 2–60 characters." };
+    return { error: "validation_error", message: "The organization name must be 2â€“60 characters." };
   }
   const isInstitute = input.type === "institute";
 
@@ -373,7 +376,7 @@ export async function adminCreateOrganization(input: AdminCreateOrganizationInpu
         action: isInstitute ? "created_institute" : "created_organization",
         targetType: "User",
         targetId: input.userId,
-        notes: `${orgName}${identity ? " · identity checked by admin" : " · no identity check"}${input.liftLimits ? " · starter limits lifted" : ""}${duplicateNote}`,
+        notes: `${orgName}${identity ? " Â· identity checked by admin" : " Â· no identity check"}${input.liftLimits ? " Â· starter limits lifted" : ""}${duplicateNote}`,
       },
     }),
   ]);
@@ -391,6 +394,9 @@ export async function adminCreateOrganization(input: AdminCreateOrganizationInpu
       planAmount: input.invoice.planAmount ?? null,
       includeSecurityFee: input.invoice.includeSecurityFee === true,
       securityFeeAmount: input.invoice.securityFeeAmount ?? null,
+      discountType: input.invoice.discountType ?? null,
+      discountValue: input.invoice.discountValue ?? null,
+      discountReason: input.invoice.discountReason ?? null,
       dueDate: input.invoice.dueDate,
       taxRate: input.invoice.taxRate ?? null,
       note: input.invoice.note ?? null,

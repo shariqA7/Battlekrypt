@@ -1,10 +1,10 @@
-// ============================================================
-// Esports Tournament Platform — Database Schema (PHASE 1 + PHASE 2 CLUB CORE)
+﻿// ============================================================
+// Esports Tournament Platform â€” Database Schema (PHASE 1 + PHASE 2 CLUB CORE)
 // Postgres + Prisma ORM
 //
 // This is the trimmed, launch-critical subset. The full 9-phase
 // schema (Club, Merch, Ratings, Donations, etc.) is preserved in
-// schema.full.prisma — copy sections back in as each phase is built,
+// schema.full.prisma â€” copy sections back in as each phase is built,
 // rather than migrating everything up front.
 //
 // Design principles:
@@ -12,7 +12,7 @@
 // - JSONB (Json fields) used only for genuinely variable-shape data
 //   (organizer custom registration fields)
 // - Rules are simple free-text at Phase 1 (structured rules + severity
-//   come in Phase 3 — see schema.full.prisma for that version)
+//   come in Phase 3 â€” see schema.full.prisma for that version)
 // ============================================================
 
 generator client {
@@ -35,7 +35,7 @@ enum KycStatus {
 }
 
 model User {
-  id          String    @id // matches Supabase auth.users.id — not auto-generated here
+  id          String    @id // matches Supabase auth.users.id â€” not auto-generated here
   email       String?   @unique
   phone       String?   @unique
   displayName String
@@ -185,25 +185,25 @@ model PlayerProfile {
 }
 
 // ------------------------------------------------------------
-// INSTITUTION VERIFICATION (Phase 8.1, spec §8)
+// INSTITUTION VERIFICATION (Phase 8.1, spec Â§8)
 // Done once per player and reused by every institution-only tournament.
 // The ID image lives in a PRIVATE storage bucket; only its path is stored.
 // ------------------------------------------------------------
 
-// Who may register for a tournament (spec §8). Institution-only tournaments
+// Who may register for a tournament (spec Â§8). Institution-only tournaments
 // need an approved PlayerInstitution (Phase 8.1) for every player on the entry.
 enum AudienceScope {
   open
   institution
 }
 
-// Where a tournament is played (spec §8). Online uses the Room ID/Password
+// Where a tournament is played (spec Â§8). Online uses the Room ID/Password
 // flow; LAN uses a venue address and on-site check-in instead of room
 // credentials. Hybrid (per-stage venue) comes in 8.4.
 // Role of an extra institute on an institution-scoped tournament. The host
 // institute is implicit (the tournament organizer's own Institution).
-//   cohost — approves/rejects registrations from ITS OWN members only
-//   guest  — its members may enter, but the host approves them
+//   cohost â€” approves/rejects registrations from ITS OWN members only
+//   guest  â€” its members may enter, but the host approves them
 enum CoHostRole {
   cohost
   guest
@@ -312,7 +312,7 @@ model CurrencySetting {
   updatedAt DateTime @updatedAt
 }
 
-// How the prize pool is split by finishing position (spec §2.11), e.g. 1st
+// How the prize pool is split by finishing position (spec Â§2.11), e.g. 1st
 // $750,000, 2nd $350,000, 4th-8th $50,000 each. `amount` is PER TEAM in the
 // tournament's prize-pool currency; the whole split may not exceed the pool.
 model PrizeTier {
@@ -327,7 +327,7 @@ model PrizeTier {
   @@index([tournamentId])
 }
 
-// A prize split as saved in a template — same shape as PrizeTier. Copied onto
+// A prize split as saved in a template â€” same shape as PrizeTier. Copied onto
 // a new tournament when the template is applied (never linked).
 model TemplatePrizeTier {
   id         String             @id @default(uuid())
@@ -361,7 +361,7 @@ model OrganizerProfile {
   bio         String?
   socialLinks Json?
 
-  // Subscription plan (Phase 5) — see PlanHolder in lib/plans.ts. Approval of
+  // Subscription plan (Phase 5) â€” see PlanHolder in lib/plans.ts. Approval of
   // an organization application always starts on the free plan; a paid plan
   // the applicant picked is bought afterwards on /plans.
   planCode      String    @default("organizer_free")
@@ -369,7 +369,7 @@ model OrganizerProfile {
 
   // Same free-text convention as PlayerProfile.country/region. Used to
   // resolve which CompetitiveTierSetting applies to this organizer's
-  // tournaments (country match > region match > world default — spec §9,
+  // tournaments (country match > region match > world default â€” spec Â§9,
   // "admin can set it by country, region, or world").
   country String?
   region  String?
@@ -412,7 +412,7 @@ enum OrgMemberRole {
   staff
 }
 
-// An organization's request to join the platform. One row per account —
+// An organization's request to join the platform. One row per account â€”
 // a rejected applicant edits and resubmits THIS row (attemptCount goes up)
 // rather than creating a new one. The OrganizerProfile is only created when
 // an admin approves, so a pending/rejected applicant has no organizer access.
@@ -484,7 +484,7 @@ model OrganizationMember {
 
 // One row per browsing session (not per page view): who, from where, on what
 // device. Written by the session beacon, read only by the admin panel. This
-// holds personal data (IP address) — disclose it in the privacy policy and
+// holds personal data (IP address) â€” disclose it in the privacy policy and
 // purge old rows with purgeOldVisits() in lib/services/analytics.ts.
 model VisitSession {
   id     String  @id @default(uuid())
@@ -517,7 +517,7 @@ enum PaymentKind {
 }
 
 // A manual ledger of money the PLATFORM received (paid club plans, organization
-// plans). There is no payment gateway yet, so an admin records each payment —
+// plans). There is no payment gateway yet, so an admin records each payment â€”
 // club upgrades are recorded when the admin approves the payment proof.
 model PaymentRecord {
   id     String      @id @default(uuid())
@@ -527,7 +527,7 @@ model PaymentRecord {
 
   amount    Decimal @db.Decimal(14, 2)
   currency  String
-  method    String // "JazzCash", "Bank transfer", …
+  method    String // "JazzCash", "Bank transfer", â€¦
   reference String?
   note      String?
 
@@ -603,13 +603,13 @@ model ClubNameClaim {
 // TOURNAMENT TEMPLATES (Phase 3)
 // ------------------------------------------------------------
 
-// Saves a tournament's whole reusable config — everything EXCEPT
-// instance-specific fields (date, room credentials) — spec §5. "Start from
+// Saves a tournament's whole reusable config â€” everything EXCEPT
+// instance-specific fields (date, room credentials) â€” spec Â§5. "Start from
 // Template" pre-fills the new-tournament form from this; the organizer edits
 // whatever changed before creating. Rules and stages copied INTO a new
-// tournament are that tournament's own rows from then on — editing or
+// tournament are that tournament's own rows from then on â€” editing or
 // deleting the template later never touches a tournament already created
-// from it, same snapshot rule as SuggestedRule (spec §5).
+// from it, same snapshot rule as SuggestedRule (spec Â§5).
 model TournamentTemplate {
   id          String           @id @default(uuid())
   organizerId String
@@ -636,7 +636,7 @@ model TournamentTemplate {
   requireFreshInstitutionProof Boolean       @default(false)
   venueType                    VenueType     @default(online)
 
-  // Same shape as Tournament.customFields — an array of {key, label, type,
+  // Same shape as Tournament.customFields â€” an array of {key, label, type,
   // required}. Copied as-is into a new tournament.
   customFields Json?
 
@@ -648,7 +648,7 @@ model TournamentTemplate {
   prizeTiers TemplatePrizeTier[]
 }
 
-// A rule as saved in a template — same shape as TournamentRule (spec §5's
+// A rule as saved in a template â€” same shape as TournamentRule (spec Â§5's
 // "rule set"), minus stage scoping (a template's stages are just names, not
 // real Stage rows yet, so there is nothing to scope to until the tournament
 // exists).
@@ -668,7 +668,7 @@ model TemplateRule {
   suggestedRule   SuggestedRule? @relation(fields: [suggestedRuleId], references: [id], onDelete: SetNull)
 }
 
-// A stage NAME and order only — a real Stage also has a date and room
+// A stage NAME and order only â€” a real Stage also has a date and room
 // credentials, which are instance-specific and never saved in a template.
 model TemplateStage {
   id         String             @id @default(uuid())
@@ -712,7 +712,7 @@ model ClubProfile {
   status      ClubStatus @default(approved)
   feeProofUrl String? // screenshot of the PAID-plan fee payment (upgrade only)
 
-  // Normalized name (see lib/org-name.ts) — unique, so "Falcon" and
+  // Normalized name (see lib/org-name.ts) â€” unique, so "Falcon" and
   // "falcon!" can't both exist. Cleared when a club is disbanded so the
   // rightful owner can take the name. Null on clubs created before this
   // existed; lib/services/club-names.ts checks those by scanning.
@@ -737,7 +737,7 @@ model ClubProfile {
 }
 
 // A named team a club fields in a team game (e.g. "Alpha" and "Bravo" in
-// PUBG Mobile). Solo games (Tekken, Chess...) have no ClubTeam — those
+// PUBG Mobile). Solo games (Tekken, Chess...) have no ClubTeam â€” those
 // roster members simply have teamId = null.
 // How many teams a club may have per game is a subscription limit
 // (Phase 5), enforced in the service layer, not here.
@@ -749,11 +749,11 @@ model ClubTeam {
   game   Game        @relation(fields: [gameId], references: [id])
   name   String
 
-  // Plain text — set by the club owner, paid clubs only (Phase 5 gate).
+  // Plain text â€” set by the club owner, paid clubs only (Phase 5 gate).
   // No uniqueness: the same coach name can appear on any club/team.
   coachName String?
 
-  // Per-game team rating (spec §9) — a club team persists across
+  // Per-game team rating (spec Â§9) â€” a club team persists across
   // tournaments (unlike an ad-hoc non-club squad, which has no identity
   // once its one tournament ends), so it's the only "team" that can
   // meaningfully carry a rating rather than each member's individual one.
@@ -770,7 +770,7 @@ model ClubTeam {
   @@index([clubId, gameId])
 }
 
-// Coaches are NOT roster members — they're just a plain name on the team
+// Coaches are NOT roster members â€” they're just a plain name on the team
 // (ClubTeam.coachName), no account or invite involved.
 enum ClubRosterRole {
   player
@@ -778,13 +778,13 @@ enum ClubRosterRole {
 }
 
 // Permanent roster. A person is on AT MOST ONE club's roster, in ONE
-// game, in ONE role (and on one team, for team games) — enforced by the
+// game, in ONE role (and on one team, for team games) â€” enforced by the
 // unique constraint on playerId. Rows are only created by accepting a
 // ClubInvite (never inserted directly), and accepting replaces any
 // existing row for that person in one transaction.
 // Invariant kept in the service layer: if teamId is set, gameId must
 // equal the team's gameId and clubId the team's clubId.
-// Editable anytime — the per-tournament roster lock lives on the
+// Editable anytime â€” the per-tournament roster lock lives on the
 // tournament's TeamEntry/TeamMember rows, not here.
 model ClubRoster {
   id        String         @id @default(uuid())
@@ -799,7 +799,7 @@ model ClubRoster {
   role      ClubRosterRole @default(player)
   // Only meaningful when teamId is set. The captain, along with the club
   // owner, may submit/edit this team's tournament entries. At most one
-  // captain per team — enforced in the service layer (setTeamCaptain).
+  // captain per team â€” enforced in the service layer (setTeamCaptain).
   isCaptain Boolean        @default(false)
   joinedAt  DateTime       @default(now())
 
@@ -879,7 +879,7 @@ enum TournamentStatus {
 // Enforced by CompetitiveTierSetting (the admin-configurable ladder),
 // PlayerGameRating/ClubTeam.rating (the rating engine), and the
 // resolveTierSetting/checkTierEntryGate functions in
-// lib/services/competitive-tiers.ts — see Phase 6.
+// lib/services/competitive-tiers.ts â€” see Phase 6.
 enum CompetitiveTier {
   none
   D
@@ -890,7 +890,7 @@ enum CompetitiveTier {
   National
 }
 
-// Admin-configurable tier ladder (spec §9) — never hardcoded. One row per
+// Admin-configurable tier ladder (spec Â§9) â€” never hardcoded. One row per
 // (tier, scope) combination; "world" is the mandatory fallback so every
 // tier always resolves to *something* even where no country/region
 // override has been set. Resolution order when gating a tournament or a
@@ -898,17 +898,17 @@ enum CompetitiveTier {
 model CompetitiveTierSetting {
   id String @id @default(uuid())
 
-  tier       CompetitiveTier // never "none" — that's "not competitive", not a tier
+  tier       CompetitiveTier // never "none" â€” that's "not competitive", not a tier
   scope      TierSettingScope
   // Country/region name, matched against OrganizerProfile.country/region
   // (case-insensitive, exact match). Null when scope is "world".
   scopeValue String?
 
   minPrizePoolUsd Decimal @db.Decimal(14, 2)
-  // Rating gate for D/C/B/A/S — null for D and C (spec: "None / light
+  // Rating gate for D/C/B/A/S â€” null for D and C (spec: "None / light
   // floor"). Not used for National, which gates on minWins instead.
   minRating       Int?
-  // National-only: "5+ S-tier wins" — a completed-tournament win count,
+  // National-only: "5+ S-tier wins" â€” a completed-tournament win count,
   // not a rating threshold (see getNationalEligibility).
   minWins         Int?
 
@@ -928,16 +928,16 @@ enum TierSettingScope {
 
 enum TierPublishPath {
   instant
-  // B/A per spec are "Instant (auto-checked)" — same publishPath as D/C
+  // B/A per spec are "Instant (auto-checked)" â€” same publishPath as D/C
   // from the settings' point of view (no human review), the "auto-checked"
   // part is just the rating-gate check the registration flow already does.
   admin_review
   always_admin
 }
 
-// Per-game player rating (spec §9: "per-game — never blended into one
+// Per-game player rating (spec Â§9: "per-game â€” never blended into one
 // number"). Only moves from Tournament results, never Leagues/Scrims.
-// Baseline 1000 is an arbitrary starting point, easy to change later —
+// Baseline 1000 is an arbitrary starting point, easy to change later â€”
 // what matters per spec is relative movement, not the absolute number.
 model PlayerGameRating {
   id       String        @id @default(uuid())
@@ -987,7 +987,7 @@ model Tournament {
 
   prizePoolAmount   Decimal? @db.Decimal(14, 2)
   prizePoolCurrency String?
-  // Organizer-confirmed that prize money actually went out (spec §10).
+  // Organizer-confirmed that prize money actually went out (spec Â§10).
   // Only payout-confirmed prize pools count toward the organizer's public
   // "Total Prize Pool Distributed".
   payoutConfirmed   Boolean  @default(false)
@@ -1039,8 +1039,8 @@ model Tournament {
 
   status             TournamentStatus @default(draft)
   // Set when an organizer tries to publish an S/National-tier tournament
-  // (spec §9: "Admin review required" / "Always Admin-approved"). Tournament
-  // stays "draft" — status itself is untouched — while this is true; an
+  // (spec Â§9: "Admin review required" / "Always Admin-approved"). Tournament
+  // stays "draft" â€” status itself is untouched â€” while this is true; an
   // admin approving flips status straight to "published" and clears this,
   // rejecting just clears it so the organizer can edit and resubmit. Kept
   // as a separate flag rather than a new status value so nothing else that
@@ -1049,7 +1049,7 @@ model Tournament {
   submittedForReview Boolean          @default(false)
   startAt            DateTime?
 
-  // Basic shareable-link tracking (spec §3) — incremented on a real page
+  // Basic shareable-link tracking (spec Â§3) â€” incremented on a real page
   // view and on a successful registration.
   clickCount        Int @default(0)
   registrationCount Int @default(0)
@@ -1079,7 +1079,7 @@ model Tournament {
 }
 
 // One like/dislike per player per tournament, and only if they actually
-// joined (spec §10).
+// joined (spec Â§10).
 model TournamentVote {
   id           String        @id @default(uuid())
   tournamentId String
@@ -1133,7 +1133,7 @@ model Stage {
 }
 
 // Phase 1: simple free-text rules. Structured type/severity + rule sets
-// + templates are Phase 3 — see schema.full.prisma.
+// + templates are Phase 3 â€” see schema.full.prisma.
 // What happens when a rule is broken.
 enum RuleAction {
   warning
@@ -1145,7 +1145,7 @@ enum RuleAction {
 // DATA, not code: admins add/edit/hide suggestions from the admin panel and
 // nothing in the app depends on any particular one existing. Adding one to a
 // tournament COPIES it into a TournamentRule, so editing or deleting a
-// suggestion later never changes a tournament that already has it (spec §5).
+// suggestion later never changes a tournament that already has it (spec Â§5).
 model SuggestedRule {
   id            String     @id @default(uuid())
   title         String
@@ -1162,7 +1162,7 @@ model SuggestedRule {
   templateRules   TemplateRule[]
 }
 
-// A rule as it applies to ONE tournament — its own snapshot, whether it
+// A rule as it applies to ONE tournament â€” its own snapshot, whether it
 // started as a suggestion or was written by the organizer.
 model TournamentRule {
   id           String     @id @default(uuid())
@@ -1171,7 +1171,7 @@ model TournamentRule {
   description  String
 
   // Short name ("No emulators"). Optional so rules that predate this (plain
-  // text) keep working — those show just their description.
+  // text) keep working â€” those show just their description.
   title         String?
   action        RuleAction @default(warning)
   penaltyPoints Int? // required when action is point_deduction, otherwise null
@@ -1252,8 +1252,8 @@ model Registration {
   // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
   institutionProofPath String?
 
-  // Which institute's queue this registration belongs to (the player's — or,
-  // for a team, the shared — institute at registration time). Null = the host
+  // Which institute's queue this registration belongs to (the player's â€” or,
+  // for a team, the shared â€” institute at registration time). Null = the host
   // handles it. A co-host acts only on registrations routed to its institute.
   routedInstitutionId     String?
   routedInstitution       Institution? @relation("RoutedRegistration", fields: [routedInstitutionId], references: [id])
@@ -1284,7 +1284,7 @@ model Registration {
 
   customFieldResponses Json?
 
-  // Results/standings — set by the organizer once a tournament has matches
+  // Results/standings â€” set by the organizer once a tournament has matches
   // to report. Nullable: most registrations never get a placement (only
   // those who actually finished/placed do), and points is separate from
   // placement since some formats (points-table, league) rank by points
@@ -1388,7 +1388,7 @@ enum ChallengeStatus {
 
 // A poster (organization, club or player on a plan that allows it) offers a
 // prize to whoever beats them / completes a task. Posting is capped by the
-// poster's plan (count per month, prize size) — see lib/services/challenges.ts.
+// poster's plan (count per month, prize size) â€” see lib/services/challenges.ts.
 model Challenge {
   id           String              @id @default(uuid())
   posterUserId String
@@ -1466,7 +1466,7 @@ model AuthCarouselSlide {
 }
 
 // ------------------------------------------------------------
-// ADMIN / AUDIT — minimal Phase 1 panel
+// ADMIN / AUDIT â€” minimal Phase 1 panel
 // ------------------------------------------------------------
 
 model AdminActionLog {
@@ -1480,7 +1480,7 @@ model AdminActionLog {
   createdAt  DateTime @default(now())
 }
 
-// Lightweight moderation stub — any authenticated user can flag a
+// Lightweight moderation stub â€” any authenticated user can flag a
 // tournament with a reason; admin reviews the queue. Full dispute system
 // with resolution workflow is Phase 7, this is just a signal + queue.
 model TournamentFlag {
@@ -1503,8 +1503,8 @@ enum PlanAudience {
   player
 }
 
-// Admin-editable plan definitions (spec §7). `limits` is a JSON object whose
-// shape depends on `audience` — see lib/plans.ts for the keys and defaults.
+// Admin-editable plan definitions (spec Â§7). `limits` is a JSON object whose
+// shape depends on `audience` â€” see lib/plans.ts for the keys and defaults.
 // Limits are convenience/cosmetic only; free plans never gate anything
 // competitive (joining, rating, tier eligibility).
 model Plan {
@@ -1698,7 +1698,7 @@ model ChallengeApplication {
 }
 
 // In-app notifications (the project sends no email): applications, picks,
-// and — in the next parts — proof, payment and dispute deadlines.
+// and â€” in the next parts â€” proof, payment and dispute deadlines.
 model Notification {
   id     String @id @default(uuid())
   userId String
@@ -1788,7 +1788,7 @@ model ChallengeReport {
 
 enum ChallengeFlagKind {
   same_device // poster and challenger used the same network AND browser
-  same_network // the same IP address (can be a shared household / café)
+  same_network // the same IP address (can be a shared household / cafÃ©)
   repeat_pair // the same two accounts keep being paired
 }
 
@@ -1800,7 +1800,7 @@ enum ChallengeFlagStatus {
 
 // A signal that a poster and the challenger they picked may be the same
 // person or working together. Only ever shown to admins, never acted on
-// automatically: shared IPs are common (families, internet cafés, mobile
+// automatically: shared IPs are common (families, internet cafÃ©s, mobile
 // carriers), so it is a prompt to look, not proof.
 model ChallengeFlag {
   id               String              @id @default(uuid())
@@ -1912,7 +1912,7 @@ model ParentalConsent {
   tokenHash     String                @unique
   status        ParentalConsentStatus @default(pending)
 
-  // Context for the email only ("…to play in X"); the consent itself isn't tied to it.
+  // Context for the email only ("â€¦to play in X"); the consent itself isn't tied to it.
   requestedFor String?
 
   sentAt        DateTime  @default(now())
@@ -1937,7 +1937,7 @@ model ParentalConsent {
 }
 
 // ------------------------------------------------------------
-// PENALTIES — what happens to an entry that cheats or doesn't show up
+// PENALTIES â€” what happens to an entry that cheats or doesn't show up
 // ------------------------------------------------------------
 
 enum PenaltyKind {
@@ -1989,7 +1989,7 @@ model Penalty {
 
 
 // ------------------------------------------------------------
-// PAYOUT METHOD — how a player wants to be paid when they win a prize. Saved once,
+// PAYOUT METHOD â€” how a player wants to be paid when they win a prize. Saved once,
 // changeable. For a player under 18 it is the PARENT/GUARDIAN's account (entered by
 // the guardian from the consent email link), and `payee` says so. The account details
 // are encrypted before they are stored (lib/payout-crypto.ts) and only decrypted for
@@ -2020,7 +2020,7 @@ model PlayerPayoutMethod {
 
 
 // ------------------------------------------------------------
-// CONSENT CASE — a guardian withdrew consent for a player who is already playing in a
+// CONSENT CASE â€” a guardian withdrew consent for a player who is already playing in a
 // RUNNING tournament. The entry is left alone (results stay valid) until an admin decides:
 // let them finish, or remove the entry. Tournaments that haven't started never create one:
 // those entries are simply cancelled.
@@ -2214,7 +2214,7 @@ model TournamentChangeRequest {
 
 
 // Extra awards on top of the placement split (PrizeTier): "Final MVP",
-// "Best IGL", "Best rookie"… An award has a cash amount (counts toward the
+// "Best IGL", "Best rookie"â€¦ An award has a cash amount (counts toward the
 // prize pool), a non-cash prize, or both. Locked together with the pool once
 // players register; changes go through an admin change request.
 model PrizeAward {
@@ -2362,7 +2362,7 @@ model OrganizerReport {
 }
 
 // ------------------------------------------------------------
-// RATE LIMIT BUCKET — counters for the sign-in / sign-up / email routes (lib/rate-limit.ts).
+// RATE LIMIT BUCKET â€” counters for the sign-in / sign-up / email routes (lib/rate-limit.ts).
 // Kept in Postgres so every server instance sees the same counts; an in-memory counter only
 // slows a script down per server. Keys are hashed (they contain emails and IP addresses)
 // and rows expire on their own.
@@ -2409,7 +2409,7 @@ model PaymentMethod {
   iban          String?
   branch        String?
   swiftCode     String?
-  // wallet (Easypaisa, JazzCash…): provider is `name`; the number is `walletNumber`.
+  // wallet (Easypaisa, JazzCashâ€¦): provider is `name`; the number is `walletNumber`.
   walletNumber  String?
   // crypto
   cryptoAsset   String? // "USDT", "BTC"
@@ -2434,6 +2434,8 @@ enum InvoiceStatus {
   proof_submitted
   paid
   cancelled
+  // Forgiven by an admin: the plan is granted but no money is owed or recorded.
+  waived
 }
 
 enum InvoiceSource {
@@ -2445,6 +2447,8 @@ enum InvoiceSource {
 enum InvoiceLineKind {
   plan
   security_deposit
+  // A negative line that reduces the plan fee (never the refundable security fee).
+  discount
   other
 }
 
@@ -2504,6 +2508,10 @@ model Invoice {
   cancelledAt DateTime?
   cancelNote  String?
 
+  waivedAt   DateTime?
+  waivedNote String?
+  waivedById String?
+
   lines InvoiceLine[]
 
   createdAt DateTime @default(now())
@@ -2525,6 +2533,8 @@ model InvoiceLine {
   amount    Decimal @db.Decimal(14, 2)
   // A refundable line (security deposit) is held for the organization: it is not income.
   refundable Boolean @default(false)
+  // Forgiven by an admin: `amount` is 0 and `unitAmount` keeps the original figure.
+  waived    Boolean @default(false)
   sortOrder Int     @default(0)
 
   @@index([invoiceId])
@@ -2534,4 +2544,43 @@ model InvoiceLine {
 model InvoiceCounter {
   year Int @id
   last Int @default(0)
+}
+
+
+// ------------------------------------------------------------
+// ADMIN LEDGER: EXPENSES
+// ------------------------------------------------------------
+// Money the platform spends. Income comes from paid invoices, other recorded payments and
+// forfeited security deposits; profit = net revenue - these expenses. An expense is voided, never
+// deleted, so the books keep their history.
+
+enum ExpenseCategory {
+  service
+  employee
+  rent
+  utilities
+  other
+}
+
+model Expense {
+  id       String          @id @default(uuid())
+  date     DateTime // the day it was paid (00:00 UTC)
+  category ExpenseCategory
+  title    String
+  vendor   String?
+  amount   Decimal         @db.Decimal(14, 2)
+  currency String
+  note     String?
+  receiptUrl String?
+
+  voidedAt   DateTime?
+  voidNote   String?
+  voidedById String?
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([category, date])
 }

@@ -1,5 +1,5 @@
-// GET  /api/admin/organizations?q=&cursor=&limit=&type=organization|institute — the list, 10 at a time
-// POST /api/admin/organizations — add an organization or an institute for an existing account.
+﻿// GET  /api/admin/organizations?q=&cursor=&limit=&type=organization|institute â€” the list, 10 at a time
+// POST /api/admin/organizations â€” add an organization or an institute for an existing account.
 //   body: { userId, type, orgName, country?, bio?, orgType?, registrationNumber?, website?, city?, address?,
 //           contactEmail?, contactPhone?, institute?: { kind, verified, proofPath },
 //           kyc?: { docType, fullName, documentNumber, address, frontPath, backPath, selfiePath, checked },
@@ -77,6 +77,9 @@ export async function POST(request: Request) {
             currency: str(b.invoice.currency),
             includeSecurityFee: b.invoice.includeSecurityFee === true,
             securityFeeAmount: typeof b.invoice.securityFeeAmount === "number" ? b.invoice.securityFeeAmount : null,
+            discountType: b.invoice.discountType === "percent" ? "percent" : "amount",
+            discountValue: typeof b.invoice.discountValue === "number" ? b.invoice.discountValue : null,
+            discountReason: str(b.invoice.discountReason) ?? null,
             dueDate: b.invoice.dueDate,
             taxRate: typeof b.invoice.taxRate === "number" ? b.invoice.taxRate : null,
             note: str(b.invoice.note) ?? null,

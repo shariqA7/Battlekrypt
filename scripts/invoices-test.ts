@@ -1,6 +1,6 @@
-// Invoice rules that need no database: totals, tax base, numbering, due dates, payment-method
+﻿// Invoice rules that need no database: totals, tax base, numbering, due dates, payment-method
 // validation. Run alone with: npx tsx scripts/invoices-test.ts
-import { computeInvoiceTotals, displayStatus, formatInvoiceNumber, parseDueDate, roundMoney } from "../lib/invoice-math";
+import { applyWaiver, computeDiscount, computeInvoiceTotals, displayStatus, formatInvoiceNumber, parseDueDate, roundMoney } from "../lib/invoice-math";
 import { checkCryptoAddress, validatePaymentMethod } from "../lib/payment-method-rules";
 
 let fails = 0;
@@ -18,6 +18,35 @@ const fee = computeInvoiceTotals({ currency: "USD", taxRate: 0, gatewayFee: 1.5,
 ok("gateway fee is added to the total", fee.total === 101.5);
 ok("rounds to cents", computeInvoiceTotals({ currency: "USD", taxRate: 7.5, lines: [{ amount: 19.99 }] }).taxAmount === 1.5);
 ok("yen has no cents", roundMoney(1234.6, "JPY") === 1235);
+
+// ---- discounts ----
+const pct = computeDiscount(5000, "percent", 10, "PKR");
+ok("10% off 5000 is 500", pct.ok && pct.amount === 500 && pct.label === "Discount (10%)");
+const fixed = computeDiscount(5000, "amount", 750, "PKR");
+ok("a fixed discount is taken as given", fixed.ok && fixed.amount === 750);
+ok("100% is refused (use Waive)", !computeDiscount(5000, "percent", 100, "PKR").ok);
+ok("a discount equal to the fee is refused", !computeDiscount(5000, "amount", 5000, "PKR").ok);
+ok("a discount bigger than the fee is refused", !computeDiscount(5000, "amount", 6000, "PKR").ok);
+ok("zero or negative discount refused", !computeDiscount(5000, "amount", 0, "PKR").ok && !computeDiscount(5000, "percent", -5, "PKR").ok);
+const disc = computeInvoiceTotals({ currency: "PKR", taxRate: 10, lines: [{ amount: 5000 }, { amount: -500 }, { amount: 2000, refundable: true }] });
+ok("discount lowers the taxable amount", disc.incomeSubtotal === 4500 && disc.taxAmount === 450);
+ok("discount never touches the refundable fee", disc.refundableTotal === 2000 && disc.total === 6950 + 0 + 0 && disc.subtotal === 6500);
+ok("status label for waived exists", displayStatus("waived", new Date("2026-11-10T00:00:00Z"), new Date("2030-01-01T00:00:00Z")) === "waived");
+
+// ---- waiving parts ----
+const L = (kind: "plan" | "security_deposit" | "discount", amount: number, refundable = false) => ({ kind, amount, originalAmount: amount, refundable, waived: false });
+const inv = [L("plan", 5000), L("discount", -500), L("security_deposit", 2000, true)];
+const none = applyWaiver(inv, { plan: false, fee: false });
+ok("nothing is waived unless ticked", none.length === 3 && none.every((l) => !l.waived));
+const planOnly = applyWaiver(inv, { plan: true, fee: false });
+const tPlan = computeInvoiceTotals({ currency: "PKR", taxRate: 10, lines: planOnly });
+ok("waiving the plan fee drops its discount and leaves the security fee to pay", planOnly.length === 2 && tPlan.total === 2000 && tPlan.taxAmount === 0);
+ok("waived plan line keeps its original figure", planOnly.find((l) => l.kind === "plan")!.originalAmount === 5000 && planOnly.find((l) => l.kind === "plan")!.waived);
+const feeOnly = applyWaiver(inv, { plan: false, fee: true });
+const tFee = computeInvoiceTotals({ currency: "PKR", taxRate: 10, lines: feeOnly });
+ok("waiving the security fee leaves plan + tax to pay", tFee.total === 4950 && tFee.refundableTotal === 0);
+const both = computeInvoiceTotals({ currency: "PKR", taxRate: 10, lines: applyWaiver(inv, { plan: true, fee: true }) });
+ok("waiving both leaves nothing to pay", both.total === 0);
 
 // ---- numbering ----
 ok("invoice number format", formatInvoiceNumber(2026, 1) === "BK-2026-0001" && formatInvoiceNumber(2026, 12345) === "BK-2026-12345");

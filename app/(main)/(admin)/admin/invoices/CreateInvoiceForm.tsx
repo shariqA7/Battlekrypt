@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,9 @@ export default function CreateInvoiceForm({
   const [due, setDue] = useState("");
   const [tax, setTax] = useState(String(defaultTaxRate));
   const [note, setNote] = useState("");
+  const [discType, setDiscType] = useState<"amount" | "percent">("percent");
+  const [discValue, setDiscValue] = useState("");
+  const [discReason, setDiscReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +62,9 @@ export default function CreateInvoiceForm({
         includeSecurityFee: secFee,
         securityFeeAmount: secFee && depositHere === null ? Number(secAmount) : null,
         dueDate: hasDue ? due : null,
+        discountType: discType,
+        discountValue: plan && discValue.trim() !== "" ? Number(discValue) : null,
+        discountReason: discReason,
         taxRate: tax.trim() === "" ? null : Number(tax),
         note,
       }),
@@ -94,7 +100,7 @@ export default function CreateInvoiceForm({
           renderItem={(o) => (
             <span className="block">
               <span className="block font-sans text-[13px] text-bk-heading truncate">{o.name}</span>
-              <span className="block font-sans text-[11px] text-bk-muted truncate">{o.ownerName} · {o.planName}</span>
+              <span className="block font-sans text-[11px] text-bk-muted truncate">{o.ownerName} Â· {o.planName}</span>
             </span>
           )}
         />
@@ -135,6 +141,25 @@ export default function CreateInvoiceForm({
         </p>
       )}
 
+      {plan && (
+        <div className="flex flex-wrap items-end gap-3 font-sans text-[12px] text-bk-muted">
+          <label className="block">
+            <span className="block mb-1">Discount on the plan fee (optional)</span>
+            <span className="flex gap-2">
+              <select value={discType} onChange={(e) => setDiscType(e.target.value as "amount" | "percent")} className={field}>
+                <option value="percent">Percent %</option>
+                <option value="amount">Amount ({currency})</option>
+              </select>
+              <input type="number" min={0} step="any" value={discValue} onChange={(e) => setDiscValue(e.target.value)} className={`${field} w-28`} />
+            </span>
+          </label>
+          <label className="block">
+            <span className="block mb-1">Reason shown on the invoice</span>
+            <input value={discReason} onChange={(e) => setDiscReason(e.target.value)} maxLength={120} placeholder="e.g. Launch offer" className={`${field} w-56`} />
+          </label>
+        </div>
+      )}
+
       <div className="font-sans text-[13px] text-bk-heading space-y-2">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={secFee} onChange={(e) => setSecFee(e.target.checked)} /> Include a refundable security fee
@@ -158,7 +183,7 @@ export default function CreateInvoiceForm({
 
       {error && <p role="alert" className="font-sans text-[12px] text-bk-live">{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={busy} className={buttonClass("primary", "sm")}>{busy ? "Creating…" : "Create invoice"}</button>
+        <button type="submit" disabled={busy} className={buttonClass("primary", "sm")}>{busy ? "Creatingâ€¦" : "Create invoice"}</button>
         <button type="button" onClick={() => setOpen(false)} disabled={busy} className={buttonClass("outline", "sm")}>Cancel</button>
       </div>
     </form>
