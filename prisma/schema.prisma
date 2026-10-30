@@ -385,6 +385,12 @@ model OrganizerProfile {
   // existing organizations (so plans an admin gave free are never billed); switched on when an
   // organization pays a plan invoice. An admin can change it per organization.
   autoRenew    Boolean @default(false)
+  // Plan changes. A downgrade the organization asked for: the plan the next renewal invoice bills.
+  pendingPlanCode  String?
+  // A plan that is already paid for but starts when the current one ends (paid early).
+  nextPlanCode     String?
+  nextPlanStartsAt DateTime?
+  nextPlanDays     Int?
   // Set when enough players reported this organizer: new paid registrations and
   // new paid or prized events are paused until an admin lifts it.
   reportsPausedAt     DateTime?
@@ -2481,6 +2487,7 @@ enum InvoiceSource {
   application_approved
   admin_manual
   renewal
+  plan_change
 }
 
 enum InvoiceLineKind {

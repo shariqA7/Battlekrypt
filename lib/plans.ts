@@ -259,6 +259,10 @@ export function validateLimitsInput(
 export interface PlanHolder {
   planCode: string;
   planExpiresAt: Date | null;
+  // A plan already paid for that starts when the current one ends (see plan-change-rules).
+  nextPlanCode?: string | null;
+  nextPlanStartsAt?: Date | null;
+  nextPlanDays?: number | null;
 }
 
 export interface EffectivePlan<A extends PlanAudience = PlanAudience> {
@@ -279,6 +283,14 @@ export async function resolvePlan<A extends PlanAudience>(
   now: Date = new Date()
 ): Promise<EffectivePlan<A>> {
   const freeCode = FREE_PLAN_CODE[audience];
+  // A scheduled plan that has started counts from its start date, even before the daily job has
+  // written it to the account.
+  if (holder.nextPlanCode && holder.nextPlanStartsAt && holder.nextPlanStartsAt <= now) {
+    holder = {
+      planCode: holder.nextPlanCode,
+      planExpiresAt: new Date(holder.nextPlanStartsAt.getTime() + (holder.nextPlanDays ?? 30) * 86_400_000),
+    };
+  }
   const lapsed =
     holder.planCode !== freeCode && holder.planExpiresAt !== null && holder.planExpiresAt <= now;
   const wantedCode = lapsed ? freeCode : holder.planCode;

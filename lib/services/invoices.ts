@@ -47,6 +47,7 @@ const fail = (error: InvoiceErrorCode, message?: string): Fail => ({ error, mess
 
 const OPEN = ["unpaid", "proof_submitted"] as const;
 const money = (v: { toString(): string } | number | null | undefined) => Number(v?.toString() ?? 0);
+const fmtDay = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 // ------------------------------------------------------------
 // Numbering
@@ -69,7 +70,7 @@ async function nextInvoiceNumber(tx: Prisma.TransactionClient, now: Date) {
 
 export interface CreateInvoiceInput {
   organizerId: string;
-  source: "admin_added" | "application_approved" | "admin_manual" | "renewal";
+  source: "admin_added" | "application_approved" | "admin_manual" | "renewal" | "plan_change";
   /** For a renewal: the plan end date being renewed (stops it being invoiced twice). */
   renewalForExpiry?: Date | null;
   createdById?: string | null;
@@ -200,7 +201,12 @@ export async function createInvoice(input: CreateInvoiceInput) {
   }
   await notify(org.userId, {
     type: "invoice",
-    title: input.source === "renewal" ? `Renew your ${plan?.name ?? ""} plan — invoice ${invoice.number}`.replace("  ", " ") : `New invoice ${invoice.number}`,
+    title:
+      input.source === "renewal"
+        ? `Renew your ${plan?.name ?? ""} plan — invoice ${invoice.number}`.replace("  ", " ")
+        : input.source === "plan_change"
+        ? `Upgrade to ${plan?.name ?? "your new plan"} — invoice ${invoice.number}`
+        : `New invoice ${invoice.number}`,
     body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` · due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
     href: `/invoices/${invoice.id}`,
   });
@@ -409,16 +415,30 @@ export async function rejectInvoiceProof(adminId: string, invoiceId: string, not
 
 // Grants the invoice's plan (same rules as an approved plan request: it extends if the
 // organization is already on that plan). Used when an invoice is paid or waived.
+// Paying a renewal for a lower plan early schedules it instead of switching straight away.
 async function grantPlanFromInvoice(
   tx: Prisma.TransactionClient,
-  inv: { planCode: string | null; planPeriodDays: number | null },
+  inv: { planCode: string | null; planPeriodDays: number | null; source?: string },
   org: { id: string; planCode: string; planExpiresAt: Date | null },
   at: Date
-) {
+): Promise<{ expiresAt: Date; startsAt: Date | null } | null> {
   if (!inv.planCode) return null;
-  const expiresAt = computeNewExpiry({ planCode: org.planCode, planExpiresAt: org.planExpiresAt }, inv.planCode, inv.planPeriodDays ?? 30, at);
-  await tx.organizerProfile.update({ where: { id: org.id }, data: { planCode: inv.planCode, planExpiresAt: expiresAt } });
-  return expiresAt;
+  const days = inv.planPeriodDays ?? 30;
+  const clear = { pendingPlanCode: null, nextPlanCode: null, nextPlanStartsAt: null, nextPlanDays: null };
+
+  // A renewal for a different (lower) plan, paid before the current plan ends: keep the current
+  // plan until its end date and schedule the new one from then. The daily job switches it over.
+  if (inv.source === "renewal" && inv.planCode !== org.planCode && org.planExpiresAt && org.planExpiresAt > at) {
+    await tx.organizerProfile.update({
+      where: { id: org.id },
+      data: { pendingPlanCode: null, nextPlanCode: inv.planCode, nextPlanStartsAt: org.planExpiresAt, nextPlanDays: days },
+    });
+    return { expiresAt: new Date(org.planExpiresAt.getTime() + days * 86_400_000), startsAt: org.planExpiresAt };
+  }
+
+  const expiresAt = computeNewExpiry({ planCode: org.planCode, planExpiresAt: org.planExpiresAt }, inv.planCode, days, at);
+  await tx.organizerProfile.update({ where: { id: org.id }, data: { planCode: inv.planCode, planExpiresAt: expiresAt, ...clear } });
+  return { expiresAt, startsAt: null };
 }
 
 export interface MarkPaidInput {
@@ -484,10 +504,13 @@ export async function markInvoicePaid(input: MarkPaidInput) {
     const depositLines = inv.lines.filter((l) => l.refundable && !l.waived);
     const depositTotal = depositLines.reduce((s, l) => s + money(l.amount), 0);
     let expiresAt: Date | null = null;
+    let startsAt: Date | null = null;
 
     // 1. Grant the plan (same rules as an approved plan request: extends if already on it).
     if (planLine) {
-      expiresAt = await grantPlanFromInvoice(tx, inv, org, paidAt);
+      const g = await grantPlanFromInvoice(tx, inv, org, paidAt);
+      expiresAt = g?.expiresAt ?? null;
+      startsAt = g?.startsAt ?? null;
       // An organization that pays for a plan is renewed automatically from now on (an admin can
       // switch it off). Paying a renewal doesn't flip a switch the admin turned off meanwhile.
       if (inv.source !== "renewal") await tx.organizerProfile.update({ where: { id: org.id }, data: { autoRenew: true } });
@@ -541,7 +564,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
         notes: `${inv.number} · ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` · plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
       },
     });
-    return { data: { number: inv.number, userId: inv.userId, expiresAt, planName: inv.planName, total: money(inv.total), currency: inv.currency, id: inv.id } };
+    return { data: { number: inv.number, userId: inv.userId, expiresAt, startsAt, planName: inv.planName, total: money(inv.total), currency: inv.currency, id: inv.id } };
   });
 
   if ("data" in result && result.data) {
@@ -549,8 +572,10 @@ export async function markInvoicePaid(input: MarkPaidInput) {
     await notify(d.userId, {
       type: "invoice",
       title: `Invoice ${d.number} is paid`,
-      body: d.planName && d.expiresAt
-        ? `Thank you. Your ${d.planName} plan is active until ${d.expiresAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}.`
+      body: d.planName && d.expiresAt && d.startsAt
+        ? `Thank you. Your ${d.planName} plan starts on ${fmtDay(d.startsAt)}, when your current plan ends, and runs until ${fmtDay(d.expiresAt)}.`
+        : d.planName && d.expiresAt
+        ? `Thank you. Your ${d.planName} plan is active until ${fmtDay(d.expiresAt)}.`
         : "Thank you. Your payment was received.",
       href: `/invoices/${d.id}`,
     });
@@ -709,7 +734,8 @@ export async function waiveInvoice(adminId: string, invoiceId: string, input: { 
       if (hit && !l.waived) await tx.invoiceLine.update({ where: { id: l.id }, data: { waived: true, amount: 0 } });
     }
 
-    const expiresAt = waivePlan ? await grantPlanFromInvoice(tx, inv, inv.organizer, new Date()) : null;
+    const granted = waivePlan ? await grantPlanFromInvoice(tx, inv, inv.organizer, new Date()) : null;
+    const expiresAt = granted?.expiresAt ?? null;
     const parts = [waivePlan ? "plan fee" : null, waiveFee ? "security fee" : null].filter(Boolean).join(" + ");
     await tx.adminActionLog.create({
       data: {
@@ -738,4 +764,14 @@ export async function waiveInvoice(adminId: string, invoiceId: string, input: { 
     });
   }
   return result;
+}
+
+// Cancels an open invoice on the system's behalf (no admin involved), e.g. a renewal that a plan
+// change replaces. The caller tells the organization why.
+export async function systemCancelInvoice(invoiceId: string, note: string) {
+  const r = await prisma.invoice.updateMany({
+    where: { id: invoiceId, status: "unpaid" },
+    data: { status: "cancelled", cancelledAt: new Date(), cancelNote: note.slice(0, 500) },
+  });
+  return r.count === 1;
 }

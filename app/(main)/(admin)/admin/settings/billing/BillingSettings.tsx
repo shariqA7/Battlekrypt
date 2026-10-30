@@ -47,7 +47,7 @@ export default function BillingSettings({
     if (body.disabled) return setRunMsg("Renewal invoices are switched off.");
     const created = body.created?.length ?? 0;
     const failed = body.failed?.length ?? 0;
-    setRunMsg(`Checked ${body.checked} organization${body.checked === 1 ? "" : "s"}: ${created} invoice${created === 1 ? "" : "s"} created${failed ? `, ${failed} could not be created (${body.failed[0].orgName}: ${body.failed[0].message})` : ""}.`);
+    setRunMsg(`Checked ${body.checked} organization${body.checked === 1 ? "" : "s"}: ${created} invoice${created === 1 ? "" : "s"} created${failed ? `, ${failed} could not be created (${body.failed[0].orgName}: ${body.failed[0].message})` : ""}${body.switched ? `. ${body.switched} scheduled plan change${body.switched === 1 ? "" : "s"} started` : ""}.`);
   }
 
   return (

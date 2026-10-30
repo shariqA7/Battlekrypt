@@ -5,6 +5,8 @@ import { describeLimits, PAID_PERKS } from "@/lib/plan-copy";
 import { formatMoney } from "@/lib/money";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import PlanRequestForm from "./PlanRequestForm";
+import ChangePlanCard from "./ChangePlanCard";
+import { getPlanChangeView } from "@/lib/services/plan-changes";
 import DepositRefundButton from "./DepositRefundButton";
 import { getDepositDue, getMyDeposits } from "@/lib/services/security-deposits";
 import { describeExtras, listPlanFields } from "@/lib/services/plan-fields";
@@ -24,6 +26,7 @@ export default async function PlansPage() {
   if (!user) redirect("/login?redirectTo=/plans");
 
   const openInvoice = await hasOpenPlanInvoice(user.id);
+  const changeView = await getPlanChangeView(user.id);
   const [states, plans, settings, planFields, myDeposits] = await Promise.all([
     getMyPlanStates(user.id),
     listPlans({ activeOnly: true }),
@@ -71,7 +74,11 @@ export default async function PlansPage() {
       )}
 
       {states.map((s) => {
-        const options = plans.filter((p) => p.audience === s.audience && p.isPaid);
+        // An organizer on an active paid plan changes plan through the card below (upgrade with credit,
+        // downgrade at renewal); the buy forms for other plans would switch plans without any credit.
+        const options = plans.filter(
+          (p) => p.audience === s.audience && p.isPaid && !(s.audience === "organizer" && changeView && p.code !== s.plan.code)
+        );
         return (
           <section key={s.audience} className="mb-10">
             <div className="flex items-center gap-2 mb-3">
@@ -150,6 +157,8 @@ export default async function PlansPage() {
                 {s.lastRejection.note ? `: ${s.lastRejection.note}` : "."}
               </p>
             )}
+
+            {s.audience === "organizer" && changeView && <ChangePlanCard view={changeView} />}
 
             {options.map((p) => {
               const perks = [...describeLimits(s.audience, p.limits), ...PAID_PERKS];
