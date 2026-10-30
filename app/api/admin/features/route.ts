@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { updateFeatureFlags } from "@/lib/services/feature-flags";
 
 export async function PUT(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("settings");
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   const result = await updateFeatureFlags(auth.admin.id, body);

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { buttonClass } from "@/components/ui/Button";
+import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
+import type { ProofMatch } from "@/lib/proof-match";
 
 export interface PendingPlanRequest {
   id: string;
@@ -10,6 +12,7 @@ export interface PendingPlanRequest {
   priceAmount: number | null;
   priceCurrency: string | null;
   proofUrl: string;
+  duplicate?: ProofMatch | null;
   createdAt: string | Date;
   userName: string;
   userEmail: string | null;
@@ -73,7 +76,8 @@ export default function PlanRequestsQueue({ initial }: { initial: PendingPlanReq
                 className="font-sans text-[12px] text-bk-gold-light underline"
               >
                 View payment proof ↗
-              </a>
+              </a>{" "}
+              <DuplicateProofBadge match={r.duplicate} scope="admin" />
               <div className="flex gap-2 mt-2">
                 <button
                   type="button"

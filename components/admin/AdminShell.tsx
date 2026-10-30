@@ -14,13 +14,22 @@ import {
   isAdminItemActive,
   navBadgeCount,
 } from "./adminNav";
+import { areaForAdminPath } from "@/lib/staff-permissions";
 import { AdminIcon, ChevronRight, ChevronsLeft, ChevronsRight, CloseIcon, HomeIcon, MenuIcon } from "./AdminIcons";
 
-function SidebarLinks({ collapsed, counts, onNavigate }: { collapsed: boolean; counts: Record<string, number>; onNavigate?: () => void }) {
+function SidebarLinks({ collapsed, counts, allowed, onNavigate }: { collapsed: boolean; counts: Record<string, number>; allowed: string[]; onNavigate?: () => void }) {
   const pathname = usePathname();
+  // Only the sections this staff member can open (the server enforces it too; this just hides the links).
+  const groups = ADMIN_NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((item) => {
+      const area = areaForAdminPath(item.href);
+      return area === null || allowed.includes(area);
+    }),
+  })).filter((g) => g.items.length > 0);
   return (
     <nav aria-label="Admin sections" className="flex flex-col gap-4">
-      {ADMIN_NAV_GROUPS.map((group, gi) => (
+      {groups.map((group, gi) => (
         <div key={group.label}>
           {collapsed ? (
             gi > 0 && <div className="mx-3 mb-2 border-t border-bk-border-soft" aria-hidden="true" />
@@ -108,6 +117,7 @@ export default function AdminShell({
   children,
   pending,
   counts,
+  allowed,
   defaultCollapsed,
 }: {
   children: React.ReactNode;
@@ -115,6 +125,8 @@ export default function AdminShell({
   pending: number;
   /** Per-queue counts (getAttentionCounts().items): drive each sidebar item's badge. */
   counts: Record<string, number>;
+  /** Admin areas this staff member can open (visibleAreas). */
+  allowed: string[];
   defaultCollapsed: boolean;
 }) {
   const pathname = usePathname();
@@ -164,7 +176,7 @@ export default function AdminShell({
               {collapsed ? <ChevronsRight /> : <ChevronsLeft />}
             </button>
           </div>
-          <SidebarLinks collapsed={collapsed} counts={counts} />
+          <SidebarLinks collapsed={collapsed} counts={counts} allowed={allowed} />
         </div>
       </aside>
 
@@ -201,7 +213,7 @@ export default function AdminShell({
                 <CloseIcon />
               </button>
             </div>
-            <SidebarLinks collapsed={false} counts={counts} onNavigate={() => setDrawerOpen(false)} />
+            <SidebarLinks collapsed={false} counts={counts} allowed={allowed} onNavigate={() => setDrawerOpen(false)} />
           </div>
         </div>
       )}

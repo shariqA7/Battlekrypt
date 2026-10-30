@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { getUserForOrganizer } from "@/lib/services/admin-organizations";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("organizations", "view");
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const user = await getUserForOrganizer(id);

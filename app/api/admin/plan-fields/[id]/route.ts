@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { deletePlanField } from "@/lib/services/plan-fields";
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("plans");
   if ("response" in auth) return auth.response;
   const { id } = await params;
   const result = await deletePlanField(id);

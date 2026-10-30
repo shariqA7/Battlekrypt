@@ -6,7 +6,7 @@ import { featuredError } from "@/lib/featured-helpers";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("featured");
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   const result = await updateSlide(id, auth.admin.id, body);
@@ -16,7 +16,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("featured");
   if ("response" in auth) return auth.response;
   const result = await deleteSlide(id, auth.admin.id);
   if ("error" in result) return featuredError(result);

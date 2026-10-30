@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/ui/Panel";
 import UsersList from "./UsersList";
 
 export default async function AdminUsersPage() {
-  await requireAdminPage();
+  await requireAdminPage("users");
   const [total, initial] = await Promise.all([prisma.user.count(), listUsersPage({ q: "", cursor: null, limit: ADMIN_PAGE_SIZE })]);
 
   return (

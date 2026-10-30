@@ -4,7 +4,7 @@ import BillingSettings from "./BillingSettings";
 import PaymentMethodsManager, { type MethodData } from "./PaymentMethodsManager";
 
 export default async function SettingsBillingPage() {
-  await requireAdminPage();
+  await requireAdminPage("payments");
   const [settings, methods] = await Promise.all([getInvoiceSettings(), listPaymentMethods()]);
   const data: MethodData[] = methods.map((m) => ({
     id: m.id,

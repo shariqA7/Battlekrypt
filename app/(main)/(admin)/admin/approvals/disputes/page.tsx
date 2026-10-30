@@ -4,7 +4,7 @@ import { prizeLabel } from "@/lib/challenge-format";
 import ChallengeDisputes from "../../ChallengeDisputes";
 
 export default async function ApprovalsDisputesPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const disputes = await listDisputesForAdmin();
 
   return (

@@ -44,7 +44,16 @@ model User {
   // the name this is NOT an identity check: that is IdentityVerification below,
   // and only that earns the Verified badge and lifts the starter limits.
   kycStatus   KycStatus @default(none)
+  // isAdmin = "is ACTIVE staff": true for every staff member who can currently open /admin.
+  // Removing or suspending someone sets it back to false, so every older isAdmin check
+  // keeps working. WHAT a staff member may do is in staffRole + StaffPermission below.
   isAdmin     Boolean   @default(false)
+  // STAFF (see lib/staff-permissions.ts). Null on an admin = legacy full-access admin.
+  staffRole       StaffRole?
+  staffActive     Boolean    @default(true)
+  staffAddedById  String?
+  staffAddedAt    DateTime?
+  staffPermissions StaffPermission[] @relation("StaffPermissions")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -64,6 +73,28 @@ model User {
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
   planRequests    PlanRequest[]
+}
+
+enum StaffRole {
+  super_admin
+  admin
+  manager
+}
+
+enum StaffAccess {
+  view
+  edit
+}
+
+// One row per staff member per section they can open. No row = no access. A super admin
+// needs no rows: they can do everything. `permission` is a key from STAFF_PERMISSIONS.
+model StaffPermission {
+  userId     String
+  user       User        @relation("StaffPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  permission String
+  access     StaffAccess @default(edit)
+
+  @@id([userId, permission])
 }
 
 model Game {
@@ -2583,4 +2614,36 @@ model Expense {
 
   @@index([date])
   @@index([category, date])
+}
+
+
+// ------------------------------------------------------------
+// PROOF FINGERPRINTS (Phase 7: duplicate-screenshot detection)
+// ------------------------------------------------------------
+// Every payment-proof screenshot is hashed (SHA-256 of the exact file) once when it is submitted.
+// Two proofs that are the very same file are flagged as a possible duplicate for whoever reviews
+// them. This only FLAGS: nothing is blocked or rejected automatically. One row per submitted
+// proof (replacing a proof replaces its row).
+// Why not "looks similar" matching: bank and wallet receipts from the same app look almost
+// identical even when the amount and transaction ID differ, so a picture match would flag
+// innocent payments and teach reviewers to ignore the flag.
+
+enum ProofKind {
+  registration // a player/team entry fee, reviewed by the organizer
+  plan_request // an upgrade to a paid plan, reviewed by an admin
+  invoice      // an invoice payment, reviewed by an admin
+  club_fee     // a club's paid-plan fee, reviewed by an admin
+}
+
+model ProofFingerprint {
+  id          String    @id @default(uuid())
+  kind        ProofKind
+  refId       String // the Registration / PlanRequest / Invoice / ClubProfile it belongs to
+  userId      String? // who submitted it
+  organizerId String? // the organizer who reviews it (registrations only)
+  sha256      String
+  createdAt   DateTime  @default(now())
+
+  @@unique([kind, refId])
+  @@index([sha256])
 }

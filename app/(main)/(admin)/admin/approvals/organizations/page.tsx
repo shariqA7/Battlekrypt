@@ -5,7 +5,7 @@ import AdminQueues from "../../AdminQueues";
 import OrgApplications from "../../OrgApplications";
 
 export default async function ApprovalsOrganizationsPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const [orgApplications, pendingOrganizers] = await Promise.all([listPendingApplications(), listPendingOrganizers()]);
 
   return (

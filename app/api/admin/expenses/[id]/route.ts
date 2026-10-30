@@ -5,7 +5,7 @@ import { updateExpense } from "@/lib/services/ledger";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("ledger");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   const r = await updateExpense(auth.admin.id, id, b && typeof b === "object" ? b : {});

@@ -10,7 +10,7 @@ export async function PATCH(
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("plans");
   if ("response" in auth) return auth.response;
 
   const body = await request.json().catch(() => ({}));

@@ -10,7 +10,7 @@ import { invoiceError } from "@/lib/invoice-helpers";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string; action: string }> }) {
   const { id, action } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
 

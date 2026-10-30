@@ -8,7 +8,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("settings");
   if ("response" in auth) return auth.response;
 
   await deleteCarouselSlide(id);

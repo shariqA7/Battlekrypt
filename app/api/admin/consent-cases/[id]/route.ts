@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { decideConsentCase } from "@/lib/services/consent-cases";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("approvals");
   if ("response" in auth) return auth.response;
 
   const { id } = await params;

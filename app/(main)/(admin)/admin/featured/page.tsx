@@ -9,7 +9,7 @@ import {
 import FeaturedManager from "../FeaturedManager";
 
 export default async function AdminFeaturedPage() {
-  await requireAdminPage();
+  await requireAdminPage("featured");
   const [slides, owners, featured, featurable] = await Promise.all([
     listAllSlides(),
     listEligibleOwners(),

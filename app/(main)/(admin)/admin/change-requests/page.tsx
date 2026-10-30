@@ -6,7 +6,7 @@ import { ordinal } from "@/lib/services/prize-tiers";
 import ChangeRequestsManager from "./ChangeRequestsManager";
 
 export default async function AdminChangeRequestsPage() {
-  await requireAdminPage();
+  await requireAdminPage("change_requests");
   const rows = await listChangeRequestsForAdmin();
 
   return (

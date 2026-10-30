@@ -12,7 +12,7 @@ export default async function AdminTrafficPage({
 }: {
   searchParams: Promise<{ days?: string }>;
 }) {
-  await requireAdminPage();
+  await requireAdminPage("traffic");
   const { days: d } = await searchParams;
   const days = RANGES.includes(Number(d)) ? Number(d) : 30;
   const t = await getTraffic(days);

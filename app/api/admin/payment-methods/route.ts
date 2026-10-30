@@ -6,13 +6,13 @@ import { createPaymentMethod, listPaymentMethods } from "@/lib/services/payment-
 import { methodError } from "@/lib/invoice-helpers";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments", "view");
   if ("response" in auth) return auth.response;
   return NextResponse.json({ items: await listPaymentMethods() });
 }
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   const result = await createPaymentMethod(auth.admin.id, body && typeof body === "object" ? body : {});

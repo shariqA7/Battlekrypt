@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { searchIdentity } from "@/lib/services/identity";
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("approvals", "view");
   if ("response" in auth) return auth.response;
   const q = new URL(request.url).searchParams.get("q") ?? "";
   return NextResponse.json({ results: await searchIdentity(q) }, { headers: { "Cache-Control": "no-store" } });

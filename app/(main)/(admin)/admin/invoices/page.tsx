@@ -20,7 +20,7 @@ const TABS: { key: InvoiceFilter; label: string }[] = [
 ];
 
 export default async function AdminInvoicesPage({ searchParams }: { searchParams: Promise<{ filter?: string; q?: string }> }) {
-  await requireAdminPage();
+  await requireAdminPage("payments");
   const sp = await searchParams;
   const filter = TABS.find((t) => t.key === sp.filter)?.key ?? "all";
   const q = (sp.q ?? "").trim().slice(0, 100);

@@ -6,13 +6,13 @@ import { getInvoiceSettings, updateInvoiceSettings } from "@/lib/services/paymen
 import { methodError } from "@/lib/invoice-helpers";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments", "view");
   if ("response" in auth) return auth.response;
   return NextResponse.json(await getInvoiceSettings());
 }
 
 export async function PATCH(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   const result = await updateInvoiceSettings(auth.admin.id, {

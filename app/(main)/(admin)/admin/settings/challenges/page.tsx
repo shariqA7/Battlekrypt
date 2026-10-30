@@ -3,7 +3,7 @@ import { getChallengeReviewUsd } from "@/lib/services/challenges";
 import ChallengeSettings from "../../ChallengeSettings";
 
 export default async function SettingsChallengesPage() {
-  await requireAdminPage();
+  await requireAdminPage("settings");
   const challengeReviewUsd = await getChallengeReviewUsd();
   return <ChallengeSettings initialUsd={challengeReviewUsd} />;
 }

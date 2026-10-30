@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { updateTrustConfig } from "@/lib/services/organizer-trust";
 
 export async function PUT(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("organizer_trust");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   const result = await updateTrustConfig({

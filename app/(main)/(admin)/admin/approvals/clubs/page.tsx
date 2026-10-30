@@ -6,7 +6,7 @@ import AdminQueues from "../../AdminQueues";
 import NameClaims from "../../NameClaims";
 
 export default async function ApprovalsClubsPage() {
-  await requireAdminPage();
+  await requireAdminPage("approvals");
   const [pendingClubs, nameClaims, activeBans] = await Promise.all([listPendingClubs(), listPendingClaims(), listActiveBans()]);
 
   return (

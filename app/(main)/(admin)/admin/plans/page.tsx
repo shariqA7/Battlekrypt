@@ -6,7 +6,7 @@ import PlanManager from "../PlanManager";
 import { SectionHeading } from "@/components/ui/Panel";
 
 export default async function AdminPlansPage() {
-  await requireAdminPage();
+  await requireAdminPage("plans");
   const [plans, fields, settings, currencies] = await Promise.all([
     listPlans(),
     listPlanFields(),

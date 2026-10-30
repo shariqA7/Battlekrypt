@@ -11,7 +11,7 @@ import { invoiceError } from "@/lib/invoice-helpers";
 const FILTERS: InvoiceFilter[] = ["all", "open", "proof_submitted", "overdue", "paid", "waived", "cancelled"];
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments", "view");
   if ("response" in auth) return auth.response;
   const f = new URL(request.url).searchParams.get("filter") as InvoiceFilter | null;
   return NextResponse.json(await listInvoicesPage(parsePageQuery(request.url), f && FILTERS.includes(f) ? f : "all"));
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : v === "" || v === null || v === undefined ? null : Number(v));
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("payments");
   if ("response" in auth) return auth.response;
   const b = await request.json().catch(() => ({}));
   const result = await createInvoice({

@@ -5,7 +5,7 @@ import { SectionHeading } from "@/components/ui/Panel";
 import OrganizerTrustManager from "./OrganizerTrustManager";
 
 export default async function AdminOrganizerTrustPage() {
-  await requireAdminPage();
+  await requireAdminPage("organizer_trust");
   const [cfg, holds, disputed, organizers] = await Promise.all([
     getTrustConfig(),
     listOrganizersOnHold(),

@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/ui/Panel";
 import ClubsList from "./ClubsList";
 
 export default async function AdminClubsPage() {
-  await requireAdminPage();
+  await requireAdminPage("clubs");
   const [total, initial] = await Promise.all([prisma.clubProfile.count(), listClubsPage({ q: "", cursor: null, limit: ADMIN_PAGE_SIZE })]);
 
   return (

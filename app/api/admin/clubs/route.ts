@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-helpers";
 import { listPendingClubs } from "@/lib/services/clubs";
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("clubs", "view");
   if ("response" in auth) return auth.response;
 
   const clubs = await listPendingClubs();

@@ -39,7 +39,7 @@ function Chip({ children, tone = "plain" }: { children: React.ReactNode; tone?: 
 }
 
 export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdminPage();
+  await requireAdminPage("organizations");
   const { id } = await params;
   const [o, allPlans] = await Promise.all([getOrganizationDetail(id), listPlans({ audience: "organizer", activeOnly: true })]);
   if (!o) notFound();

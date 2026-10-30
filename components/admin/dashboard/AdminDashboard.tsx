@@ -95,7 +95,9 @@ export default function AdminDashboard({
         <StatCard loading={shimmer} index={8} icon="tournaments" tone="teal" label="Tournaments created" value={s.tournaments.current} current={s.tournaments.current} previous={s.tournaments.previous} hint={`${t.liveTournaments} in progress now`} />
         <StatCard loading={shimmer} index={9} icon="registrations" tone="amber" label="Registrations" value={s.registrations.current} current={s.registrations.current} previous={s.registrations.previous} hint={`${n(t.registrations)} total`} />
         <StatCard loading={shimmer} index={10} icon="bans" tone="live" label="Bans issued" value={s.bans.current} current={s.bans.current} previous={s.bans.previous} hint={`${t.activeBans} active now`} />
-        <StatCard loading={shimmer} index={11} icon="payments" label="Revenue recorded" text={data.revenueText} hint={`${data.paymentCount} payment${data.paymentCount === 1 ? "" : "s"}`} />
+        {data.revenueText !== null && (
+          <StatCard loading={shimmer} index={11} icon="payments" label="Revenue recorded" text={data.revenueText} hint={`${data.paymentCount} payment${data.paymentCount === 1 ? "" : "s"}`} />
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">

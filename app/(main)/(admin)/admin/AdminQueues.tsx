@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { LAUNCH_CURRENCIES } from "@/lib/money";
 import { buttonClass } from "@/components/ui/Button";
+import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
+import type { ProofMatch } from "@/lib/proof-match";
 
 interface PendingOrganizer {
   id: string;
@@ -14,6 +16,7 @@ interface PendingClub {
   id: string;
   clubName: string;
   feeProofUrl: string | null;
+  duplicate?: ProofMatch | null;
   user: { displayName: string; email: string | null };
 }
 
@@ -183,6 +186,7 @@ export default function AdminQueues({
                       View payment proof (paid-plan upgrade)
                     </a>
                   )}
+                  {c.feeProofUrl && <span className="ml-2"><DuplicateProofBadge match={c.duplicate} scope="admin" /></span>}
                 </div>
                 <div className="flex gap-2">
                   <button

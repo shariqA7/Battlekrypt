@@ -7,13 +7,13 @@ import { createPlanField, listPlanFields } from "@/lib/services/plan-fields";
 const AUDIENCES = ["organizer", "club", "player"];
 
 export async function GET() {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("plans", "view");
   if ("response" in auth) return auth.response;
   return NextResponse.json(await listPlanFields());
 }
 
 export async function POST(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("plans");
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   if (!AUDIENCES.includes(body.audience)) {

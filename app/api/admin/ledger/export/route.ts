@@ -6,7 +6,7 @@ import { getLedger, ledgerToCsv } from "@/lib/services/ledger";
 import { resolveRange } from "@/lib/ledger-math";
 
 export async function GET(request: Request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin("ledger", "view");
   if ("response" in auth) return auth.response;
   const sp = new URL(request.url).searchParams;
   const range = resolveRange(sp.get("preset") ?? undefined, sp.get("from") ?? undefined, sp.get("to") ?? undefined);
