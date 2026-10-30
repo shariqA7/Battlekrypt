@@ -86,6 +86,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           {i.planName ? ` Your ${i.planName} plan is active — see it on My plans.` : ""}
         </p>
       )}
+      {i.status === "waived" && (
+        <p className="font-sans text-[13px] text-bk-teal">
+          This invoice was waived — there is nothing to pay.{i.planName ? ` Your ${i.planName} plan is active.` : ""}
+        </p>
+      )}
       {i.status === "cancelled" && <p className="font-sans text-[13px] text-bk-muted">This invoice was cancelled{i.cancelNote ? `: ${i.cancelNote}` : "."}</p>}
       {i.status === "proof_submitted" && (
         <p className="font-sans text-[13px] text-bk-amber">

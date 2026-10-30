@@ -13,6 +13,10 @@ export default function InvoiceActions({
   currency,
   methods,
   hasProof,
+  hasPlanLine,
+  hasFeeLine,
+  hasDiscount,
+  currencyCode,
   suggestedMethodId,
   suggestedReference,
 }: {
@@ -21,6 +25,10 @@ export default function InvoiceActions({
   currency: string;
   methods: { id: string; name: string }[];
   hasProof: boolean;
+  hasPlanLine: boolean;
+  hasFeeLine: boolean;
+  hasDiscount: boolean;
+  currencyCode: string;
   suggestedMethodId: string | null;
   suggestedReference: string | null;
 }) {
@@ -32,10 +40,17 @@ export default function InvoiceActions({
   const [paidAt, setPaidAt] = useState("");
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
+  const [discType, setDiscType] = useState<"amount" | "percent">("percent");
+  const [discValue, setDiscValue] = useState("");
+  const [discReason, setDiscReason] = useState("");
+  const [waiveReason, setWaiveReason] = useState("");
+  // Nothing is waived unless the admin ticks it, every time.
+  const [waivePlan, setWaivePlan] = useState(false);
+  const [waiveFee, setWaiveFee] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function call(action: "mark-paid" | "reject-proof" | "cancel", body: Record<string, unknown>) {
+  async function call(action: "mark-paid" | "reject-proof" | "cancel" | "discount" | "waive", body: Record<string, unknown>) {
     setBusy(action);
     setError(null);
     const res = await fetch(`/api/admin/invoices/${invoiceId}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -93,6 +108,68 @@ export default function InvoiceActions({
         <p className="font-sans text-[11px] text-bk-muted">Only the full invoice total can be recorded.</p>
         <button type="submit" disabled={busy !== null} className={buttonClass("primary", "sm")}>{busy === "mark-paid" ? "Saving…" : "Mark as paid"}</button>
       </form>
+
+      {!hasProof && hasPlanLine && (
+        <div className="bg-bk-surface border border-bk-border p-4 space-y-2">
+          <p className="font-sans font-bold text-[13px] text-bk-heading">{hasDiscount ? "Change the discount" : "Add a discount"}</p>
+          <div className="flex flex-wrap items-end gap-3 font-sans text-[12px] text-bk-muted">
+            <select value={discType} onChange={(e) => setDiscType(e.target.value as "amount" | "percent")} className={field}>
+              <option value="percent">Percent %</option>
+              <option value="amount">Amount ({currencyCode})</option>
+            </select>
+            <input type="number" min={0} step="any" value={discValue} onChange={(e) => setDiscValue(e.target.value)} className={`${field} w-28`} />
+            <input value={discReason} onChange={(e) => setDiscReason(e.target.value)} maxLength={120} placeholder="Reason shown on the invoice" className={`${field} w-64`} />
+            <button type="button" disabled={busy !== null} onClick={() => call("discount", { type: discType, value: Number(discValue), reason: discReason })} className={buttonClass("outline", "sm")}>
+              {busy === "discount" ? "…" : "Apply"}
+            </button>
+            {hasDiscount && (
+              <button type="button" disabled={busy !== null} onClick={() => call("discount", { remove: true })} className={buttonClass("ghost", "sm")}>Remove discount</button>
+            )}
+          </div>
+          <p className="font-sans text-[11px] text-bk-muted">Comes off the plan fee only, never the refundable security fee. Tax is recalculated and they are told the new amount.</p>
+        </div>
+      )}
+
+      {!hasProof && (hasPlanLine || hasFeeLine) && (
+        <div className="bg-bk-surface border border-bk-border p-4 space-y-2">
+          <p className="font-sans font-bold text-[13px] text-bk-heading">Waive</p>
+          <p className="font-sans text-[11px] text-bk-muted">
+            Both are charged unless you tick them here. A waived part is never counted as income. If nothing is left, the invoice becomes Waived.
+          </p>
+          <div className="font-sans text-[13px] text-bk-heading space-y-1">
+            {hasPlanLine && (
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" checked={waivePlan} onChange={(e) => setWaivePlan(e.target.checked)} className="mt-0.5" />
+                <span>
+                  Waive the plan fee
+                  <span className="block text-[11px] text-bk-muted">The plan starts now. No plan fee or tax is owed.</span>
+                </span>
+              </label>
+            )}
+            {hasFeeLine && (
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input type="checkbox" checked={waiveFee} onChange={(e) => setWaiveFee(e.target.checked)} className="mt-0.5" />
+                <span>
+                  Waive the security fee
+                  <span className="block text-[11px] text-bk-muted">No deposit is collected or held for them.</span>
+                </span>
+              </label>
+            )}
+          </div>
+          <input value={waiveReason} onChange={(e) => setWaiveReason(e.target.value)} maxLength={500} placeholder="Reason (kept for your records)" className={`${field} w-full`} />
+          <button
+            type="button"
+            disabled={busy !== null || (!waivePlan && !waiveFee)}
+            onClick={() =>
+              confirm(`Waive ${[waivePlan ? "the plan fee" : null, waiveFee ? "the security fee" : null].filter(Boolean).join(" and ")}?`) &&
+              call("waive", { note: waiveReason, waivePlan, waiveSecurityFee: waiveFee })
+            }
+            className={buttonClass("outline", "sm")}
+          >
+            {busy === "waive" ? "…" : "Waive the ticked"}
+          </button>
+        </div>
+      )}
 
       <div className="bg-bk-surface border border-bk-border p-4 space-y-2">
         <p className="font-sans font-bold text-[13px] text-bk-heading">{hasProof ? "Reject the proof or cancel" : "Cancel this invoice"}</p>

@@ -1,4 +1,4 @@
-// Invoices against organizations.
+﻿// Invoices against organizations.
 //
 // An invoice is created when an organization is added by an admin, or when an application is
 // approved. It bills the subscription plan and, optionally, a refundable security fee. While the
@@ -8,6 +8,10 @@
 //   - a refundable security deposit is recorded (the existing deposit flow takes over),
 //   - the money received is added to the admin payments record.
 // A screenshot alone never counts as income.
+//
+// An admin can also take a discount off the plan fee (a negative line), or waive an unpaid
+// invoice completely: the plan is granted but no money is owed, no deposit is held and nothing is
+// recorded as a payment.
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { computeNewExpiry } from "@/lib/plans";
@@ -15,11 +19,14 @@ import { isSupportedCurrency, formatMoney } from "@/lib/money";
 import {
   DEFAULT_INVOICE_CURRENCY,
   MAX_TAX_RATE,
+  applyWaiver,
+  computeDiscount,
   computeInvoiceTotals,
   displayStatus,
   formatInvoiceNumber,
   parseDueDate,
   roundMoney,
+  type DiscountType,
   type DisplayStatus,
 } from "@/lib/invoice-math";
 import { cursorArgs, toPage, type Page, type PageQuery } from "@/lib/admin-paging";
@@ -69,6 +76,10 @@ export interface CreateInvoiceInput {
   planAmount?: number | null;
   includeSecurityFee?: boolean;
   securityFeeAmount?: number | null;
+  /** Taken off the plan fee: a fixed amount or a percentage. Needs a plan on the invoice. */
+  discountType?: DiscountType | null;
+  discountValue?: number | null;
+  discountReason?: string | null;
   /** "YYYY-MM-DD", or null/undefined for no due date. */
   dueDate?: unknown;
   taxRate?: number | null;
@@ -99,7 +110,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
     return fail("validation_error", "Choose a paid organizer plan.");
   }
 
-  const lines: { kind: "plan" | "security_deposit"; description: string; amount: number; refundable: boolean }[] = [];
+  const lines: { kind: "plan" | "security_deposit" | "discount"; description: string; amount: number; refundable: boolean }[] = [];
   if (plan) {
     const sameCurrency = plan.priceCurrency === currency;
     const amount = input.planAmount ?? (sameCurrency && plan.priceAmount !== null ? money(plan.priceAmount) : null);
@@ -111,7 +122,15 @@ export async function createInvoice(input: CreateInvoiceInput) {
           : `${plan.name} is priced in ${plan.priceCurrency ?? "another currency"}. Enter the amount in ${currency}.`
       );
     }
-    lines.push({ kind: "plan", description: `${plan.name} plan — ${plan.durationDays} days`, amount: roundMoney(amount, currency), refundable: false });
+    lines.push({ kind: "plan", description: `${plan.name} plan â€” ${plan.durationDays} days`, amount: roundMoney(amount, currency), refundable: false });
+  }
+  if (input.discountValue !== null && input.discountValue !== undefined) {
+    const planLine = lines.find((l) => l.kind === "plan");
+    if (!planLine) return fail("validation_error", "A discount needs a plan on the invoice.");
+    const d = computeDiscount(planLine.amount, input.discountType === "percent" ? "percent" : "amount", input.discountValue, currency);
+    if (!d.ok) return fail("validation_error", d.message);
+    const why = input.discountReason?.trim().slice(0, 120);
+    lines.push({ kind: "discount", description: why ? `${d.label} â€” ${why}` : d.label, amount: -d.amount, refundable: false });
   }
   if (input.includeSecurityFee) {
     const sameCurrency = plan?.priceCurrency === currency;
@@ -171,14 +190,14 @@ export async function createInvoice(input: CreateInvoiceInput) {
         action: "created_invoice",
         targetType: "Invoice",
         targetId: invoice.id,
-        notes: `${invoice.number} · ${org.orgName} · ${formatMoney(totals.total, currency)}`,
+        notes: `${invoice.number} Â· ${org.orgName} Â· ${formatMoney(totals.total, currency)}`,
       },
     });
   }
   await notify(org.userId, {
     type: "invoice",
     title: `New invoice ${invoice.number}`,
-    body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` · due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
+    body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` Â· due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
     href: `/invoices/${invoice.id}`,
   });
   return { data: invoice };
@@ -247,7 +266,7 @@ function toRow(i: Prisma.InvoiceGetPayload<{ include: typeof withParts }>): Invo
   };
 }
 
-export type InvoiceFilter = "all" | "open" | "proof_submitted" | "overdue" | "paid" | "cancelled";
+export type InvoiceFilter = "all" | "open" | "proof_submitted" | "overdue" | "paid" | "waived" | "cancelled";
 
 export async function listInvoicesPage({ q, cursor, limit }: PageQuery, filter: InvoiceFilter = "all"): Promise<Page<InvoiceRow>> {
   const now = new Date();
@@ -261,6 +280,7 @@ export async function listInvoicesPage({ q, cursor, limit }: PageQuery, filter: 
   if (filter === "open") where.status = { in: [...OPEN] };
   else if (filter === "proof_submitted") where.status = "proof_submitted";
   else if (filter === "paid") where.status = "paid";
+  else if (filter === "waived") where.status = "waived";
   else if (filter === "cancelled") where.status = "cancelled";
   else if (filter === "overdue") {
     where.status = { in: [...OPEN] };
@@ -312,7 +332,7 @@ export async function getMyInvoice(userId: string, id: string) {
 export async function hasOpenPlanInvoice(userId: string) {
   return (
     (await prisma.invoice.count({
-      where: { userId, status: { in: [...OPEN] }, lines: { some: { kind: "plan" } } },
+      where: { userId, status: { in: [...OPEN] }, lines: { some: { kind: "plan", waived: false } } },
     })) > 0
   );
 }
@@ -382,6 +402,20 @@ export async function rejectInvoiceProof(adminId: string, invoiceId: string, not
   return { data: { ok: true as const } };
 }
 
+// Grants the invoice's plan (same rules as an approved plan request: it extends if the
+// organization is already on that plan). Used when an invoice is paid or waived.
+async function grantPlanFromInvoice(
+  tx: Prisma.TransactionClient,
+  inv: { planCode: string | null; planPeriodDays: number | null },
+  org: { id: string; planCode: string; planExpiresAt: Date | null },
+  at: Date
+) {
+  if (!inv.planCode) return null;
+  const expiresAt = computeNewExpiry({ planCode: org.planCode, planExpiresAt: org.planExpiresAt }, inv.planCode, inv.planPeriodDays ?? 30, at);
+  await tx.organizerProfile.update({ where: { id: org.id }, data: { planCode: inv.planCode, planExpiresAt: expiresAt } });
+  return expiresAt;
+}
+
 export interface MarkPaidInput {
   adminId: string;
   invoiceId: string;
@@ -440,17 +474,14 @@ export async function markInvoicePaid(input: MarkPaidInput) {
     if (claimed.count !== 1) return fail("not_open");
 
     const org = inv.organizer;
-    const planLine = inv.lines.find((l) => l.kind === "plan");
-    const depositLines = inv.lines.filter((l) => l.refundable);
+    // A plan fee that was waived already granted the plan, so paying the rest must not extend it again.
+    const planLine = inv.lines.find((l) => l.kind === "plan" && !l.waived);
+    const depositLines = inv.lines.filter((l) => l.refundable && !l.waived);
     const depositTotal = depositLines.reduce((s, l) => s + money(l.amount), 0);
     let expiresAt: Date | null = null;
 
     // 1. Grant the plan (same rules as an approved plan request: extends if already on it).
-    if (planLine && inv.planCode) {
-      const days = inv.planPeriodDays ?? 30;
-      expiresAt = computeNewExpiry({ planCode: org.planCode, planExpiresAt: org.planExpiresAt }, inv.planCode, days, paidAt);
-      await tx.organizerProfile.update({ where: { id: org.id }, data: { planCode: inv.planCode, planExpiresAt: expiresAt } });
-    }
+    if (planLine) expiresAt = await grantPlanFromInvoice(tx, inv, org, paidAt);
 
     // 2. The refundable security fee is held for the organization (existing deposit flow).
     if (depositTotal > 0) {
@@ -462,7 +493,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
     // 3. Money received goes in the admin payments record: the deposit on its own (it is not
     //    income), everything else (plan + tax + gateway fee) as one entry.
     const incomePart = roundMoney(money(inv.total) - depositTotal, inv.currency);
-    const note = `Invoice ${inv.number}${reference ? ` · ref ${reference}` : ""}`;
+    const note = `Invoice ${inv.number}${reference ? ` Â· ref ${reference}` : ""}`;
     if (incomePart > 0) {
       await tx.paymentRecord.create({
         data: {
@@ -486,7 +517,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
           currency: inv.currency,
           method: methodName!,
           reference: `${inv.number}-deposit`,
-          note: `${note} · security fee (refundable)`,
+          note: `${note} Â· security fee (refundable)`,
           recordedById: input.adminId,
         },
       });
@@ -497,7 +528,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
         action: "marked_invoice_paid",
         targetType: "Invoice",
         targetId: inv.id,
-        notes: `${inv.number} · ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` · plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
+        notes: `${inv.number} Â· ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` Â· plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
       },
     });
     return { data: { number: inv.number, userId: inv.userId, expiresAt, planName: inv.planName, total: money(inv.total), currency: inv.currency, id: inv.id } };
@@ -532,4 +563,169 @@ export async function cancelInvoice(adminId: string, invoiceId: string, note: un
   });
   await notify(inv.userId, { type: "invoice", title: `Invoice ${inv.number} was cancelled`, body: text, href: `/invoices/${invoiceId}` });
   return { data: { ok: true as const } };
+}
+
+// ------------------------------------------------------------
+// Discounts and waiving (admin)
+// ------------------------------------------------------------
+
+// Set, replace or remove the discount on an unpaid invoice. Tax is recalculated on the reduced
+// plan fee. Once the organization has sent proof it paid the old amount, so the proof has to be
+// dealt with first.
+export async function setInvoiceDiscount(
+  adminId: string,
+  invoiceId: string,
+  input: { type?: unknown; value?: unknown; reason?: unknown; remove?: boolean }
+) {
+  const result = await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.findUnique({ where: { id: invoiceId }, include: { lines: true } });
+    if (!inv) return fail("not_found");
+    if (inv.status === "proof_submitted") {
+      return fail("validation_error", "They have already sent proof for the current amount. Reject the proof first, then change the discount.");
+    }
+    if (inv.status !== "unpaid") return fail("not_open");
+    const planLine = inv.lines.find((l) => l.kind === "plan");
+    if (!planLine || planLine.waived) return fail("validation_error", "This invoice has no plan fee left to discount.");
+
+    const kept = inv.lines.filter((l) => l.kind !== "discount");
+    let discountLine: { description: string; amount: number } | null = null;
+    if (!input.remove) {
+      const d = computeDiscount(money(planLine.amount), input.type === "percent" ? "percent" : "amount", Number(input.value), inv.currency);
+      if (!d.ok) return fail("validation_error", d.message);
+      const why = typeof input.reason === "string" ? input.reason.trim().slice(0, 120) : "";
+      discountLine = { description: why ? `${d.label} â€” ${why}` : d.label, amount: -d.amount };
+    }
+
+    const totals = computeInvoiceTotals({
+      lines: [...kept.map((l) => ({ amount: money(l.amount), refundable: l.refundable })), ...(discountLine ? [{ amount: discountLine.amount }] : [])],
+      taxRate: money(inv.taxRate),
+      gatewayFee: money(inv.gatewayFee),
+      currency: inv.currency,
+    });
+    if (!(totals.total > 0)) return fail("validation_error", "The total must stay above zero. To forgive the whole invoice, use Waive.");
+
+    await tx.invoiceLine.deleteMany({ where: { invoiceId, kind: "discount" } });
+    if (discountLine) {
+      await tx.invoiceLine.create({
+        data: {
+          invoiceId,
+          kind: "discount",
+          description: discountLine.description,
+          unitAmount: discountLine.amount,
+          amount: discountLine.amount,
+          refundable: false,
+          sortOrder: kept.length,
+        },
+      });
+    }
+    await tx.invoice.update({
+      where: { id: invoiceId },
+      data: { subtotal: totals.subtotal, taxAmount: totals.taxAmount, total: totals.total },
+    });
+    await tx.adminActionLog.create({
+      data: {
+        adminId,
+        action: discountLine ? "set_invoice_discount" : "removed_invoice_discount",
+        targetType: "Invoice",
+        targetId: invoiceId,
+        notes: `${inv.number}: ${discountLine ? `${discountLine.description} â†’ total ${formatMoney(totals.total, inv.currency)}` : `back to ${formatMoney(totals.total, inv.currency)}`}`,
+      },
+    });
+    return { data: { number: inv.number, userId: inv.userId, total: totals.total, currency: inv.currency, hasDiscount: !!discountLine } };
+  });
+
+  if ("data" in result && result.data) {
+    const d = result.data;
+    await notify(d.userId, {
+      type: "invoice",
+      title: `Invoice ${d.number} was updated`,
+      body: `${d.hasDiscount ? "A discount was applied. " : "The discount was removed. "}The amount to pay is now ${formatMoney(d.total, d.currency)}.`,
+      href: `/invoices/${invoiceId}`,
+    });
+  }
+  return result;
+}
+
+// Forgive part or all of an unpaid invoice. The admin ticks what to waive, and nothing is waived
+// by default:
+//   - the plan fee: the plan starts now, and no fee or tax is owed for it;
+//   - the security fee: no deposit is held, and nothing is owed for it.
+// Whatever is left stays to be paid (and is marked paid as usual). If nothing is left the
+// invoice becomes Waived. A waived part never counts as income and is never recorded as a payment.
+export async function waiveInvoice(adminId: string, invoiceId: string, input: { reason: unknown; waivePlan?: boolean; waiveSecurityFee?: boolean }) {
+  const why = typeof input.reason === "string" ? input.reason.trim().slice(0, 500) : "";
+  const waivePlan = input.waivePlan === true;
+  const waiveFee = input.waiveSecurityFee === true;
+  if (!waivePlan && !waiveFee) return fail("validation_error", "Tick what you want to waive: the plan fee, the security fee, or both.");
+  if (!why) return fail("validation_error", "Add a short reason for waiving.");
+
+  const result = await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.findUnique({ where: { id: invoiceId }, include: { lines: { orderBy: { sortOrder: "asc" } }, organizer: true } });
+    if (!inv) return fail("not_found");
+    if (inv.status === "proof_submitted") {
+      return fail("validation_error", "They have sent a payment proof. Mark the invoice paid, or reject the proof first.");
+    }
+    if (inv.status !== "unpaid") return fail("not_open");
+
+    const planLine = inv.lines.find((l) => l.kind === "plan" && !l.waived);
+    const feeLine = inv.lines.find((l) => l.kind === "security_deposit" && !l.waived);
+    if (waivePlan && !planLine) return fail("validation_error", "There is no plan fee left on this invoice to waive.");
+    if (waiveFee && !feeLine) return fail("validation_error", "There is no security fee left on this invoice to waive.");
+
+    const next = applyWaiver(
+      inv.lines.map((l) => ({ kind: l.kind, amount: money(l.amount), originalAmount: money(l.unitAmount), refundable: l.refundable, waived: l.waived })),
+      { plan: waivePlan, fee: waiveFee }
+    );
+    const totals = computeInvoiceTotals({ lines: next, taxRate: money(inv.taxRate), gatewayFee: money(inv.gatewayFee), currency: inv.currency });
+    const nothingLeft = !(totals.total > 0);
+
+    // Claim the invoice first so two admins can't waive it at once.
+    const claimed = await tx.invoice.updateMany({
+      where: { id: inv.id, status: "unpaid" },
+      data: {
+        subtotal: totals.subtotal,
+        taxAmount: totals.taxAmount,
+        total: totals.total,
+        waivedNote: why,
+        waivedById: adminId,
+        ...(nothingLeft ? { status: "waived" as const, waivedAt: new Date() } : {}),
+      },
+    });
+    if (claimed.count !== 1) return fail("not_open");
+
+    if (waivePlan) await tx.invoiceLine.deleteMany({ where: { invoiceId, kind: "discount" } });
+    for (const l of inv.lines) {
+      const hit = (waivePlan && l.kind === "plan") || (waiveFee && l.kind === "security_deposit");
+      if (hit && !l.waived) await tx.invoiceLine.update({ where: { id: l.id }, data: { waived: true, amount: 0 } });
+    }
+
+    const expiresAt = waivePlan ? await grantPlanFromInvoice(tx, inv, inv.organizer, new Date()) : null;
+    const parts = [waivePlan ? "plan fee" : null, waiveFee ? "security fee" : null].filter(Boolean).join(" + ");
+    await tx.adminActionLog.create({
+      data: {
+        adminId,
+        action: "waived_invoice",
+        targetType: "Invoice",
+        targetId: inv.id,
+        notes: `${inv.number} Â· waived ${parts}: ${why}${expiresAt ? ` Â· plan until ${expiresAt.toISOString().slice(0, 10)}` : ""} Â· ${nothingLeft ? "nothing left to pay" : `${formatMoney(totals.total, inv.currency)} still to pay`}`,
+      },
+    });
+    return {
+      data: { number: inv.number, userId: inv.userId, planName: inv.planName, expiresAt, parts, nothingLeft, total: totals.total, currency: inv.currency },
+    };
+  });
+
+  if ("data" in result && result.data) {
+    const d = result.data;
+    const planText = d.planName && d.expiresAt ? ` Your ${d.planName} plan is active until ${d.expiresAt.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })}.` : "";
+    await notify(d.userId, {
+      type: "invoice",
+      title: d.nothingLeft ? `Invoice ${d.number} was waived` : `Invoice ${d.number} was updated`,
+      body: d.nothingLeft
+        ? `Nothing to pay.${planText}`
+        : `The ${d.parts} was waived.${planText} The amount still to pay is ${formatMoney(d.total, d.currency)}.`,
+      href: `/invoices/${invoiceId}`,
+    });
+  }
+  return result;
 }

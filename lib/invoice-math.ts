@@ -1,4 +1,4 @@
-// Pure invoice rules (no database): totals, numbering, due-date state. Kept separate so they can
+﻿// Pure invoice rules (no database): totals, numbering, due-date state. Kept separate so they can
 // be tested on their own and so client components can import them.
 import { ZERO_DECIMAL_CURRENCIES } from "@/lib/money";
 
@@ -54,7 +54,7 @@ export function formatInvoiceNumber(year: number, n: number): string {
   return `BK-${year}-${String(n).padStart(4, "0")}`;
 }
 
-export type InvoiceStatusValue = "unpaid" | "proof_submitted" | "paid" | "cancelled";
+export type InvoiceStatusValue = "unpaid" | "proof_submitted" | "paid" | "cancelled" | "waived";
 export type DisplayStatus = InvoiceStatusValue | "overdue";
 
 // "Overdue" is never stored: an open invoice whose due date has passed (end of that day, UTC).
@@ -75,6 +75,7 @@ export const STATUS_LABEL: Record<DisplayStatus, string> = {
   proof_submitted: "Proof submitted",
   paid: "Paid",
   cancelled: "Cancelled",
+  waived: "Waived",
   overdue: "Overdue",
 };
 
@@ -84,4 +85,48 @@ export function parseDueDate(input: unknown): Date | null | "invalid" {
   if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return "invalid";
   const d = new Date(`${input}T00:00:00.000Z`);
   return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== input ? "invalid" : d;
+}
+
+// ---- discounts ----
+
+export type DiscountType = "amount" | "percent";
+
+// A discount is taken off the plan fee only (never the refundable security fee) and can't wipe
+// it out: to forgive an invoice completely, use "Waive". Returns the money to subtract.
+export function computeDiscount(
+  planAmount: number,
+  type: DiscountType,
+  value: number,
+  currency: string
+): { ok: true; amount: number; label: string } | { ok: false; message: string } {
+  if (!Number.isFinite(value) || value <= 0) return { ok: false, message: "Enter a discount greater than zero." };
+  let amount: number;
+  let label: string;
+  if (type === "percent") {
+    if (value >= 100) return { ok: false, message: "A discount must be less than 100%. To forgive the whole invoice, use Waive." };
+    amount = roundMoney((planAmount * value) / 100, currency);
+    label = `Discount (${value}%)`;
+  } else {
+    amount = roundMoney(value, currency);
+    label = "Discount";
+  }
+  if (amount <= 0) return { ok: false, message: "That discount rounds to nothing." };
+  if (amount >= planAmount) return { ok: false, message: "A discount must be less than the plan fee. To forgive the whole invoice, use Waive." };
+  return { ok: true, amount, label };
+}
+
+// ---- waiving parts of an invoice ----
+
+export type WaivableLine = { kind: "plan" | "security_deposit" | "discount" | "other"; amount: number; originalAmount: number; refundable: boolean; waived: boolean };
+
+// Waive the plan fee and/or the security fee. A waived line drops to 0 (its original figure is
+// kept). Waiving the plan fee also drops any discount, since there is nothing left to discount.
+// Nothing is waived by default: the caller ticks each part.
+export function applyWaiver(lines: WaivableLine[], waive: { plan: boolean; fee: boolean }): WaivableLine[] {
+  return lines
+    .filter((l) => !(waive.plan && l.kind === "discount"))
+    .map((l) => {
+      const hit = (waive.plan && l.kind === "plan") || (waive.fee && l.kind === "security_deposit");
+      return hit && !l.waived ? { ...l, amount: 0, waived: true } : l;
+    });
 }

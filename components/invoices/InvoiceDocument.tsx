@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/money";
+﻿import { formatMoney } from "@/lib/money";
 import type { DisplayStatus } from "@/lib/invoice-math";
 import InvoiceStatusBadge from "./StatusBadge";
 
@@ -15,12 +15,12 @@ export type InvoiceDocData = {
   taxAmount: { toString(): string };
   gatewayFee: { toString(): string };
   total: { toString(): string };
-  lines: { id: string; description: string; amount: { toString(): string }; refundable: boolean }[];
+  lines: { id: string; description: string; amount: { toString(): string }; unitAmount: { toString(): string }; refundable: boolean; waived: boolean }[];
 };
 
 const d = (x: Date) => x.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
-// The invoice itself — the same view for the admin and for the organization.
+// The invoice itself â€” the same view for the admin and for the organization.
 export default function InvoiceDocument({ invoice: i, status }: { invoice: InvoiceDocData; status: DisplayStatus }) {
   const m = (v: { toString(): string }) => formatMoney(Number(v.toString()), i.currency);
   const fee = Number(i.gatewayFee.toString());
@@ -45,14 +45,23 @@ export default function InvoiceDocument({ invoice: i, status }: { invoice: Invoi
             <tr key={l.id}>
               <td className="py-2 text-bk-heading">
                 {l.description}
-                {l.refundable && <span className="block text-[11px] text-bk-muted">Held for you and returned later — not a fee.</span>}
+                {l.refundable && <span className="block text-[11px] text-bk-muted">Held for you and returned later â€” not a fee.</span>}
               </td>
-              <td className="py-2 text-right font-mono text-bk-heading">{m(l.amount)}</td>
+              <td className="py-2 text-right font-mono text-bk-heading">
+                {l.waived ? (
+                  <>
+                    <span className="text-bk-muted line-through mr-2">{m(l.unitAmount)}</span>
+                    <span className="text-bk-teal">Waived</span>
+                  </>
+                ) : (
+                  m(l.amount)
+                )}
+              </td>
             </tr>
           ))}
           {tax > 0 && (
             <tr>
-              <td className="py-2 text-bk-muted">{i.taxLabel} ({i.taxRate.toString()}% of the plan fee)</td>
+              <td className="py-2 text-bk-muted">{i.taxLabel} ({i.taxRate.toString()}% of the plan fee after any discount)</td>
               <td className="py-2 text-right font-mono text-bk-heading">{m(i.taxAmount)}</td>
             </tr>
           )}

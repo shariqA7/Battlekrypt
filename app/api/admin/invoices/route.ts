@@ -1,14 +1,14 @@
-// GET  /api/admin/invoices?q=&cursor=&limit=&filter=all|open|proof_submitted|overdue|paid|cancelled
-// POST /api/admin/invoices — create an invoice for an organization.
+﻿// GET  /api/admin/invoices?q=&cursor=&limit=&filter=all|open|proof_submitted|overdue|paid|waived|cancelled
+// POST /api/admin/invoices â€” create an invoice for an organization.
 //   body: { organizerId, currency?, planCode?, planAmount?, includeSecurityFee?, securityFeeAmount?,
-//           dueDate? ("YYYY-MM-DD" or empty for none), taxRate?, note? }
+//           discountType? ("amount"|"percent"), discountValue?, discountReason?, dueDate? ("YYYY-MM-DD" or empty for none), taxRate?, note? }
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-helpers";
 import { parsePageQuery } from "@/lib/admin-paging";
 import { createInvoice, listInvoicesPage, type InvoiceFilter } from "@/lib/services/invoices";
 import { invoiceError } from "@/lib/invoice-helpers";
 
-const FILTERS: InvoiceFilter[] = ["all", "open", "proof_submitted", "overdue", "paid", "cancelled"];
+const FILTERS: InvoiceFilter[] = ["all", "open", "proof_submitted", "overdue", "paid", "waived", "cancelled"];
 
 export async function GET(request: Request) {
   const auth = await requireAdmin();
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
     includeSecurityFee: b.includeSecurityFee === true,
     securityFeeAmount: num(b.securityFeeAmount),
     dueDate: b.dueDate,
+    discountType: b.discountType === "percent" ? "percent" : "amount",
+    discountValue: num(b.discountValue),
+    discountReason: typeof b.discountReason === "string" ? b.discountReason : null,
     taxRate: num(b.taxRate),
     note: typeof b.note === "string" ? b.note : null,
   });

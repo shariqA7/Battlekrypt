@@ -48,6 +48,10 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
         </div>
       )}
 
+      {i.status === "unpaid" && i.waivedNote && (
+        <p className="font-sans text-[12px] text-bk-muted">Part of this invoice was waived: {i.waivedNote}</p>
+      )}
+
       {i.proofRejectedNote && i.status === "unpaid" && (
         <p className="font-sans text-[12px] text-bk-muted">Last proof was rejected: {i.proofRejectedNote}</p>
       )}
@@ -60,9 +64,16 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
           {i.paidNote && <p className="text-bk-muted">{i.paidNote}</p>}
         </div>
       )}
+      {i.status === "waived" && (
+        <div className="bg-bk-surface border border-bk-teal/40 p-4 font-sans text-[12px] space-y-1">
+          <p className="text-bk-teal uppercase tracking-[0.8px] text-[10px]">Waived</p>
+          <p className="text-bk-heading">Forgiven on {i.waivedAt?.toLocaleDateString("en-GB")}. Nothing was owed or recorded as income.</p>
+          {i.waivedNote && <p className="text-bk-muted">{i.waivedNote}</p>}
+        </div>
+      )}
       {i.status === "cancelled" && <p className="font-sans text-[12px] text-bk-muted">Cancelled: {i.cancelNote}</p>}
 
-      {open && <InvoiceActions invoiceId={i.id} total={total} currency={i.currency} methods={methods} hasProof={i.status === "proof_submitted"} suggestedMethodId={i.proofMethodId} suggestedReference={i.proofReference} />}
+      {open && <InvoiceActions invoiceId={i.id} total={total} currency={i.currency} methods={methods} hasProof={i.status === "proof_submitted"} hasPlanLine={i.lines.some((l) => l.kind === "plan" && !l.waived)} hasFeeLine={i.lines.some((l) => l.kind === "security_deposit" && !l.waived)} hasDiscount={i.lines.some((l) => l.kind === "discount")} currencyCode={i.currency} suggestedMethodId={i.proofMethodId} suggestedReference={i.proofReference} />}
     </div>
   );
 }

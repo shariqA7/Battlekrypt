@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireAdminPage } from "@/lib/admin-page";
 import { listInvoicesPage, type InvoiceFilter } from "@/lib/services/invoices";
 import { listPlans } from "@/lib/services/plan-requests";
@@ -15,6 +15,7 @@ const TABS: { key: InvoiceFilter; label: string }[] = [
   { key: "proof_submitted", label: "Proof to check" },
   { key: "overdue", label: "Overdue" },
   { key: "paid", label: "Paid" },
+  { key: "waived", label: "Waived" },
   { key: "cancelled", label: "Cancelled" },
 ];
 
@@ -88,7 +89,7 @@ export default async function AdminInvoicesPage({ searchParams }: { searchParams
                 <td className="px-3 py-2 text-bk-heading">{i.orgName}</td>
                 <td className="px-3 py-2 font-mono text-bk-heading">{formatMoney(i.total, i.currency)}</td>
                 <td className="px-3 py-2 text-bk-muted">{new Date(i.issuedAt).toLocaleDateString("en-GB")}</td>
-                <td className="px-3 py-2 text-bk-muted">{i.dueDate ? new Date(`${i.dueDate}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC" }) : "—"}</td>
+                <td className="px-3 py-2 text-bk-muted">{i.dueDate ? new Date(`${i.dueDate}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC" }) : "â€”"}</td>
                 <td className="px-3 py-2"><InvoiceStatusBadge status={i.status} /></td>
               </tr>
             ))}
