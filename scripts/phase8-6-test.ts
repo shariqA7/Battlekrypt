@@ -103,7 +103,7 @@ async function main() {
   // --- paid tournament: co-host confirms eligibility, host confirms payment
   const pi = await addTournamentInstitution(paid.id, org.fast.id, inst.comsats, "cohost");
   if ("data" in pi) await respondToCoHostInvite(pi.data.id, org.comsats.id, true);
-  const rp = await registerForTournament({ tournamentId: paid.id, playerId: prof.p_c1, paymentProofUrl: "https://x/receipt.png" });
+  const rp = await registerForTournament({ tournamentId: paid.id, playerId: prof.p_c1, paymentProofUrl: "https://x/receipt.png", paymentReference: "TXN-8600001" });
   if (!("data" in rp && rp.data)) { console.log("FAIL paid registration", JSON.stringify(rp)); fails++; return; }
   const ca = await approveRegistration(rp.data.id, org.comsats.id);
   const after = await prisma.registration.findUnique({ where: { id: rp.data.id } });

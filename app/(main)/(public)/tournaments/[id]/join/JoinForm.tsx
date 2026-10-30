@@ -27,6 +27,7 @@ export default function JoinForm({
 }) {
   const router = useRouter();
   const [paymentProofUrl, setPaymentProofUrl] = useState("");
+  const [paymentReference, setPaymentReference] = useState("");
   const [teamName, setTeamName] = useState("");
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,10 @@ export default function JoinForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (tournament.entryType === "paid" && !paymentReference.trim()) {
+      setError("Please enter the transaction ID shown on your payment receipt.");
+      return;
+    }
     if (tournament.entryType === "paid" && !paymentProofUrl) {
       setError("Please upload proof of payment before submitting.");
       return;
@@ -53,6 +58,7 @@ export default function JoinForm({
       body: JSON.stringify({
         customFieldResponses: fieldValues,
         paymentProofUrl: paymentProofUrl || undefined,
+        paymentReference: paymentReference.trim() || undefined,
         teamName: tournament.mode !== "solo" ? teamName : undefined,
       }),
     });
@@ -159,6 +165,16 @@ export default function JoinForm({
             pathPrefix="payment-proofs"
             label="Upload payment screenshot"
             onUploaded={setPaymentProofUrl}
+          />
+          <label className={labelClass}>Transaction ID</label>
+          <input
+            type="text"
+            value={paymentReference}
+            onChange={(e) => setPaymentReference(e.target.value)}
+            maxLength={120}
+            autoComplete="off"
+            placeholder="From your payment receipt"
+            className={inputClass}
           />
         </>
       )}

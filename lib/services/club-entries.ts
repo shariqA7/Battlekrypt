@@ -50,6 +50,7 @@ export const CLUB_ENTRY_ERRORS = {
   full: { status: 409, message: "This tournament is full." },
   already_registered: { status: 409, message: "This team or player is already registered." },
   payment_proof_required: { status: 400, message: "Proof of payment is required." },
+  payment_reference_required: { status: 400, message: "Enter the transaction ID shown on the payment receipt." },
   entry_locked: {
     status: 403,
     message: "This tournament has started — the entry can no longer be changed.",
@@ -138,7 +139,7 @@ export async function submitClubTeamEntry(
   tournamentId: string,
   teamId: string,
   memberPlayerIds: string[],
-  opts: { paymentProofUrl?: string; customFieldResponses?: unknown } = {}
+  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown } = {}
 ) {
   const actor = await resolveTeamActor(userId, teamId);
   if ("error" in actor) return actor;
@@ -172,6 +173,7 @@ export async function submitClubTeamEntry(
     // ID photo is for individual self-registration only.
     skipInstitutionProof: true,
     paymentProofUrl: opts.paymentProofUrl,
+    paymentReference: opts.paymentReference,
     customFieldResponses: opts.customFieldResponses,
   });
   if ("error" in result) return result as { error: string };
@@ -190,7 +192,7 @@ export async function submitClubSoloEntry(
   userId: string,
   tournamentId: string,
   playerId: string,
-  opts: { paymentProofUrl?: string; customFieldResponses?: unknown } = {}
+  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown } = {}
 ) {
   const actor = await resolveClubOwner(userId);
   if ("error" in actor) return actor;
@@ -214,6 +216,7 @@ export async function submitClubSoloEntry(
     playerId,
     skipInstitutionProof: true,
     paymentProofUrl: opts.paymentProofUrl,
+    paymentReference: opts.paymentReference,
     customFieldResponses: opts.customFieldResponses,
   });
 }

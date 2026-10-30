@@ -9,6 +9,7 @@
 import type { PaymentKind, PlanAudience } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { findProofMatches, queueProofCheck } from "@/lib/services/proof-fingerprints";
+import { REFERENCE_REQUIRED_MESSAGE, parseReference } from "@/lib/proof-match";
 import { isIdentityVerified } from "@/lib/identity";
 import {
   FREE_PLAN_CODE,
@@ -188,13 +189,15 @@ export async function getMyPlanStates(userId: string): Promise<AccountPlanState[
 
 export async function createPlanRequest(
   userId: string,
-  input: { audience: unknown; planCode: unknown; proofUrl: unknown }
+  input: { audience: unknown; planCode: unknown; proofUrl: unknown; reference?: unknown }
 ) {
   if (!isAudience(input.audience)) return fail("validation_error", "Unknown account type.");
   if (typeof input.planCode !== "string") return fail("validation_error", "Choose a plan.");
   if (typeof input.proofUrl !== "string" || !input.proofUrl.startsWith("http")) {
     return fail("validation_error", "Proof of payment is required.");
   }
+  const reference = parseReference(input.reference);
+  if (!reference) return fail("validation_error", REFERENCE_REQUIRED_MESSAGE);
   const audience = input.audience;
 
   const account = await getAccount(userId, audience);
@@ -224,10 +227,11 @@ export async function createPlanRequest(
       audience,
       planCode: plan.code,
       proofUrl: input.proofUrl,
+      paymentReference: reference.display,
       depositAmount: depositDue > 0 ? depositDue : null,
     },
   });
-  await queueProofCheck({ kind: "plan_request", refId: request.id, userId }, input.proofUrl);
+  await queueProofCheck({ kind: "plan_request", refId: request.id, userId }, input.proofUrl, reference.key);
   return { data: request };
 }
 
@@ -251,6 +255,7 @@ export async function listPendingPlanRequests() {
     priceAmount: r.plan.priceAmount === null ? null : Number(r.plan.priceAmount.toString()),
     priceCurrency: r.plan.priceCurrency,
     proofUrl: r.proofUrl,
+    paymentReference: r.paymentReference,
     createdAt: r.createdAt,
     userName: r.user.displayName,
     userEmail: r.user.email,

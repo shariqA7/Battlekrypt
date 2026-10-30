@@ -16,6 +16,7 @@ interface PendingClub {
   id: string;
   clubName: string;
   feeProofUrl: string | null;
+  feeReference?: string | null;
   duplicate?: ProofMatch | null;
   user: { displayName: string; email: string | null };
 }
@@ -186,6 +187,7 @@ export default function AdminQueues({
                       View payment proof (paid-plan upgrade)
                     </a>
                   )}
+                  {c.feeReference && <span className="ml-2 font-mono text-[11px] text-bk-heading">ID {c.feeReference}</span>}
                   {c.feeProofUrl && <span className="ml-2"><DuplicateProofBadge match={c.duplicate} scope="admin" /></span>}
                 </div>
                 <div className="flex gap-2">

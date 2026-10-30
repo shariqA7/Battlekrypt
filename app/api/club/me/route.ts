@@ -1,5 +1,6 @@
 // GET /api/club/me — own club profile + approval status (+ rejection reason)
 // PATCH /api/club/me — update name/logo, or send payment proof to upgrade to the paid plan
+import { REFERENCE_REQUIRED_MESSAGE } from "@/lib/proof-match";
 import { NextResponse } from "next/server";
 import { requireClubOwner } from "@/lib/club-helpers";
 import { getLatestRejectionReason, updateClub } from "@/lib/services/clubs";
@@ -20,7 +21,7 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => ({}));
 
-  const update: { clubName?: string; logoUrl?: string | null; feeProofUrl?: string } = {};
+  const update: { clubName?: string; logoUrl?: string | null; feeProofUrl?: string; feeReference?: string } = {};
 
   if (body.clubName !== undefined) {
     const clubName = typeof body.clubName === "string" ? body.clubName.trim() : "";
@@ -50,6 +51,7 @@ export async function PATCH(request: Request) {
       );
     }
     update.feeProofUrl = body.feeProofUrl;
+    update.feeReference = typeof body.feeReference === "string" ? body.feeReference : undefined;
   }
 
   const result = await updateClub(auth.club.id, update);
@@ -79,6 +81,9 @@ export async function PATCH(request: Request) {
       },
       { status: 409 }
     );
+  }
+  if (result.error === "reference_required") {
+    return NextResponse.json({ error: { code: "validation_error", message: REFERENCE_REQUIRED_MESSAGE } }, { status: 400 });
   }
   if (result.error === "not_active") {
     return NextResponse.json(

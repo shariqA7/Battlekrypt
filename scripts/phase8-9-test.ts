@@ -77,7 +77,7 @@ async function main() {
   // ---------- paid: co-host confirms eligibility, host still owes the payment check
   const pi = await addTournamentInstitution(paid.id, org.fast.id, inst.comsats, "cohost");
   if ("data" in pi) await respondToCoHostInvite(pi.data.id, org.comsats.id, true);
-  const rp = await registerForTournament({ tournamentId: paid.id, playerId: prof.c2, paymentProofUrl: "https://x/r.png" });
+  const rp = await registerForTournament({ tournamentId: paid.id, playerId: prof.c2, paymentProofUrl: "https://x/r.png", paymentReference: "TXN-8900001" });
   const fastBefore = await count("fast", "institute_awaiting_payment");
   if ("data" in rp && rp.data) await approveRegistration(rp.data.id, org.comsats.id);
   const wait = (await types("fast")).find((n) => n.type === "institute_awaiting_payment");

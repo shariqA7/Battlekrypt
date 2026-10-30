@@ -20,6 +20,7 @@ export default function PlanRequestForm({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [proofUrl, setProofUrl] = useState("");
+  const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,7 +34,7 @@ export default function PlanRequestForm({
     const res = await fetch("/api/plans/requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audience, planCode, proofUrl }),
+      body: JSON.stringify({ audience, planCode, proofUrl, reference }),
     });
     if (!res.ok) {
       const { error } = await res.json();
@@ -102,6 +103,16 @@ export default function PlanRequestForm({
           pathPrefix="plan-proofs"
           label="Upload payment screenshot"
           onUploaded={setProofUrl}
+        />
+        <input
+          type="text"
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+          maxLength={120}
+          autoComplete="off"
+          placeholder="Transaction ID from your receipt"
+          aria-label="Transaction ID"
+          className="mt-2 w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px]"
         />
       </div>
       {error && <p className="text-bk-live text-[12px] font-sans mb-2">{error}</p>}

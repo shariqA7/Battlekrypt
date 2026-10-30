@@ -58,6 +58,7 @@ export const updateTournamentSchema = z.object({
 export const registerSchema = z.object({
   customFieldResponses: z.record(z.string(), z.string()).optional(),
   paymentProofUrl: z.string().url().optional(),
+  paymentReference: z.string().trim().max(120).optional(),
   teamName: z.string().trim().min(1).max(60).optional(),
   teamMemberPlayerIds: z.array(z.string()).optional(),
 });

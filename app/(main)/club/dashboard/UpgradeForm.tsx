@@ -10,6 +10,7 @@ import { buttonClass } from "@/components/ui/Button";
 export default function UpgradeForm({ paymentInstructions }: { paymentInstructions: string | null }) {
   const router = useRouter();
   const [feeProofUrl, setFeeProofUrl] = useState("");
+  const [feeReference, setFeeReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -24,7 +25,7 @@ export default function UpgradeForm({ paymentInstructions }: { paymentInstructio
     const res = await fetch("/api/club/me", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ feeProofUrl }),
+      body: JSON.stringify({ feeProofUrl, feeReference }),
     });
 
     if (!res.ok) {
@@ -53,6 +54,16 @@ export default function UpgradeForm({ paymentInstructions }: { paymentInstructio
         pathPrefix="club-fee-proofs"
         label="Upload payment screenshot"
         onUploaded={setFeeProofUrl}
+      />
+      <input
+        type="text"
+        value={feeReference}
+        onChange={(e) => setFeeReference(e.target.value)}
+        maxLength={120}
+        autoComplete="off"
+        placeholder="Transaction ID from your receipt"
+        aria-label="Transaction ID"
+        className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] px-3 h-[36px]"
       />
       {error && <p className="text-bk-live text-[12px] font-sans">{error}</p>}
       <button
