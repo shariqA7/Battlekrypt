@@ -15,6 +15,7 @@ interface Registration {
   status: string;
   paymentStatus: string;
   paymentProofUrl: string | null;
+  paymentReference?: string | null;
   institutionProofPath: string | null;
   // Set when the entry belongs to a co-host institute's queue.
   routedInstitution?: { id: string; name: string } | null;
@@ -443,7 +444,8 @@ export default function RegistrationQueue({
                     View payment proof
                   </a>
                 )}
-                {r.paymentProofUrl && <DuplicateProofBadge match={duplicates[r.id]} scope="organizer" />}
+                {r.paymentReference && <span className="font-mono text-[11px] text-bk-heading">ID {r.paymentReference}</span>}
+                {(r.paymentProofUrl || r.paymentReference) && <DuplicateProofBadge match={duplicates[r.id]} scope="organizer" />}
                 {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}
               </div>
               {r.routedInstitution && (

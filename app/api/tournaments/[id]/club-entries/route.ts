@@ -21,6 +21,7 @@ export async function POST(
   const body = await request.json().catch(() => ({}));
   const opts = {
     paymentProofUrl: typeof body.paymentProofUrl === "string" ? body.paymentProofUrl : undefined,
+    paymentReference: typeof body.paymentReference === "string" ? body.paymentReference : undefined,
     customFieldResponses: body.customFieldResponses,
   };
 

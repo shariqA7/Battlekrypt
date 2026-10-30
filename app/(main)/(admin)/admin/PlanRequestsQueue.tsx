@@ -12,6 +12,7 @@ export interface PendingPlanRequest {
   priceAmount: number | null;
   priceCurrency: string | null;
   proofUrl: string;
+  paymentReference?: string | null;
   duplicate?: ProofMatch | null;
   createdAt: string | Date;
   userName: string;
@@ -77,6 +78,7 @@ export default function PlanRequestsQueue({ initial }: { initial: PendingPlanReq
               >
                 View payment proof ↗
               </a>{" "}
+              {r.paymentReference && <span className="font-mono text-[11px] text-bk-heading mr-2">ID {r.paymentReference}</span>}
               <DuplicateProofBadge match={r.duplicate} scope="admin" />
               <div className="flex gap-2 mt-2">
                 <button

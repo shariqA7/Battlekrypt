@@ -752,6 +752,7 @@ model ClubProfile {
 
   status      ClubStatus @default(approved)
   feeProofUrl String? // screenshot of the PAID-plan fee payment (upgrade only)
+  feeReference String? // the transaction ID the club typed for that payment
 
   // Normalized name (see lib/org-name.ts) — unique, so "Falcon" and
   // "falcon!" can't both exist. Cleared when a club is disbanded so the
@@ -1289,6 +1290,7 @@ model Registration {
   status               RegistrationStatus @default(pending)
   paymentStatus        PaymentStatus      @default(unpaid)
   paymentProofUrl      String?
+  paymentReference     String? // the transaction ID the payer typed (paid entries)
   // Private-bucket path of the per-tournament ID photo (see
   // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
   institutionProofPath String?
@@ -1592,6 +1594,7 @@ model PlanRequest {
   planCode   String
   plan       Plan              @relation(fields: [planCode], references: [code])
   proofUrl   String
+  paymentReference String? // the transaction ID the payer typed
   // Refundable deposit the requester was told to include with this payment.
   depositAmount Decimal? @db.Decimal(14, 2)
   status     PlanRequestStatus @default(pending)
@@ -2638,13 +2641,13 @@ model Expense {
 // ------------------------------------------------------------
 // PROOF FINGERPRINTS (Phase 7: duplicate-screenshot detection)
 // ------------------------------------------------------------
-// Every payment-proof screenshot is hashed (SHA-256 of the exact file) once when it is submitted.
-// Two proofs that are the very same file are flagged as a possible duplicate for whoever reviews
-// them. This only FLAGS: nothing is blocked or rejected automatically. One row per submitted
+// Every payment proof is fingerprinted once when it is submitted: the SHA-256 of the exact
+// screenshot file, and the transaction ID the payer typed. Two proofs sharing either one are
+// flagged as a possible duplicate for whoever reviews them. This only FLAGS: nothing is blocked or rejected automatically. One row per submitted
 // proof (replacing a proof replaces its row).
-// Why not "looks similar" matching: bank and wallet receipts from the same app look almost
-// identical even when the amount and transaction ID differ, so a picture match would flag
-// innocent payments and teach reviewers to ignore the flag.
+// Why not "looks similar" picture matching: bank and wallet receipts from the same app look almost
+// identical even when the amount and transaction ID differ, so it would flag innocent payments.
+// The typed transaction ID is what catches a re-saved or re-screenshotted copy.
 
 enum ProofKind {
   registration // a player/team entry fee, reviewed by the organizer
@@ -2659,9 +2662,11 @@ model ProofFingerprint {
   refId       String // the Registration / PlanRequest / Invoice / ClubProfile it belongs to
   userId      String? // who submitted it
   organizerId String? // the organizer who reviews it (registrations only)
-  sha256      String
+  sha256      String? // null when the file could not be fetched
+  reference   String? // the typed transaction ID, normalized (see lib/proof-match.ts)
   createdAt   DateTime  @default(now())
 
   @@unique([kind, refId])
   @@index([sha256])
+  @@index([reference])
 }

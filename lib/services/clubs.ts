@@ -10,6 +10,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { findProofMatches, queueProofCheck } from "@/lib/services/proof-fingerprints";
+import { parseReference } from "@/lib/proof-match";
 import { Prisma } from "@prisma/client";
 import { orgNameKey } from "@/lib/org-name";
 import { isSupportedCurrency } from "@/lib/money";
@@ -90,6 +91,8 @@ export interface ClubUpdateInput {
   clubName?: string;
   logoUrl?: string | null;
   feeProofUrl?: string;
+  /** The transaction ID the club typed for that payment (required with a fee proof). */
+  feeReference?: string;
 }
 
 // Owner edits. Name/logo can change any time (the new name goes through the
@@ -103,6 +106,8 @@ export async function updateClub(clubId: string, input: ClubUpdateInput) {
   const paidAndActive =
     club.subscriptionPlanCode === PAID_CLUB_PLAN &&
     (club.planExpiresAt === null || club.planExpiresAt > new Date());
+  const feeRef = parseReference(input.feeReference);
+  if (input.feeProofUrl && !feeRef) return { error: "reference_required" as const };
   if (input.feeProofUrl && paidAndActive) {
     return { error: "already_paid" as const };
   }
@@ -124,11 +129,11 @@ export async function updateClub(clubId: string, input: ClubUpdateInput) {
         ...(input.clubName !== undefined && { clubName: input.clubName }),
         ...(nameKey && { nameKey }),
         ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl }),
-        ...(input.feeProofUrl && { feeProofUrl: input.feeProofUrl, upgradeStatus: "pending" as const }),
+        ...(input.feeProofUrl && { feeProofUrl: input.feeProofUrl, feeReference: feeRef?.display ?? null, upgradeStatus: "pending" as const }),
       },
     });
     if (nameKey) await fulfillClaim(club.userId, nameKey);
-    if (input.feeProofUrl) await queueProofCheck({ kind: "club_fee", refId: clubId, userId: club.userId }, input.feeProofUrl);
+    if (input.feeProofUrl) await queueProofCheck({ kind: "club_fee", refId: clubId, userId: club.userId }, input.feeProofUrl, feeRef?.key);
     return { data: updated };
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

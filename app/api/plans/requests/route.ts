@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     audience: body.audience,
     planCode: body.planCode,
     proofUrl: body.proofUrl,
+    reference: body.reference,
   });
   if ("error" in result) return planError(result);
   return NextResponse.json(result.data, { status: 201 });

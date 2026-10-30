@@ -13,6 +13,7 @@ import { ageOn, parseBirthDate, PLATFORM_MIN_AGE } from "@/lib/age";
 import { normalizeUsername, usernameChecks } from "@/lib/validation/auth";
 import { prisma } from "@/lib/prisma";
 import { queueProofCheck } from "@/lib/services/proof-fingerprints";
+import { parseReference } from "@/lib/proof-match";
 import { isIdentityVerified } from "@/lib/identity";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
@@ -450,6 +451,8 @@ export interface RegisterInput {
   playerId: string;
   customFieldResponses?: unknown;
   paymentProofUrl?: string;
+  /** The transaction ID the payer typed (required for paid entries). */
+  paymentReference?: string;
   teamName?: string;
   teamMemberPlayerIds?: string[]; // for duo/squad modes
   // Set only when this registration is a club's persistent team entering
@@ -554,6 +557,10 @@ export async function registerForTournament(input: RegisterInput) {
   if (tournament.entryType === "paid" && !input.paymentProofUrl) {
     return { error: "payment_proof_required" as const };
   }
+  const reference = parseReference(input.paymentReference);
+  if (tournament.entryType === "paid" && !reference) {
+    return { error: "payment_reference_required" as const };
+  }
 
   // Entry conditions (follow / share…) must each be ticked. The organizer
   // verifies them when approving.
@@ -587,6 +594,7 @@ export async function registerForTournament(input: RegisterInput) {
           teamEntryId: teamEntry.id,
           paymentStatus: paymentStatus ?? "unpaid",
           paymentProofUrl: input.paymentProofUrl,
+          paymentReference: reference?.display ?? null,
           institutionProofPath: institutionGate.proofPath,
           routedInstitutionId: institutionGate.routedInstitutionId,
           institutionId: institutionGate.institutionId,
@@ -597,7 +605,7 @@ export async function registerForTournament(input: RegisterInput) {
     if ("error" in created) return { error: created.error, message: created.message };
     const registration = created;
     await bumpRegistrationCount(input.tournamentId);
-    await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl);
+    await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
     if (institutionGate.routedInstitutionId) {
       await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
     }
@@ -612,6 +620,7 @@ export async function registerForTournament(input: RegisterInput) {
         playerId: input.playerId,
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
+        paymentReference: reference?.display ?? null,
         institutionProofPath: institutionGate.proofPath,
         routedInstitutionId: institutionGate.routedInstitutionId,
         institutionId: institutionGate.institutionId,
@@ -622,7 +631,7 @@ export async function registerForTournament(input: RegisterInput) {
   if ("error" in created) return { error: created.error, message: created.message };
   const registration = created;
   await bumpRegistrationCount(input.tournamentId);
-  await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl);
+  await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
 
   if (institutionGate.routedInstitutionId) {
     await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);

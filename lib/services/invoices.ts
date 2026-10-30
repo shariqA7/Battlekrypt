@@ -15,6 +15,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { queueProofCheck } from "@/lib/services/proof-fingerprints";
+import { normalizeReference } from "@/lib/proof-match";
 import { computeNewExpiry } from "@/lib/plans";
 import { isSupportedCurrency, formatMoney } from "@/lib/money";
 import {
@@ -382,7 +383,7 @@ export async function submitInvoiceProof(
       proofRejectedNote: null,
     },
   });
-  await queueProofCheck({ kind: "invoice", refId: invoiceId, userId }, input.proofUrl);
+  await queueProofCheck({ kind: "invoice", refId: invoiceId, userId }, input.proofUrl, normalizeReference(reference));
   return { data: { ok: true as const } };
 }
 

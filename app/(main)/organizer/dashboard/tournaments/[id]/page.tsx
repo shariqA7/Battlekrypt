@@ -83,7 +83,7 @@ export default async function ManageTournamentPage({
   const consentStatuses = await consentStatusesForTournament(id);
   // Possible duplicate payment screenshots (flag only; the organizer decides).
   const duplicates = Object.fromEntries(
-    await findProofMatches("registration", registrations.filter((r) => r.paymentProofUrl).map((r) => r.id)),
+    await findProofMatches("registration", registrations.filter((r) => r.paymentProofUrl || r.paymentReference).map((r) => r.id)),
   );
   const capacity = await getTournamentCapacity(id);
   const myInstitutionId =
