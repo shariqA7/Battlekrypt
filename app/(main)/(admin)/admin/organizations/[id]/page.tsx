@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdminPage } from "@/lib/admin-page";
 import { getOrganizationDetail } from "@/lib/services/admin-organization-detail";
+import AutoRenewToggle from "./AutoRenewToggle";
 import { listPlans } from "@/lib/services/plan-requests";
 import { formatMoney } from "@/lib/money";
 import { DOC_LABEL, type DocType } from "@/lib/identity";
@@ -85,6 +86,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
           </div>
           <div className="flex flex-col items-start gap-2 min-w-[220px]">
             <AssignPlan organizerId={o.id} currentPlan={o.plan.code} plans={plans} />
+            <AutoRenewToggle organizerId={o.id} initial={o.plan.autoRenew} hasPaidPlan={o.plan.isPaid} />
             {!o.owner.ban && <BanUserButton userId={o.owner.id} name={o.owner.name} />}
             <div className="flex gap-3 font-sans text-[11px] uppercase tracking-[0.8px]">
               <Link href="/admin/organizer-trust" className="text-bk-gold-light underline">Organizer trust</Link>

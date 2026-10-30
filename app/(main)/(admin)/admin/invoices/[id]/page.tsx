@@ -32,7 +32,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
           <Link href={`/admin/organizations/${i.organizerId}`} className="underline">{i.organizer.orgName}</Link>{" "}
           <span className="text-bk-muted">· {i.organizer.user.displayName} · {i.organizer.user.email}</span>
         </p>
-        <p className="text-bk-muted">Created {i.source === "application_approved" ? "when the application was approved" : i.source === "admin_added" ? "when you added the organization" : "by an admin"}.</p>
+        <p className="text-bk-muted">Created {i.source === "renewal" ? "automatically, to renew the plan" : i.source === "application_approved" ? "when the application was approved" : i.source === "admin_added" ? "when you added the organization" : "by an admin"}.</p>
       </div>
 
       {i.status === "proof_submitted" && i.proofUrl && (

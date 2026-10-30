@@ -381,6 +381,10 @@ model OrganizerProfile {
   // Admin override: skips the new-organizer starter limits (NOT the payout
   // hold). See lib/services/organizer-trust.ts.
   limitsLifted Boolean @default(false)
+  // Create a renewal invoice automatically shortly before the paid plan ends. Off by default for
+  // existing organizations (so plans an admin gave free are never billed); switched on when an
+  // organization pays a plan invoice. An admin can change it per organization.
+  autoRenew    Boolean @default(false)
   // Set when enough players reported this organizer: new paid registrations and
   // new paid or prized events are paused until an admin lifts it.
   reportsPausedAt     DateTime?
@@ -1380,6 +1384,9 @@ model SiteSettings {
   // this never alters an invoice that was already issued.
   invoiceTaxRate          Decimal  @default(0) @db.Decimal(5, 2)
   invoiceTaxLabel         String   @default("Tax")
+  // Automatic renewal invoices: how many days before a paid plan ends the invoice is created.
+  renewalInvoicesEnabled  Boolean  @default(true)
+  renewalLeadDays         Int      @default(7)
   updatedAt               DateTime @updatedAt
 }
 
@@ -2473,6 +2480,7 @@ enum InvoiceSource {
   admin_added
   application_approved
   admin_manual
+  renewal
 }
 
 enum InvoiceLineKind {
@@ -2516,6 +2524,8 @@ model Invoice {
 
   issuedAt  DateTime  @default(now())
   dueDate   DateTime?
+  // For a renewal invoice: the plan end date it renews. Makes creating renewals safe to repeat.
+  renewalForExpiry DateTime?
   note      String?
   createdById String?
 
@@ -2551,6 +2561,7 @@ model Invoice {
   @@index([organizerId, status])
   @@index([status, issuedAt])
   @@index([userId])
+  @@index([organizerId, renewalForExpiry])
 }
 
 model InvoiceLine {

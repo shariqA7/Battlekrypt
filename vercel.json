@@ -1,6 +1,16 @@
 {
   "crons": [
-    { "path": "/api/cron/identity-retention", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/visit-retention", "schedule": "30 3 * * *" }
+    {
+      "path": "/api/cron/identity-retention",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/visit-retention",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/renewal-invoices",
+      "schedule": "0 4 * * *"
+    }
   ]
 }

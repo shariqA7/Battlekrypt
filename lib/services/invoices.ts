@@ -69,7 +69,9 @@ async function nextInvoiceNumber(tx: Prisma.TransactionClient, now: Date) {
 
 export interface CreateInvoiceInput {
   organizerId: string;
-  source: "admin_added" | "application_approved" | "admin_manual";
+  source: "admin_added" | "application_approved" | "admin_manual" | "renewal";
+  /** For a renewal: the plan end date being renewed (stops it being invoiced twice). */
+  renewalForExpiry?: Date | null;
   createdById?: string | null;
   currency?: string;
   planCode?: string | null;
@@ -167,6 +169,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
         total: totals.total,
         issuedAt: now,
         dueDate: due,
+        renewalForExpiry: input.renewalForExpiry ?? null,
         note: input.note?.trim().slice(0, 500) || null,
         createdById: input.createdById ?? null,
         lines: {
@@ -197,7 +200,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
   }
   await notify(org.userId, {
     type: "invoice",
-    title: `New invoice ${invoice.number}`,
+    title: input.source === "renewal" ? `Renew your ${plan?.name ?? ""} plan — invoice ${invoice.number}`.replace("  ", " ") : `New invoice ${invoice.number}`,
     body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` · due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
     href: `/invoices/${invoice.id}`,
   });
@@ -483,7 +486,12 @@ export async function markInvoicePaid(input: MarkPaidInput) {
     let expiresAt: Date | null = null;
 
     // 1. Grant the plan (same rules as an approved plan request: extends if already on it).
-    if (planLine) expiresAt = await grantPlanFromInvoice(tx, inv, org, paidAt);
+    if (planLine) {
+      expiresAt = await grantPlanFromInvoice(tx, inv, org, paidAt);
+      // An organization that pays for a plan is renewed automatically from now on (an admin can
+      // switch it off). Paying a renewal doesn't flip a switch the admin turned off meanwhile.
+      if (inv.source !== "renewal") await tx.organizerProfile.update({ where: { id: org.id }, data: { autoRenew: true } });
+    }
 
     // 2. The refundable security fee is held for the organization (existing deposit flow).
     if (depositTotal > 0) {

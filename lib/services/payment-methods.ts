@@ -3,6 +3,7 @@
 // only switched off, so old payments keep their record.
 import { prisma } from "@/lib/prisma";
 import { validatePaymentMethod } from "@/lib/payment-method-rules";
+import { MAX_LEAD_DAYS, MIN_LEAD_DAYS } from "@/lib/renewal-rules";
 
 export type PaymentMethodView = Awaited<ReturnType<typeof listPaymentMethods>>[number];
 
@@ -77,11 +78,13 @@ export async function getInvoiceSettings() {
     paymentGatewayEnabled: s?.paymentGatewayEnabled ?? false,
     invoiceTaxRate: Number(s?.invoiceTaxRate?.toString() ?? 0),
     invoiceTaxLabel: s?.invoiceTaxLabel ?? "Tax",
+    renewalInvoicesEnabled: s?.renewalInvoicesEnabled ?? true,
+    renewalLeadDays: s?.renewalLeadDays ?? 7,
   };
 }
 
-export async function updateInvoiceSettings(adminId: string, input: { paymentGatewayEnabled?: unknown; invoiceTaxRate?: unknown; invoiceTaxLabel?: unknown }) {
-  const data: { paymentGatewayEnabled?: boolean; invoiceTaxRate?: number; invoiceTaxLabel?: string } = {};
+export async function updateInvoiceSettings(adminId: string, input: { paymentGatewayEnabled?: unknown; invoiceTaxRate?: unknown; invoiceTaxLabel?: unknown; renewalInvoicesEnabled?: unknown; renewalLeadDays?: unknown }) {
+  const data: { paymentGatewayEnabled?: boolean; invoiceTaxRate?: number; invoiceTaxLabel?: string; renewalInvoicesEnabled?: boolean; renewalLeadDays?: number } = {};
   if (input.paymentGatewayEnabled !== undefined) {
     if (typeof input.paymentGatewayEnabled !== "boolean") return { error: "validation_error", message: "Invalid gateway switch." } as Fail;
     data.paymentGatewayEnabled = input.paymentGatewayEnabled;
@@ -95,6 +98,17 @@ export async function updateInvoiceSettings(adminId: string, input: { paymentGat
     const l = typeof input.invoiceTaxLabel === "string" ? input.invoiceTaxLabel.trim() : "";
     if (l.length < 2 || l.length > 30) return { error: "validation_error", message: "The tax label must be 2–30 characters (e.g. GST, Sales tax)." } as Fail;
     data.invoiceTaxLabel = l;
+  }
+  if (input.renewalInvoicesEnabled !== undefined) {
+    if (typeof input.renewalInvoicesEnabled !== "boolean") return { error: "validation_error", message: "Invalid renewal switch." } as Fail;
+    data.renewalInvoicesEnabled = input.renewalInvoicesEnabled;
+  }
+  if (input.renewalLeadDays !== undefined) {
+    const d = input.renewalLeadDays;
+    if (typeof d !== "number" || !Number.isInteger(d) || d < MIN_LEAD_DAYS || d > MAX_LEAD_DAYS) {
+      return { error: "validation_error", message: `Renewal invoices go out ${MIN_LEAD_DAYS}–${MAX_LEAD_DAYS} days before the plan ends.` } as Fail;
+    }
+    data.renewalLeadDays = d;
   }
   if (Object.keys(data).length === 0) return { error: "validation_error", message: "Nothing to update." } as Fail;
   await prisma.siteSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });

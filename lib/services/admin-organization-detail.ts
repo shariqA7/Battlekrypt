@@ -247,6 +247,7 @@ export async function getOrganizationDetail(id: string) {
       name: plan?.name ?? planNames.get(org.planCode) ?? org.planCode,
       isPaid: plan?.isPaid ?? org.planCode !== FREE_PLAN_CODE.organizer,
       state: planState,
+      autoRenew: org.autoRenew,
       endsAt: org.planCode === FREE_PLAN_CODE.organizer ? null : iso(org.planExpiresAt),
       priceAmount: plan?.priceAmount ? num(plan.priceAmount) : null,
       priceCurrency: plan?.priceCurrency ?? null,
