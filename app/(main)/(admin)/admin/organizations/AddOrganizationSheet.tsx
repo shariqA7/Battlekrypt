@@ -58,7 +58,7 @@ function UploadSlot({ name, done, children }: { name: string; done: boolean; chi
     <div>
       <p className="font-sans text-[12px] text-bk-heading mb-1.5 flex items-center gap-2">
         {name}
-        {done && <span className="text-bk-teal text-[11px] font-bold">âœ“ uploaded</span>}
+        {done && <span className="text-bk-teal text-[11px] font-bold">✓ uploaded</span>}
       </p>
       {children}
     </div>
@@ -228,7 +228,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
       if (!plan?.isPaid && !invSecFee) return setError("An invoice needs a paid plan, a security fee, or both.");
       if (plan?.isPaid && planPriceHere === null && !(Number(invPlanAmount) > 0)) return setError(`Enter the plan amount in ${invCurrency}.`);
       if (invSecFee && depositHere === null && !(Number(invSecAmount) > 0)) return setError("Enter the security fee amount.");
-      if (invHasDue && !invDue) return setError("Pick the due date, or untick â€œSet a due dateâ€.");
+      if (invHasDue && !invDue) return setError("Pick the due date, or untick “Set a due date”.");
     }
     setBusy(true);
     setError(null);
@@ -277,7 +277,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
     if (!res.ok) return setError(body.error?.message ?? "Something went wrong.");
     setDone({
       id: body.organizerId,
-      emailNote: `${body.invoice ? `Invoice ${body.invoice.number} was created and sent to them. ` : ""}${body.invoiceError ? `The invoice could not be created (${body.invoiceError}) â€” create it from Admin > Invoices. ` : ""}` + (newAccount ? (body.setupEmailSent ? `An email to choose a password was sent to ${person.email}.` : `The email to choose a password could not be sent to ${person.email}. Ask them to use â€œForgot passwordâ€.`) : ""),
+      emailNote: `${body.invoice ? `Invoice ${body.invoice.number} was created and sent to them. ` : ""}${body.invoiceError ? `The invoice could not be created (${body.invoiceError}) — create it from Admin > Invoices. ` : ""}` + (newAccount ? (body.setupEmailSent ? `An email to choose a password was sent to ${person.email}.` : `The email to choose a password could not be sent to ${person.email}. Ask them to use “Forgot password”.`) : ""),
     });
     router.refresh();
   }
@@ -295,11 +295,11 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
       </button>
       {step < 2 ? (
         <button type="button" onClick={next} disabled={busy} className={buttonClass("primary", "md")}>
-          {busy ? "Please waitâ€¦" : "Next"}
+          {busy ? "Please wait…" : "Next"}
         </button>
       ) : (
         <button type="button" onClick={submit} disabled={busy || !planCode} className={buttonClass("primary", "md")}>
-          {busy ? "Addingâ€¦" : `Add ${isInst ? "institute" : "organization"}`}
+          {busy ? "Adding…" : `Add ${isInst ? "institute" : "organization"}`}
         </button>
       )}
     </div>
@@ -310,7 +310,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
       <button type="button" onClick={() => setOpen(true)} className={buttonClass("primary", "md")}>
         + Add organization
       </button>
-      <SideSheet open={open} onClose={close} title={done ? "Added" : `Add ${isInst ? "an institute" : "an organization"}`} subtitle={done ? undefined : `Step ${step + 1} of 3 Â· ${STEPS[step]}`} footer={footer}>
+      <SideSheet open={open} onClose={close} title={done ? "Added" : `Add ${isInst ? "an institute" : "an organization"}`} subtitle={done ? undefined : `Step ${step + 1} of 3 · ${STEPS[step]}`} footer={footer}>
         {done ? (
           <div className="space-y-2 font-sans text-[13px] text-bk-body">
             <p className="text-bk-teal font-bold text-[15px]">{org.name} was added.</p>
@@ -371,13 +371,13 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                           ].map(([k, v]) => (
                             <div key={String(k)} className="min-w-0">
                               <dt className="text-bk-muted">{k}</dt>
-                              <dd className="text-bk-heading truncate">{v === null || v === undefined || v === "" ? "â€”" : String(v)}</dd>
+                              <dd className="text-bk-heading truncate">{v === null || v === undefined || v === "" ? "—" : String(v)}</dd>
                             </div>
                           ))}
                         </dl>
                         {user.application && <p className="font-sans text-[11px] text-bk-gold-light mt-2">Their application ({user.application.status}) filled in the details below.</p>}
                         {user.activeBan && <p className="font-sans text-[12px] text-bk-live mt-2">This account is banned: {user.activeBan.reason}</p>}
-                        {user.organization && <p className="font-sans text-[12px] text-bk-live mt-2">Already has the organization â€œ{user.organization.orgName}â€.</p>}
+                        {user.organization && <p className="font-sans text-[12px] text-bk-live mt-2">Already has the organization “{user.organization.orgName}”.</p>}
                       </div>
                     ) : (
                       <SearchPicker<UserHit>
@@ -386,7 +386,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                         placeholder="Search by name, email or phone"
                         onPick={pickUser}
                         isDisabled={(u) => Boolean(u.organization)}
-                        emptyText="No account matches. Choose â€œNo account yetâ€ to add the person."
+                        emptyText="No account matches. Choose “No account yet” to add the person."
                         renderItem={(u) => (
                           <span className="flex items-center gap-2.5">
                             <Avatar src={u.avatarUrl} name={u.name} size={32} />
@@ -394,7 +394,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                               <span className="block font-sans text-[13px] text-bk-heading truncate">{u.name}</span>
                               <span className="block font-sans text-[11px] text-bk-muted truncate">
                                 {u.email}
-                                {u.organization && <span className="text-bk-live"> Â· already has â€œ{u.organization}â€</span>}
+                                {u.organization && <span className="text-bk-live"> · already has “{u.organization}”</span>}
                               </span>
                             </span>
                           </span>
@@ -414,7 +414,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                       <input value={person.phone} onChange={(e) => setPerson({ ...person, phone: e.target.value })} disabled={Boolean(userId)} className={input} />
                     </Field>
                     <p className="font-sans text-[11px] text-bk-muted mt-2">
-                      {userId ? "The account is ready." : "Pressing Next creates their account (if the email isnâ€™t registered yet). They get an email to choose a password once you add the organization."}
+                      {userId ? "The account is ready." : "Pressing Next creates their account (if the email isn’t registered yet). They get an email to choose a password once you add the organization."}
                     </p>
                   </div>
                 )}
@@ -426,7 +426,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                 {isInst ? (
                   <Field name="Kind of institute">
                     <select value={kind} onChange={(e) => setKind(e.target.value as Kind)} className={input}>
-                      <option value="">Chooseâ€¦</option>
+                      <option value="">Choose…</option>
                       {(Object.keys(KIND_LABEL) as Kind[]).map((k) => (
                         <option key={k} value={k}>
                           {KIND_LABEL[k]}
@@ -536,7 +536,7 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
             {step === 2 && (
               <div>
                 <p className="font-sans font-bold text-[13px] text-bk-heading mt-4">Choose a plan</p>
-                <p className="font-sans text-[12px] text-bk-muted">{bill ? "The plan starts when you mark the invoice paid." : "Given free of charge: no payment is recorded and no security deposit is collected. Tick â€œBill this organizationâ€ below to send an invoice instead."}</p>
+                <p className="font-sans text-[12px] text-bk-muted">{bill ? "The plan starts when you mark the invoice paid." : "Given free of charge: no payment is recorded and no security deposit is collected. Tick “Bill this organization” below to send an invoice instead."}</p>
                 <div className="grid gap-3 mt-3" role="radiogroup" aria-label="Plan">
                   {plans.map((p) => (
                     <button
@@ -549,13 +549,13 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                     >
                       <span className="flex items-baseline justify-between gap-3">
                         <span className="font-sans font-bold text-[15px] text-bk-heading">{p.name}</span>
-                        <span className="font-mono text-[14px] text-bk-gold-light">{p.isPaid ? `${p.price ?? "â€”"} / ${p.days} days` : "Free"}</span>
+                        <span className="font-mono text-[14px] text-bk-gold-light">{p.isPaid ? `${p.price ?? "—"} / ${p.days} days` : "Free"}</span>
                       </span>
                       {p.deposit && <span className="block font-sans text-[11px] text-bk-muted mt-0.5">Refundable security deposit: {p.deposit}</span>}
                       <ul className="mt-2 space-y-1">
                         {p.perks.map((perk) => (
                           <li key={perk} className="font-sans text-[12px] text-bk-body flex gap-2">
-                            <span className="text-bk-teal" aria-hidden="true">âœ“</span>
+                            <span className="text-bk-teal" aria-hidden="true">✓</span>
                             {perk}
                           </li>
                         ))}
@@ -663,14 +663,14 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                   <details className="mt-2">
                     <summary className="font-sans text-[12px] text-bk-gold-light cursor-pointer">What are the starter limits?</summary>
                     <div className="font-sans text-[12px] text-bk-body mt-2 space-y-2">
-                      <p>A new organizerâ€™s paid or prized events are capped until they have built a track record:</p>
+                      <p>A new organizer’s paid or prized events are capped until they have built a track record:</p>
                       <ul className="list-disc pl-5 space-y-0.5">
                         <li>Entry fee up to ${starter.maxEntryFeeUsd}</li>
                         <li>Prize pool up to ${starter.maxPrizeUsd}</li>
                         <li>Up to {starter.maxPaidEntrants} paid entrants</li>
                       </ul>
-                      <p>The limits lift on their own after {starter.graduationEvents} prize tournaments where every winner confirmed they were paid, or once the organizerâ€™s identity is verified{kycActive ? " (you are doing that in step 2)" : ""}.</p>
-                      <p>Lifting them now skips that wait. It does <strong>not</strong> skip the payout hold: an organizer who hasnâ€™t paid winners still canâ€™t publish new paid events. Every change is written to the admin log.</p>
+                      <p>The limits lift on their own after {starter.graduationEvents} prize tournaments where every winner confirmed they were paid, or once the organizer’s identity is verified{kycActive ? " (you are doing that in step 2)" : ""}.</p>
+                      <p>Lifting them now skips that wait. It does <strong>not</strong> skip the payout hold: an organizer who hasn’t paid winners still can’t publish new paid events. Every change is written to the admin log.</p>
                     </div>
                   </details>
                 </div>
@@ -678,9 +678,9 @@ export default function AddOrganizationSheet({ plans, starter }: { plans: PlanCa
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 mt-6 pt-4 border-t border-bk-border font-sans text-[12px]">
                   {[
                     ["Adding", `${org.name} (${isInst ? `institute${kind ? `, ${KIND_LABEL[kind as Kind].toLowerCase()}` : ""}` : "organization"})`],
-                    ["Owner", person.name ? `${person.name} Â· ${person.email}` : "â€”"],
+                    ["Owner", person.name ? `${person.name} · ${person.email}` : "—"],
                     ["Identity check", kycActive ? "Done by you" : "Skipped"],
-                    ["Plan", plan ? `${plan.name}${bill ? " (billed by invoice)" : ""}` : "â€”"],
+                    ["Plan", plan ? `${plan.name}${bill ? " (billed by invoice)" : ""}` : "—"],
                   ].map(([k, v]) => (
                     <div key={k} className="min-w-0">
                       <dt className="text-bk-muted">{k}</dt>

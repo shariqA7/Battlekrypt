@@ -20,7 +20,7 @@ export type InvoiceDocData = {
 
 const d = (x: Date) => x.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 
-// The invoice itself â€” the same view for the admin and for the organization.
+// The invoice itself — the same view for the admin and for the organization.
 export default function InvoiceDocument({ invoice: i, status }: { invoice: InvoiceDocData; status: DisplayStatus }) {
   const m = (v: { toString(): string }) => formatMoney(Number(v.toString()), i.currency);
   const fee = Number(i.gatewayFee.toString());
@@ -45,7 +45,7 @@ export default function InvoiceDocument({ invoice: i, status }: { invoice: Invoi
             <tr key={l.id}>
               <td className="py-2 text-bk-heading">
                 {l.description}
-                {l.refundable && <span className="block text-[11px] text-bk-muted">Held for you and returned later â€” not a fee.</span>}
+                {l.refundable && <span className="block text-[11px] text-bk-muted">Held for you and returned later — not a fee.</span>}
               </td>
               <td className="py-2 text-right font-mono text-bk-heading">
                 {l.waived ? (

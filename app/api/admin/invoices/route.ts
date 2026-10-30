@@ -1,5 +1,5 @@
 ﻿// GET  /api/admin/invoices?q=&cursor=&limit=&filter=all|open|proof_submitted|overdue|paid|waived|cancelled
-// POST /api/admin/invoices â€” create an invoice for an organization.
+// POST /api/admin/invoices — create an invoice for an organization.
 //   body: { organizerId, currency?, planCode?, planAmount?, includeSecurityFee?, securityFeeAmount?,
 //           discountType? ("amount"|"percent"), discountValue?, discountReason?, dueDate? ("YYYY-MM-DD" or empty for none), taxRate?, note? }
 import { NextResponse } from "next/server";
