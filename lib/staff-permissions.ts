@@ -132,6 +132,7 @@ export const API_FOLDER_AREAS: Record<string, AdminArea | null> = {
   payments: "payments", payouts: "payments", "plan-requests": "payments",
   invoices: "payments", "invoice-settings": "payments", "payment-methods": "payments",
   expenses: "ledger", ledger: "ledger",
+  "payment-disputes": "approvals",
   deposits: "deposits",
   currencies: "currencies",
   featured: "featured",

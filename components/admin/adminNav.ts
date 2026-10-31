@@ -89,6 +89,7 @@ export const ADMIN_SUBTABS: Record<string, AdminSubTab[]> = {
     { href: "/admin/approvals/games", label: "Games", icon: "games", countKey: "games" },
     { href: "/admin/approvals/challenges", label: "Challenge review", icon: "review", countKey: "challengeReview" },
     { href: "/admin/approvals/disputes", label: "Disputes", icon: "disputes", countKey: "challengeDisputes" },
+    { href: "/admin/approvals/payment-disputes", label: "Payment disputes", icon: "disputes", countKey: "paymentDisputes" },
     { href: "/admin/approvals/reports", label: "Reports & flags", icon: "reports", countKey: "challengeIntegrity" },
     { href: "/admin/approvals/consent", label: "Parental consent", icon: "consent", countKey: "consent" },
     { href: "/admin/approvals/suggested-rules", label: "Suggested rules", icon: "rules" },

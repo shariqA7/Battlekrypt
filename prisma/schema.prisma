@@ -1291,6 +1291,11 @@ model Registration {
   paymentStatus        PaymentStatus      @default(unpaid)
   paymentProofUrl      String?
   paymentReference     String? // the transaction ID the payer typed (paid entries)
+  // The account that submitted the entry and paid for it (a team captain, a club owner, or the
+  // solo player). Only this account can open a payment dispute. Null on older entries: then any
+  // member of the entry may.
+  payerUserId          String?
+  paymentDisputes      PaymentDispute[]
   // Private-bucket path of the per-tournament ID photo (see
   // Tournament.requireFreshInstitutionProof). Never exposed as a public URL.
   institutionProofPath String?
@@ -2669,4 +2674,76 @@ model ProofFingerprint {
   @@unique([kind, refId])
   @@index([sha256])
   @@index([reference])
+}
+
+
+// ------------------------------------------------------------
+// PAYMENT DISPUTES (Phase 7.2)
+// ------------------------------------------------------------
+// A case between the person who paid an entry fee and the organizer who received it. The
+// platform never holds this money, so an admin DECIDES and, when the payer is right, ORDERS the
+// organizer to refund directly; the case then tracks the refund (organizer marks it sent, the
+// payer confirms or contests). An ordered refund that isn't paid in time becomes a payout hold
+// (lib/services/organizer-trust.ts) that blocks the organizer's new paid/prized events.
+
+enum PaymentDisputeKind {
+  rejected_after_paying // paid, then rejected or ignored
+  no_room_details       // approved, but never got the room/venue details
+  event_not_held        // cancelled, or never took place
+  wrong_amount          // charged or accepted the wrong amount
+  fake_proof            // opened by the ORGANIZER: the proof looks fake
+}
+
+enum PaymentDisputeStatus {
+  awaiting_response // the other side has RESPONSE_HOURS to answer
+  awaiting_admin    // answered, or the time passed: an admin decides
+  resolved
+}
+
+enum PaymentDisputeOutcome {
+  for_payer     // the payer is right (a refund is ordered unless the case was fake_proof)
+  for_organizer // the organizer is right
+}
+
+model PaymentDispute {
+  id             String           @id @default(uuid())
+  registrationId String
+  registration   Registration     @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  tournamentId   String
+  organizerId    String
+  payerUserId    String
+  organizerUserId String
+
+  kind             PaymentDisputeKind
+  openedByUserId   String
+  reason           String
+  openerEvidenceUrls String[]
+
+  responderNote         String?
+  responderEvidenceUrls String[]
+  respondedAt           DateTime?
+  responseDueAt         DateTime
+
+  status         PaymentDisputeStatus   @default(awaiting_response)
+  missedDeadline Boolean                @default(false)
+  outcome        PaymentDisputeOutcome?
+  adminNote      String?
+  resolvedById   String?
+  resolvedAt     DateTime?
+
+  // Refund tracking (only when the payer won a payer-side dispute).
+  refundAmount       Decimal? @db.Decimal(14, 2) // null = the full entry fee
+  refundCurrency     String?
+  refundDueAt        DateTime?
+  refundSentAt       DateTime? // the organizer says it has paid
+  refundReceivedAt   DateTime? // the payer confirms
+  refundContestedAt  DateTime? // the payer says it never arrived
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([registrationId])
+  @@index([organizerId, status])
+  @@index([payerUserId])
 }

@@ -453,6 +453,8 @@ export interface RegisterInput {
   paymentProofUrl?: string;
   /** The transaction ID the payer typed (required for paid entries). */
   paymentReference?: string;
+  /** The account paying for this entry (a club owner for club entries). Defaults to the player's own account. */
+  payerUserId?: string;
   teamName?: string;
   teamMemberPlayerIds?: string[]; // for duo/squad modes
   // Set only when this registration is a club's persistent team entering
@@ -558,6 +560,7 @@ export async function registerForTournament(input: RegisterInput) {
     return { error: "payment_proof_required" as const };
   }
   const reference = parseReference(input.paymentReference);
+  const payerUserId = input.payerUserId ?? (await prisma.playerProfile.findUnique({ where: { id: input.playerId }, select: { userId: true } }))?.userId ?? null;
   if (tournament.entryType === "paid" && !reference) {
     return { error: "payment_reference_required" as const };
   }
@@ -595,6 +598,7 @@ export async function registerForTournament(input: RegisterInput) {
           paymentStatus: paymentStatus ?? "unpaid",
           paymentProofUrl: input.paymentProofUrl,
           paymentReference: reference?.display ?? null,
+          payerUserId,
           institutionProofPath: institutionGate.proofPath,
           routedInstitutionId: institutionGate.routedInstitutionId,
           institutionId: institutionGate.institutionId,
@@ -621,6 +625,7 @@ export async function registerForTournament(input: RegisterInput) {
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
         paymentReference: reference?.display ?? null,
+          payerUserId,
         institutionProofPath: institutionGate.proofPath,
         routedInstitutionId: institutionGate.routedInstitutionId,
         institutionId: institutionGate.institutionId,

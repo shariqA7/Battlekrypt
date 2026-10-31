@@ -444,6 +444,11 @@ export default function RegistrationQueue({
                     View payment proof
                   </a>
                 )}
+                {r.paymentProofUrl && r.status !== "rejected" && (
+                  <a href={`/disputes/new?registrationId=${r.id}`} className="text-bk-muted text-[11px] font-sans underline">
+                    Dispute this payment
+                  </a>
+                )}
                 {r.paymentReference && <span className="font-mono text-[11px] text-bk-heading">ID {r.paymentReference}</span>}
                 {(r.paymentProofUrl || r.paymentReference) && <DuplicateProofBadge match={duplicates[r.id]} scope="organizer" />}
                 {r.institutionProofPath && <InstitutionProofLink path={r.institutionProofPath} />}

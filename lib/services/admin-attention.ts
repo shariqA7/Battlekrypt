@@ -9,12 +9,13 @@ import { countReportedChallenges } from "@/lib/services/challenge-moderation";
 import { countOpenFlags } from "@/lib/services/challenge-integrity";
 import { countOpenConsentCases } from "@/lib/services/consent-cases";
 import { countOpenReports } from "@/lib/services/organizer-reports";
+import { countDisputesForAdmin } from "@/lib/services/payment-disputes";
 
 // Which area each queue belongs to. Staff only see (and are only counted for) the queues they can open.
 const ITEM_AREAS: Record<string, AdminArea> = {
   planPayments: "payments", invoices: "payments", organizers: "approvals", identity: "approvals", clubs: "approvals", games: "approvals",
   tournamentReviews: "approvals", challengeReview: "approvals", challengeDisputes: "approvals", challengeIntegrity: "approvals",
-  consent: "approvals", institutions: "institutions", changeRequests: "change_requests", playerReports: "reports",
+  consent: "approvals", paymentDisputes: "approvals", institutions: "institutions", changeRequests: "change_requests", playerReports: "reports",
 };
 
 /** The attention counts with every queue this person can't open zeroed out, and the total redone. */
@@ -28,7 +29,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
   const [
     orgApps, legacyOrganizers, clubUpgrades, games, claims, planRequests, tierReviews,
     heldChallenges, challengeDisputes, reportedChallenges, challengeFlags, institutions,
-    consentCases, changeRequests, identityChecks, playerReports, invoiceProofs,
+    consentCases, changeRequests, identityChecks, playerReports, invoiceProofs, paymentDisputes,
   ] = await Promise.all([
     prisma.organizationApplication.count({ where: { status: "pending" } }),
     prisma.organizerProfile.count({ where: { user: { kycStatus: { in: ["none", "pending"] } } } }),
@@ -47,6 +48,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     prisma.identityVerification.count({ where: { status: "pending" } }),
     countOpenReports(),
     prisma.invoice.count({ where: { status: "proof_submitted" } }),
+    countDisputesForAdmin(),
   ]);
 
   const items = {
@@ -64,6 +66,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     identity: identityChecks,
     playerReports,
     invoices: invoiceProofs,
+    paymentDisputes,
   };
   const total = Object.values(items).reduce((n, v) => n + v, 0);
   return { items, total, pendingOrgApps: orgApps };
