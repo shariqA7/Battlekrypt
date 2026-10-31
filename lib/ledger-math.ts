@@ -65,6 +65,14 @@ export interface InvoiceIncome { currency: string; gross: number; tax: number; g
 export interface OtherIncome { currency: string; amount: number }
 export interface ExpenseItem { currency: string; category: string; amount: number }
 export interface Extra { currency: string; amount: number }
+export interface TaxPaid { currency: string; type: "collected_tax" | "income_tax"; amount: number }
+export interface TaxToDate { currency: string; collected: number; remitted: number }
+
+export const TAX_TYPES = [
+  { value: "collected_tax", label: "Tax collected from users (sales tax / GST)" },
+  { value: "income_tax", label: "Income tax on profit" },
+] as const;
+export const taxTypeLabel = (t: string) => TAX_TYPES.find((x) => x.value === t)?.label ?? t;
 
 export interface CurrencyLedger {
   currency: string;
@@ -79,6 +87,13 @@ export interface CurrencyLedger {
   expenses: number;
   expensesByCategory: Record<string, number>;
   profit: number; // net revenue - expenses, the figure tax on profit is based on
+  incomeTaxPaid: number; // income tax paid on profit in this period
+  profitAfterTax: number; // profit - income tax paid
+  collectedTaxRemitted: number; // collected tax handed to the authority in this period
+  // All time (not just this period): what is owed on the tax collected from customers.
+  taxCollectedToDate: number;
+  taxRemittedToDate: number;
+  taxStillToPay: number; // collected - remitted; negative = overpaid
   discountsGiven: number; // information only
   waived: number; // information only
   depositsRefunded: number; // information only: returned to organizations
@@ -87,6 +102,7 @@ export interface CurrencyLedger {
 const blank = (currency: string): CurrencyLedger => ({
   currency, gross: 0, taxCollected: 0, gatewayFees: 0, depositsHeld: 0, invoiceNet: 0, otherPayments: 0, forfeitedDeposits: 0,
   netRevenue: 0, expenses: 0, expensesByCategory: {}, profit: 0, discountsGiven: 0, waived: 0, depositsRefunded: 0,
+  incomeTaxPaid: 0, profitAfterTax: 0, collectedTaxRemitted: 0, taxCollectedToDate: 0, taxRemittedToDate: 0, taxStillToPay: 0,
 });
 
 export function buildLedger(input: {
@@ -97,6 +113,8 @@ export function buildLedger(input: {
   discounts: Extra[];
   waived: Extra[];
   expenses: ExpenseItem[];
+  taxPaid?: TaxPaid[];
+  taxToDate?: TaxToDate[];
 }): CurrencyLedger[] {
   const by = new Map<string, CurrencyLedger>();
   const get = (c: string) => { let l = by.get(c); if (!l) { l = blank(c); by.set(c, l); } return l; };
@@ -116,6 +134,17 @@ export function buildLedger(input: {
     l.expensesByCategory[e.category] = (l.expensesByCategory[e.category] ?? 0) + e.amount;
   }
 
+  for (const t of input.taxPaid ?? []) {
+    const l = get(t.currency);
+    if (t.type === "income_tax") l.incomeTaxPaid += t.amount;
+    else l.collectedTaxRemitted += t.amount;
+  }
+  for (const t of input.taxToDate ?? []) {
+    const l = get(t.currency);
+    l.taxCollectedToDate += t.collected;
+    l.taxRemittedToDate += t.remitted;
+  }
+
   return [...by.values()]
     .map((l) => {
       const r = (n: number) => roundMoney(n, l.currency);
@@ -129,6 +158,12 @@ export function buildLedger(input: {
         discountsGiven: r(l.discountsGiven), waived: r(l.waived),
         expensesByCategory: Object.fromEntries(Object.entries(l.expensesByCategory).map(([k, v]) => [k, r(v)])),
         invoiceNet, netRevenue, expenses, profit: r(netRevenue - expenses),
+        incomeTaxPaid: r(l.incomeTaxPaid),
+        profitAfterTax: r(netRevenue - expenses - l.incomeTaxPaid),
+        collectedTaxRemitted: r(l.collectedTaxRemitted),
+        taxCollectedToDate: r(l.taxCollectedToDate),
+        taxRemittedToDate: r(l.taxRemittedToDate),
+        taxStillToPay: r(l.taxCollectedToDate - l.taxRemittedToDate),
       };
     })
     .sort((a, b) => a.currency.localeCompare(b.currency));
