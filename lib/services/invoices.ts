@@ -16,6 +16,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { normalizeReference } from "@/lib/proof-match";
+import { normalizeProofInput } from "@/lib/proof-storage";
 import { computeNewExpiry } from "@/lib/plans";
 import { isSupportedCurrency, formatMoney } from "@/lib/money";
 import {
@@ -363,7 +364,8 @@ export async function submitInvoiceProof(
   if (!inv) return fail("not_found");
   if (inv.userId !== userId) return fail("forbidden");
   if (inv.status !== "unpaid" && inv.status !== "proof_submitted") return fail("not_open");
-  if (typeof input.proofUrl !== "string" || !input.proofUrl.startsWith("http")) {
+  const proof = normalizeProofInput(input.proofUrl, userId);
+  if (!proof) {
     return fail("validation_error", "Upload your payment screenshot first.");
   }
   let methodId: string | null = null;
@@ -378,14 +380,14 @@ export async function submitInvoiceProof(
     where: { id: invoiceId },
     data: {
       status: "proof_submitted",
-      proofUrl: input.proofUrl,
+      proofUrl: proof,
       proofSubmittedAt: new Date(),
       proofMethodId: methodId,
       proofReference: reference,
       proofRejectedNote: null,
     },
   });
-  await queueProofCheck({ kind: "invoice", refId: invoiceId, userId }, input.proofUrl, normalizeReference(reference));
+  await queueProofCheck({ kind: "invoice", refId: invoiceId, userId }, proof, normalizeReference(reference));
   return { data: { ok: true as const } };
 }
 

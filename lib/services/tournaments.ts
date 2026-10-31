@@ -14,6 +14,7 @@ import { normalizeUsername, usernameChecks } from "@/lib/validation/auth";
 import { prisma } from "@/lib/prisma";
 import { queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { parseReference } from "@/lib/proof-match";
+import { normalizeProofInput } from "@/lib/proof-storage";
 import { isIdentityVerified } from "@/lib/identity";
 import { makeTournamentSlug } from "@/lib/slug";
 import { prepareRulesForCreate } from "@/lib/services/rules";
@@ -561,6 +562,9 @@ export async function registerForTournament(input: RegisterInput) {
   }
   const reference = parseReference(input.paymentReference);
   const payerUserId = input.payerUserId ?? (await prisma.playerProfile.findUnique({ where: { id: input.playerId }, select: { userId: true } }))?.userId ?? null;
+  if (input.paymentProofUrl && !normalizeProofInput(input.paymentProofUrl, payerUserId)) {
+    return { error: "invalid_payment_proof" as const };
+  }
   if (tournament.entryType === "paid" && !reference) {
     return { error: "payment_reference_required" as const };
   }

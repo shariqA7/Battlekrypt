@@ -43,7 +43,7 @@ export default function ProofForm({ invoiceId, methods }: { invoiceId: string; m
         <span className="block mb-1">{isCrypto ? "Transaction hash" : "Transaction ID / reference"} (optional)</span>
         <input value={reference} onChange={(e) => setReference(e.target.value)} maxLength={120} className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-mono px-3 h-[36px] w-full" />
       </label>
-      <FileUpload bucket="tournament-assets" pathPrefix="invoice-proofs" label="Upload payment screenshot" onUploaded={setProofUrl} />
+      <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="invoice-proofs" label="Upload payment screenshot" onUploaded={setProofUrl} />
       {error && <p role="alert" className="font-sans text-[12px] text-bk-live">{error}</p>}
       <button
         type="button"

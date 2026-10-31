@@ -5,13 +5,15 @@ import type { ProofKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sha256Hex } from "@/lib/proof-hash";
 import { buildMatches, type ProofMatch } from "@/lib/proof-match";
+import { PROOF_BUCKET, isPrivateProofPath } from "@/lib/proof-storage";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 export type { ProofMatch };
 
 const MAX_BYTES = 15 * 1024 * 1024;
 
 // Only files in OUR storage are fetched (never an arbitrary link a user typed in).
-// NOTE: if proofs move to a private bucket, this must fetch a signed URL instead.
+// Private proofs (paths in the payment-proofs bucket) are read with the service client instead.
 const ownStoragePrefix = () => {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   return base ? `${base}/storage/v1/object/public/` : null;
@@ -40,6 +42,13 @@ export async function recordFingerprint(ref: ProofRef & { sha256: string | null;
 /** Fetch the stored screenshot and hash it (null if it can't be fetched). Never throws. */
 async function hashStoredFile(url: string): Promise<string | null> {
   try {
+    // A private proof: read it with the server's own key (nobody else can).
+    if (isPrivateProofPath(url)) {
+      const { data, error } = await createServiceClient().storage.from(PROOF_BUCKET).download(url);
+      if (error || !data) return null;
+      const bytes = Buffer.from(await data.arrayBuffer());
+      return bytes.length === 0 || bytes.length > MAX_BYTES ? null : sha256Hex(bytes);
+    }
     const prefix = ownStoragePrefix();
     if (!prefix || !url.startsWith(prefix)) return null;
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000), redirect: "error" });

@@ -50,7 +50,9 @@ export default function UpgradeForm({ paymentInstructions }: { paymentInstructio
         </div>
       )}
       <FileUpload
-        bucket="tournament-assets"
+        bucket="payment-proofs"
+        isPrivate
+        ownerFolder
         pathPrefix="club-fee-proofs"
         label="Upload payment screenshot"
         onUploaded={setFeeProofUrl}

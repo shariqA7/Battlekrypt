@@ -48,9 +48,9 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
             {detail.proofMethodName ? ` · says they paid via ${detail.proofMethodName}` : ""}
             {i.proofReference ? ` · reference ${i.proofReference}` : ""}
           </p>
-          <a href={i.proofUrl} target="_blank" rel="noreferrer">
+          <a href={`/api/proofs/invoice/${i.id}`} target="_blank" rel="noreferrer">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={i.proofUrl} alt="Payment screenshot" className="max-h-96 border border-bk-border" />
+            <img src={`/api/proofs/invoice/${i.id}`} alt="Payment screenshot" className="max-h-96 border border-bk-border" />
           </a>
           <p className="font-sans text-[11px] text-bk-muted mt-2">Check the money really arrived in your account before marking it paid. A screenshot alone is not proof.</p>
         </div>

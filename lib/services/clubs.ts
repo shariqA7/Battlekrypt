@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/prisma";
 import { findProofMatches, queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { parseReference } from "@/lib/proof-match";
+import { normalizeProofInput } from "@/lib/proof-storage";
 import { Prisma } from "@prisma/client";
 import { orgNameKey } from "@/lib/org-name";
 import { isSupportedCurrency } from "@/lib/money";
@@ -108,6 +109,7 @@ export async function updateClub(clubId: string, input: ClubUpdateInput) {
     (club.planExpiresAt === null || club.planExpiresAt > new Date());
   const feeRef = parseReference(input.feeReference);
   if (input.feeProofUrl && !feeRef) return { error: "reference_required" as const };
+  if (input.feeProofUrl && !normalizeProofInput(input.feeProofUrl, club.userId)) return { error: "invalid_proof" as const };
   if (input.feeProofUrl && paidAndActive) {
     return { error: "already_paid" as const };
   }

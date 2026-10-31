@@ -57,7 +57,7 @@ export default function DisputeForm({ registrationId, kinds }: { registrationId:
       <div>
         <p className="font-sans font-bold text-[13px] text-bk-heading mb-1">Evidence (optional, up to 5 screenshots)</p>
         {evidence.length < 5 && (
-          <FileUpload bucket="tournament-assets" pathPrefix="dispute-evidence" label="Upload a screenshot" onUploaded={(url) => setEvidence((e) => [...e, url])} />
+          <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="dispute-evidence" label="Upload a screenshot" onUploaded={(url) => setEvidence((e) => [...e, url])} />
         )}
         {evidence.length > 0 && <p className="font-sans text-[12px] text-bk-muted mt-1">{evidence.length} uploaded</p>}
       </div>

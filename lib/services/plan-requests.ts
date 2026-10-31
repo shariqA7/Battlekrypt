@@ -10,6 +10,7 @@ import type { PaymentKind, PlanAudience } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { findProofMatches, queueProofCheck } from "@/lib/services/proof-fingerprints";
 import { REFERENCE_REQUIRED_MESSAGE, parseReference } from "@/lib/proof-match";
+import { normalizeProofInput } from "@/lib/proof-storage";
 import { isIdentityVerified } from "@/lib/identity";
 import {
   FREE_PLAN_CODE,
@@ -193,7 +194,8 @@ export async function createPlanRequest(
 ) {
   if (!isAudience(input.audience)) return fail("validation_error", "Unknown account type.");
   if (typeof input.planCode !== "string") return fail("validation_error", "Choose a plan.");
-  if (typeof input.proofUrl !== "string" || !input.proofUrl.startsWith("http")) {
+  const proof = normalizeProofInput(input.proofUrl, userId);
+  if (!proof) {
     return fail("validation_error", "Proof of payment is required.");
   }
   const reference = parseReference(input.reference);
@@ -226,12 +228,12 @@ export async function createPlanRequest(
       userId,
       audience,
       planCode: plan.code,
-      proofUrl: input.proofUrl,
+      proofUrl: proof,
       paymentReference: reference.display,
       depositAmount: depositDue > 0 ? depositDue : null,
     },
   });
-  await queueProofCheck({ kind: "plan_request", refId: request.id, userId }, input.proofUrl, reference.key);
+  await queueProofCheck({ kind: "plan_request", refId: request.id, userId }, proof, reference.key);
   return { data: request };
 }
 

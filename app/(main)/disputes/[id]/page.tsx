@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/Badge";
 import LocalDate from "@/components/ui/LocalDate";
 import DisputeActions from "./DisputeActions";
 
-function Evidence({ urls }: { urls: string[] }) {
-  if (urls.length === 0) return null;
+// Opened through the checked route: only the two sides and admins can see the files.
+function Evidence({ disputeId, side, count }: { disputeId: string; side: "opener" | "responder"; count: number }) {
+  if (count === 0) return null;
   return (
     <p className="font-sans text-[12px] mt-1">
-      {urls.map((u, i) => (
-        <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-3">Evidence {i + 1}</a>
+      {Array.from({ length: count }, (_, i) => (
+        <a key={i} href={`/api/proofs/dispute/${disputeId}?side=${side}&i=${i}`} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-3">Evidence {i + 1}</a>
       ))}
     </p>
   );
@@ -46,14 +47,14 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
       <section className="bg-bk-surface border border-bk-border p-4">
         <p className="font-sans text-[11px] uppercase tracking-[1px] text-bk-muted mb-1">{openerIsPayer ? "The player says" : "The organizer says"}</p>
         <p className="font-sans text-[14px] text-bk-heading whitespace-pre-wrap">{d.reason}</p>
-        <Evidence urls={d.openerEvidenceUrls} />
+        <Evidence disputeId={d.id} side="opener" count={d.openerEvidenceUrls.length} />
       </section>
 
       {d.responderNote && (
         <section className="bg-bk-surface border border-bk-border p-4">
           <p className="font-sans text-[11px] uppercase tracking-[1px] text-bk-muted mb-1">{openerIsPayer ? "The organizer replied" : "The player replied"}</p>
           <p className="font-sans text-[14px] text-bk-heading whitespace-pre-wrap">{d.responderNote}</p>
-          <Evidence urls={d.responderEvidenceUrls} />
+          <Evidence disputeId={d.id} side="responder" count={d.responderEvidenceUrls.length} />
         </section>
       )}
 

@@ -179,7 +179,7 @@ export default function AdminQueues({
                   </p>
                   {c.feeProofUrl && (
                     <a
-                      href={c.feeProofUrl}
+                      href={`/api/proofs/club_fee/${c.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-sans text-xs text-bk-gold-light hover:underline mt-1 inline-block"

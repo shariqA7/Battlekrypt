@@ -82,6 +82,9 @@ export async function PATCH(request: Request) {
       { status: 409 }
     );
   }
+  if (result.error === "invalid_proof") {
+    return NextResponse.json({ error: { code: "validation_error", message: "That payment proof isn't valid. Upload the screenshot again." } }, { status: 400 });
+  }
   if (result.error === "reference_required") {
     return NextResponse.json({ error: { code: "validation_error", message: REFERENCE_REQUIRED_MESSAGE } }, { status: 400 });
   }

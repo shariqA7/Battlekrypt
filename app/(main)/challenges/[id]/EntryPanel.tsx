@@ -39,12 +39,13 @@ function When({ iso, prefix = "" }: { iso: string | null; prefix?: string }) {
   return <>{prefix}{new Date(iso).toLocaleString()}</>;
 }
 
-function Links({ urls, label }: { urls: string[]; label: string }) {
-  if (urls.length === 0) return null;
+// Files are private: they open through the checked route, never by their stored path.
+function Links({ count, href, label }: { count: number; href: (i: number) => string; label: string }) {
+  if (count === 0) return null;
   return (
     <span className="inline-flex flex-wrap gap-x-3">
-      {urls.map((u, i) => (
-        <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline">
+      {Array.from({ length: count }, (_, i) => (
+        <a key={i} href={href(i)} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline">
           {label} {i + 1}
         </a>
       ))}
@@ -63,7 +64,7 @@ function UploadSet({ label, urls, setUrls, max, folder }: { label: string; urls:
         </p>
       ))}
       {urls.length < max && (
-        <FileUpload key={urls.length} bucket="tournament-assets" pathPrefix={folder} label={`Upload ${label.toLowerCase()}`} onUploaded={(u) => setUrls([...urls, u])} />
+        <FileUpload key={urls.length} bucket="payment-proofs" isPrivate ownerFolder pathPrefix={folder} label={`Upload ${label.toLowerCase()}`} onUploaded={(u) => setUrls([...urls, u])} />
       )}
     </div>
   );
@@ -122,14 +123,14 @@ export default function EntryPanel({
       {entry.matchId && (
         <div className="mt-3 font-sans text-[12px] text-bk-body space-y-1">
           <p>Match ID: <span className="text-bk-heading">{entry.matchId}</span></p>
-          <p><Links urls={entry.proofUrls} label="Screenshot" /></p>
+          <p><Links count={entry.proofUrls.length} href={(i) => `/api/proofs/challenge_proof/${entry.id}?i=${i}`} label="Screenshot" /></p>
           {entry.proofNote && <p>Note: {entry.proofNote}</p>}
         </div>
       )}
       {entry.paymentReceiptUrls.length > 0 && (
         <p className="mt-2 font-sans text-[12px] text-bk-body">
           {prizeType === "reward" ? "Delivery proof: " : "Receipt: "}
-          <Links urls={entry.paymentReceiptUrls} label="Screenshot" />
+          <Links count={entry.paymentReceiptUrls.length} href={(i) => `/api/proofs/challenge_receipt/${entry.id}?i=${i}`} label="Screenshot" />
         </p>
       )}
       {entry.paymentOwed && entry.stage !== "completed" && (
@@ -143,9 +144,9 @@ export default function EntryPanel({
             {d.status === "resolved" && ` — decided ${d.outcome === "for_challenger" ? "for the challenger" : "for the poster"}`}
           </p>
           <p>{d.openedByViewer ? "You said" : "They said"}: {d.reason}</p>
-          <Links urls={d.openerEvidenceUrls} label="Evidence" />
+          <Links count={d.openerEvidenceUrls.length} href={(i) => `/api/proofs/challenge_dispute/${d.id}?side=opener&i=${i}`} label="Evidence" />
           {d.responderNote && <p>Response: {d.responderNote}</p>}
-          <Links urls={d.responderEvidenceUrls} label="Response evidence" />
+          <Links count={d.responderEvidenceUrls.length} href={(i) => `/api/proofs/challenge_dispute/${d.id}?side=responder&i=${i}`} label="Response evidence" />
           {d.status === "awaiting_response" && <p className="text-bk-amber"><When iso={d.responseDueAt} prefix="Response due by " /></p>}
           {d.missedDeadline && <p className="text-bk-live">The response deadline was missed.</p>}
           {d.status === "awaiting_admin" && <p>Waiting for an admin to decide.</p>}

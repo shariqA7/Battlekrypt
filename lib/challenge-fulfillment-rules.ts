@@ -1,6 +1,8 @@
 // Pure rules for the proof -> payment -> dispute flow: the time limits and the
 // input checks. No database, so they can be tested on their own.
 
+import { ownsProofPath } from "@/lib/proof-storage";
+
 export const HOUR = 3_600_000;
 
 // How long each side has at each step. "Silence" outcomes are noted: a poster
@@ -20,9 +22,11 @@ export type Check<T> = { data: T } | { error: string; message: string };
 const fail = (message: string): { error: string; message: string } => ({ error: "validation_error", message });
 
 // Screenshots must be files uploaded to our own storage, not random links.
+// New uploads are PRIVATE files in the submitter's own folder (see lib/proof-storage.ts); older
+// ones are public links into our storage. A private path in someone else's folder is refused.
 export function cleanUrls(
   urls: unknown,
-  opts: { min: number; max: number; label: string; allowedPrefix?: string | null }
+  opts: { min: number; max: number; label: string; allowedPrefix?: string | null; ownerId?: string | null }
 ): Check<string[]> {
   const list = Array.isArray(urls) ? urls.filter((u): u is string => typeof u === "string").map((u) => u.trim()) : [];
   const unique = [...new Set(list)];
@@ -31,6 +35,7 @@ export function cleanUrls(
   }
   if (unique.length > opts.max) return fail(`You can attach at most ${opts.max} ${opts.label}s.`);
   for (const u of unique) {
+    if (opts.ownerId && ownsProofPath(u, opts.ownerId)) continue;
     if (u.length > 600 || !/^https:\/\/\S+$/i.test(u)) return fail(`That ${opts.label} link isn't valid — upload the file instead.`);
     if (opts.allowedPrefix && !u.startsWith(opts.allowedPrefix)) return fail(`Upload your ${opts.label} here instead of linking elsewhere.`);
   }

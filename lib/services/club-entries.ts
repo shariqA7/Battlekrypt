@@ -50,6 +50,7 @@ export const CLUB_ENTRY_ERRORS = {
   full: { status: 409, message: "This tournament is full." },
   already_registered: { status: 409, message: "This team or player is already registered." },
   payment_proof_required: { status: 400, message: "Proof of payment is required." },
+  invalid_payment_proof: { status: 400, message: "That payment proof isn't valid. Upload the screenshot again." },
   payment_reference_required: { status: 400, message: "Enter the transaction ID shown on the payment receipt." },
   entry_locked: {
     status: 403,

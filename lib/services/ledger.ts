@@ -7,6 +7,7 @@
 //   - security deposits that were forfeited (they become income when resolved).
 // Expenses are entered by an admin and can be voided, never deleted.
 // Everything is kept per currency: nothing is converted or blended.
+import { normalizeProofInput } from "@/lib/proof-storage";
 import { prisma } from "@/lib/prisma";
 import { isSupportedCurrency } from "@/lib/money";
 import { parseDueDate, roundMoney } from "@/lib/invoice-math";
@@ -224,7 +225,7 @@ export function ledgerToCsv(l: Awaited<ReturnType<typeof getLedger>>): string {
 type Fail = { error: "validation_error" | "not_found"; message: string };
 const fail = (error: Fail["error"], message: string): Fail => ({ error, message });
 
-function parseExpense(input: Record<string, unknown>) {
+function parseExpense(adminId: string, input: Record<string, unknown>) {
   const date = parseDueDate(input.date);
   if (!(date instanceof Date)) return fail("validation_error", "Enter the date it was paid.");
   const category = EXPENSE_CATEGORIES.find((c) => c.value === input.category)?.value as ExpenseCategoryValue | undefined;
@@ -235,7 +236,7 @@ function parseExpense(input: Record<string, unknown>) {
   if (!Number.isFinite(amount) || amount <= 0 || amount > 999_999_999) return fail("validation_error", "Enter an amount greater than zero.");
   const currency = typeof input.currency === "string" ? input.currency.toUpperCase() : "";
   if (!isSupportedCurrency(currency)) return fail("validation_error", "Choose a supported currency.");
-  const receiptUrl = typeof input.receiptUrl === "string" && input.receiptUrl.startsWith("http") ? input.receiptUrl : null;
+  const receiptUrl = normalizeProofInput(input.receiptUrl, adminId);
   return {
     data: {
       date,
@@ -251,7 +252,7 @@ function parseExpense(input: Record<string, unknown>) {
 }
 
 export async function createExpense(adminId: string, input: Record<string, unknown>) {
-  const p = parseExpense(input);
+  const p = parseExpense(adminId, input);
   if ("error" in p) return p;
   const e = await prisma.expense.create({ data: { ...p.data, createdById: adminId } });
   await prisma.adminActionLog.create({
@@ -264,7 +265,7 @@ export async function updateExpense(adminId: string, id: string, input: Record<s
   const existing = await prisma.expense.findUnique({ where: { id } });
   if (!existing) return fail("not_found", "That expense doesn't exist.");
   if (existing.voidedAt) return fail("validation_error", "A voided expense can't be edited.");
-  const p = parseExpense(input);
+  const p = parseExpense(adminId, input);
   if ("error" in p) return p;
   // The receipt stays unless a new one is sent.
   const data = { ...p.data, receiptUrl: p.data.receiptUrl ?? existing.receiptUrl };

@@ -408,6 +408,44 @@ A player adds their student ID **once** on **Profile → My student ID**: a phot
 - The player can remove it any time, except while one of their entries in a running tournament still uses it (the host needs it to review the entry).
 - A card is valid **through** its printed expiry date (compared in UTC). The profile warns 30 days ahead.
 
+### Private payment proofs
+
+Payment screenshots (entry fees, plan payments, club fees, invoices) and the evidence uploaded on payment disputes live in a PRIVATE bucket named `payment-proofs`. Nobody opens a file by its link: the app checks who is asking (the person who paid, the organizer team of that event, a co-host it was routed to, the two sides of a dispute, or an admin with the right permission) and then redirects to a link that works for 5 minutes. Who may open what is in `lib/services/proof-access.ts`.
+
+**1. Run this once in the Supabase SQL editor** (safe to run again). There is deliberately **no read policy**: files are only opened by the server.
+
+```sql
+-- private bucket: 10 MB, images only
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('payment-proofs', 'payment-proofs', false, 10485760,
+        array['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/heic'])
+on conflict (id) do update
+  set public = false,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+-- signed-in users may upload, but only into their own folder (<their user id>/...)
+drop policy if exists "users upload own payment proofs" on storage.objects;
+create policy "users upload own payment proofs"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'payment-proofs' and (storage.foldername(name))[1] = auth.uid()::text);
+```
+
+**2. `SUPABASE_SERVICE_ROLE_KEY` must be set** on the server (Vercel project settings). The app uses it to read a proof after it has checked who is asking, to make the 5-minute link, and to check proofs for duplicates. Without it, proofs can't be opened (the link answers "Private files aren't set up") and duplicate checking by screenshot is skipped; the transaction ID check still works.
+
+**3. Move the old proofs** (the ones uploaded before this change are public links). From the project folder:
+
+```
+npx tsx scripts/migrate-proofs-to-private.ts --dry-run     # shows what would move, changes nothing
+npx tsx scripts/migrate-proofs-to-private.ts --delete-old  # moves them and deletes the public copies
+```
+
+It reads `.env.local`. Per proof it copies the file, updates the database, and only then deletes the public copy, so a failure leaves the old link working. It is safe to run again. Until it has run, old proofs still open (through the same checked route, which redirects an old public link as it is) but remain reachable by anyone who has the link.
+
+The same private bucket and the same checked route also hold **challenge** match screenshots, payout receipts and dispute evidence (only the poster, the challenger of that entry, and admins with Approvals can open them) and **ledger expense receipts** (only admins with the Ledger permission). The migration script moves their old public files too.
+
+**Still public, on purpose:** logos, banners, branding images, carousel slides and avatars.
+
 ### Supabase storage for ID photos
 
 Only needed if organizers require a student ID. The photos live in a PRIVATE bucket, and only the player themself, the host organizer, an accepted co-host (for its own players) and admins can read them. Admins open them from **Admin → ID photos**, which writes an audit-log row before every view. Run this once in the SQL editor (after the migrations above, because it reads the `TournamentInstitution` table). It is safe to run again.
@@ -897,7 +935,7 @@ Run `npx prisma migrate dev` to apply `20261027100000_organizer_identity` and `2
 | Variable | Used for |
 |---|---|
 | `IDENTITY_HASH_SECRET` | Long random string (32+ chars). Keys the fingerprint of ID numbers. **Never change it once organizers have verified**, or old fingerprints stop matching. Submissions are refused until it is set. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Used ONLY by the scheduled deletion job (`lib/supabase/admin.ts`). Server-side, no `NEXT_PUBLIC_` prefix. Never expose it. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-side only (`lib/supabase/admin.ts`), no `NEXT_PUBLIC_` prefix, never expose it. Used by the scheduled deletion job, creating organizer logins, and **private payment proofs** (opening them after a permission check, and checking them for duplicates). |
 | `CRON_SECRET` | Authorizes the scheduled job. Vercel Cron sends it automatically. |
 | `PAYOUT_ENCRYPTION_KEY` | Already used for payout details; now also encrypts the verified ID number and address. Submissions are refused without it. |
 
