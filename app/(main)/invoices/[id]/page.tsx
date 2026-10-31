@@ -79,6 +79,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full space-y-5">
       <p className="font-sans text-[12px]"><Link href="/invoices" className="text-bk-gold-light underline">← My invoices</Link></p>
       <InvoiceDocument invoice={{ ...i, orgName: i.organizer.orgName }} status={status} />
+      <p className="font-sans text-[12px]">
+        <Link href={`/invoices/${i.id}/print`} className="text-bk-gold-light underline">{i.status === "paid" ? "Print or save the receipt as PDF" : "Print or save the invoice as PDF"}</Link>
+      </p>
 
       {i.status === "paid" && (
         <p className="font-sans text-[13px] text-bk-teal">

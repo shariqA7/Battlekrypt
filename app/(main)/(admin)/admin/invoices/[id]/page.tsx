@@ -25,6 +25,9 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
       <p className="font-sans text-[12px]"><Link href="/admin/invoices" className="text-bk-gold-light underline">← All invoices</Link></p>
 
       <InvoiceDocument invoice={{ ...i, orgName: i.organizer.orgName }} status={status} />
+      <p className="font-sans text-[12px]">
+        <Link href={`/admin/invoices/${i.id}/print`} className="text-bk-gold-light underline">Print or save as PDF</Link>
+      </p>
 
       <div className="bg-bk-surface border border-bk-border p-4 font-sans text-[12px] space-y-1">
         <p className="text-bk-muted uppercase tracking-[0.8px] text-[10px] mb-1">Organization</p>

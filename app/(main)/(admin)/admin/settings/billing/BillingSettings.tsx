@@ -10,13 +10,16 @@ const field = "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font
 export default function BillingSettings({
   initial,
 }: {
-  initial: { paymentGatewayEnabled: boolean; invoiceTaxRate: number; invoiceTaxLabel: string; renewalInvoicesEnabled: boolean; renewalLeadDays: number };
+  initial: { paymentGatewayEnabled: boolean; invoiceTaxRate: number; invoiceTaxLabel: string; renewalInvoicesEnabled: boolean; renewalLeadDays: number; invoiceIssuerName: string; invoiceIssuerDetails: string; invoiceFooterNote: string };
 }) {
   const router = useRouter();
   const [gateway, setGateway] = useState(initial.paymentGatewayEnabled);
   const [rate, setRate] = useState(String(initial.invoiceTaxRate));
   const [label, setLabel] = useState(initial.invoiceTaxLabel);
   const [renew, setRenew] = useState(initial.renewalInvoicesEnabled);
+  const [issuer, setIssuer] = useState(initial.invoiceIssuerName);
+  const [issuerDetails, setIssuerDetails] = useState(initial.invoiceIssuerDetails);
+  const [footer, setFooter] = useState(initial.invoiceFooterNote);
   const [lead, setLead] = useState(String(initial.renewalLeadDays));
   const [runMsg, setRunMsg] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -29,7 +32,7 @@ export default function BillingSettings({
     const res = await fetch("/api/admin/invoice-settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentGatewayEnabled: gateway, invoiceTaxRate: Number(rate), invoiceTaxLabel: label, renewalInvoicesEnabled: renew, renewalLeadDays: Number(lead) }),
+      body: JSON.stringify({ paymentGatewayEnabled: gateway, invoiceTaxRate: Number(rate), invoiceTaxLabel: label, renewalInvoicesEnabled: renew, renewalLeadDays: Number(lead), invoiceIssuerName: issuer, invoiceIssuerDetails: issuerDetails, invoiceFooterNote: footer }),
     });
     const body = await res.json().catch(() => ({}));
     setMsg(res.ok ? { text: "Saved.", error: false } : { text: body.error?.message ?? "Could not save.", error: true });
@@ -81,6 +84,21 @@ export default function BillingSettings({
           Tax is charged on the plan fee only, never on the refundable security fee. Each invoice keeps the rate it was issued with, so
           changing this never alters an old invoice. You can change the rate on a single invoice when you create it.
         </p>
+        <div className="border-t border-bk-border pt-4 space-y-3">
+          <p className="font-sans text-[12px] text-bk-heading">Shown at the top of printed invoices and in invoice emails</p>
+          <label className="block font-sans text-[12px] text-bk-muted">
+            <span className="block mb-1">Name on invoices</span>
+            <input value={issuer} onChange={(e) => setIssuer(e.target.value)} maxLength={80} className={`${field} w-72`} />
+          </label>
+          <label className="block font-sans text-[12px] text-bk-muted">
+            <span className="block mb-1">Address, contact and tax / NTN number (optional, one per line)</span>
+            <textarea value={issuerDetails} onChange={(e) => setIssuerDetails(e.target.value)} rows={3} maxLength={500} className="bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2 w-full max-w-md" />
+          </label>
+          <label className="block font-sans text-[12px] text-bk-muted">
+            <span className="block mb-1">Footer note (optional)</span>
+            <input value={footer} onChange={(e) => setFooter(e.target.value)} maxLength={300} placeholder="Thank you for your business" className={`${field} w-full max-w-md`} />
+          </label>
+        </div>
         <div className="border-t border-bk-border pt-4 space-y-3">
           <label className="flex items-center gap-2 font-sans text-[13px] text-bk-heading cursor-pointer">
             <input type="checkbox" checked={renew} onChange={(e) => setRenew(e.target.checked)} />

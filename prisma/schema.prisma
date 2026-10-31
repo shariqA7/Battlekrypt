@@ -1397,6 +1397,10 @@ model SiteSettings {
   // this never alters an invoice that was already issued.
   invoiceTaxRate          Decimal  @default(0) @db.Decimal(5, 2)
   invoiceTaxLabel         String   @default("Tax")
+  // Who the invoice is from (shown on the printable invoice and in emails). All optional.
+  invoiceIssuerName       String   @default("BattleKrypt")
+  invoiceIssuerDetails    String?  // address, contact, tax / NTN number: one per line
+  invoiceFooterNote       String?  // e.g. "Thank you for your business"
   // Automatic renewal invoices: how many days before a paid plan ends the invoice is created.
   renewalInvoicesEnabled  Boolean  @default(true)
   renewalLeadDays         Int      @default(7)
