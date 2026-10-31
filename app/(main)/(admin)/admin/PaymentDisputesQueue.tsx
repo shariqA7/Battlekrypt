@@ -26,6 +26,7 @@ export interface AdminPaymentDispute {
   payerEmail: string | null;
   organizerName: string;
   organizerEmail: string | null;
+  registrationId: string;
   proofUrl: string | null;
   reference: string | null;
   duplicate: ProofMatch | null;
@@ -39,11 +40,12 @@ export interface AdminPaymentDispute {
   refundOverdue: boolean;
 }
 
-const Links = ({ urls, label }: { urls: string[]; label: string }) =>
-  urls.length === 0 ? null : (
+// Evidence is opened through the checked route, never by its stored path.
+const Links = ({ disputeId, side, count, label }: { disputeId: string; side: "opener" | "responder"; count: number; label: string }) =>
+  count === 0 ? null : (
     <span className="mr-3">
-      {urls.map((u, i) => (
-        <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-2 text-[12px]">{label} {i + 1}</a>
+      {Array.from({ length: count }, (_, i) => (
+        <a key={i} href={`/api/proofs/dispute/${disputeId}?side=${side}&i=${i}`} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-2 text-[12px]">{label} {i + 1}</a>
       ))}
     </span>
   );
@@ -82,18 +84,18 @@ function Card({ d }: { d: AdminPaymentDispute }) {
       <div className="border-l-2 border-bk-border pl-3">
         <p className="font-sans text-[11px] uppercase tracking-[1px] text-bk-muted">{d.openedByPayer ? "Player says" : "Organizer says"}</p>
         <p className="font-sans text-[13px] text-bk-heading whitespace-pre-wrap">{d.reason}</p>
-        <Links urls={d.openerEvidenceUrls} label="Evidence" />
+        <Links disputeId={d.id} side="opener" count={d.openerEvidenceUrls.length} label="Evidence" />
       </div>
       {d.responderNote && (
         <div className="border-l-2 border-bk-border pl-3">
           <p className="font-sans text-[11px] uppercase tracking-[1px] text-bk-muted">{d.openedByPayer ? "Organizer replied" : "Player replied"}</p>
           <p className="font-sans text-[13px] text-bk-heading whitespace-pre-wrap">{d.responderNote}</p>
-          <Links urls={d.responderEvidenceUrls} label="Evidence" />
+          <Links disputeId={d.id} side="responder" count={d.responderEvidenceUrls.length} label="Evidence" />
         </div>
       )}
 
       <p className="font-sans text-[12px]">
-        {d.proofUrl && <a href={d.proofUrl} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-2">Payment proof ↗</a>}
+        {d.proofUrl && <a href={`/api/proofs/registration/${d.registrationId}`} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-2">Payment proof ↗</a>}
         {d.reference && <span className="font-mono text-[11px] text-bk-heading mr-2">ID {d.reference}</span>}
         <DuplicateProofBadge match={d.duplicate} scope="admin" />
       </p>

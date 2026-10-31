@@ -99,7 +99,9 @@ export default function PlanRequestForm({
       )}
       <div className="mb-3">
         <FileUpload
-          bucket="tournament-assets"
+          bucket="payment-proofs"
+          isPrivate
+          ownerFolder
           pathPrefix="plan-proofs"
           label="Upload payment screenshot"
           onUploaded={setProofUrl}

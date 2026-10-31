@@ -161,7 +161,9 @@ export default function JoinForm({
 
           <label className={labelClass}>Proof of payment</label>
           <FileUpload
-            bucket="tournament-assets"
+            bucket="payment-proofs"
+            isPrivate
+            ownerFolder
             pathPrefix="payment-proofs"
             label="Upload payment screenshot"
             onUploaded={setPaymentProofUrl}

@@ -21,6 +21,7 @@ export default async function ApprovalsPaymentDisputesPage() {
     payerEmail: d.payer?.email ?? null,
     organizerName: d.organizer?.displayName ?? "Unknown",
     organizerEmail: d.organizer?.email ?? null,
+    registrationId: d.registrationId,
     proofUrl: d.registration.paymentProofUrl,
     reference: d.registration.paymentReference,
     duplicate: d.duplicate,

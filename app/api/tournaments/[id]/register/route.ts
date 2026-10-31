@@ -63,6 +63,7 @@ export async function POST(
     organizer_paused: { status: 409, message: "This organizer's paid registrations are paused while an admin reviews player reports." },
     conditions_not_met: { status: 400, message: "Confirm every entry condition first." },
     payment_proof_required: { status: 400, message: "Payment proof is required for a paid tournament." },
+    invalid_payment_proof: { status: 400, message: "That payment proof isn't valid. Upload the screenshot again." },
     payment_reference_required: { status: 400, message: REFERENCE_REQUIRED_MESSAGE },
     consent_required: { status: 403, message: "A parent or guardian needs to approve this account before it can join." },
     guardian_payout_required: { status: 403, message: "A parent or guardian needs to add where prizes are paid first." },

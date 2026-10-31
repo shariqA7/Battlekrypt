@@ -436,7 +436,7 @@ export default function RegistrationQueue({
                 )}
                 {r.paymentProofUrl && (
                   <a
-                    href={r.paymentProofUrl}
+                    href={`/api/proofs/registration/${r.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-bk-gold-light text-[11px] font-sans underline"

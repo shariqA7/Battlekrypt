@@ -71,7 +71,7 @@ export default function PlanRequestsQueue({ initial }: { initial: PendingPlanReq
                   : ""}
               </p>
               <a
-                href={r.proofUrl}
+                href={`/api/proofs/plan_request/${r.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-sans text-[12px] text-bk-gold-light underline"

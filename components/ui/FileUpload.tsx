@@ -1,7 +1,7 @@
 "use client";
 
 // Uploads a file directly to Supabase Storage from the browser and returns
-// its public URL. Requires a Storage bucket to exist (see SETUP.md for the
+// its public URL (or, for a private bucket, its storage path). Requires a Storage bucket to exist (see SETUP.md for the
 // bucket + RLS policy this needs) — this component doesn't create the bucket.
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,9 @@ interface FileUploadProps {
   // storage PATH instead (used for ID documents, which only admins may view
   // through short-lived signed URLs).
   isPrivate?: boolean;
+  // With a private bucket: put the file in the signed-in user's own folder
+  // (`<user id>/<pathPrefix>/<random>.<ext>`), which is what the bucket's upload policy requires.
+  ownerFolder?: boolean;
 }
 
 export default function FileUpload({
@@ -25,6 +28,7 @@ export default function FileUpload({
   label,
   accept = "image/*",
   isPrivate = false,
+  ownerFolder = false,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +46,18 @@ export default function FileUpload({
     // Private uploads keep only a safe extension — the original file name
     // (which may contain a person's name) never lands in storage.
     const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "").slice(0, 5) || "jpg";
+    let folder = pathPrefix;
+    if (isPrivate && ownerFolder) {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) {
+        setError("Please sign in again to upload.");
+        setUploading(false);
+        return;
+      }
+      folder = `${auth.user.id}/${pathPrefix}`;
+    }
     const path = isPrivate
-      ? `${pathPrefix}/${crypto.randomUUID()}.${ext}`
+      ? `${folder}/${crypto.randomUUID()}.${ext}`
       : `${pathPrefix}/${crypto.randomUUID()}-${file.name}`;
 
     const { error: uploadError } = await supabase.storage

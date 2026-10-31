@@ -41,7 +41,7 @@ export default function DisputeActions({
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={4} maxLength={1500} placeholder="Tell your side. An admin reads both."
             className="w-full bg-bk-bg border border-bk-border px-3 py-2 font-sans text-[14px] text-bk-heading" />
           {evidence.length < 5 && (
-            <FileUpload bucket="tournament-assets" pathPrefix="dispute-evidence" label="Add a screenshot (optional)" onUploaded={(u) => setEvidence((e) => [...e, u])} />
+            <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="dispute-evidence" label="Add a screenshot (optional)" onUploaded={(u) => setEvidence((e) => [...e, u])} />
           )}
           {evidence.length > 0 && <p className="font-sans text-[12px] text-bk-muted">{evidence.length} uploaded</p>}
           <button type="button" disabled={busy || note.trim().length < 5} onClick={() => post(`/api/disputes/${disputeId}/respond`, { note, evidenceUrls: evidence })} className={`${btn} bg-bk-primary text-bk-on-primary`}>

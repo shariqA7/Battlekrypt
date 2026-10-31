@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/services/notifications";
 import { findProofMatches } from "@/lib/services/proof-fingerprints";
+import { normalizeProofInput } from "@/lib/proof-storage";
 import {
   DISPUTE_KINDS, RESPONSE_HOURS, REFUND_DAYS, addDays, addHours, disputeBlockedReason, isRefundOverdue, refundAmountError,
 } from "@/lib/payment-disputes";
@@ -18,8 +19,8 @@ export type DisputeError =
 type Fail = { error: DisputeError; message?: string };
 const fail = (error: DisputeError, message?: string): Fail => ({ error, message });
 
-const cleanUrls = (v: unknown): string[] =>
-  Array.isArray(v) ? v.filter((u): u is string => typeof u === "string" && u.startsWith("http")).slice(0, MAX_EVIDENCE) : [];
+const cleanEvidence = (v: unknown, userId: string): string[] =>
+  Array.isArray(v) ? v.flatMap((u) => { const n = normalizeProofInput(u, userId); return n ? [n] : []; }).slice(0, MAX_EVIDENCE) : [];
 
 const text = (v: unknown, min: number, max: number) => {
   const s = typeof v === "string" ? v.trim() : "";
@@ -73,7 +74,7 @@ export async function openDispute(input: { userId: string; registrationId: strin
     data: {
       registrationId: reg.id, tournamentId: t.id, organizerId: t.organizerId,
       payerUserId, organizerUserId: t.organizer.userId,
-      kind: spec.kind, openedByUserId: input.userId, reason, openerEvidenceUrls: cleanUrls(input.evidenceUrls),
+      kind: spec.kind, openedByUserId: input.userId, reason, openerEvidenceUrls: cleanEvidence(input.evidenceUrls, input.userId),
       responseDueAt: addHours(new Date(), RESPONSE_HOURS),
     },
   });
@@ -98,7 +99,7 @@ export async function respondToDispute(input: { userId: string; disputeId: strin
   if (!note) return fail("validation_error", "Write your side in 5–1500 characters.");
   const moved = await prisma.paymentDispute.updateMany({
     where: { id: d.id, status: "awaiting_response" },
-    data: { status: "awaiting_admin", responderNote: note, responderEvidenceUrls: cleanUrls(input.evidenceUrls), respondedAt: new Date() },
+    data: { status: "awaiting_admin", responderNote: note, responderEvidenceUrls: cleanEvidence(input.evidenceUrls, input.userId), respondedAt: new Date() },
   });
   if (moved.count === 0) return fail("wrong_state", "This case is no longer waiting for a response.");
   await notify(d.openedByUserId, { type: "payment_dispute", title: "The other side responded", body: "An admin will review both sides and decide.", href: `/disputes/${d.id}` });
