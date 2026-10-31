@@ -13,6 +13,7 @@ export default async function ApprovalsDisputesPage() {
         const a = d.application;
         return {
           id: d.id,
+          applicationId: a.id,
           kind: d.kind,
           status: d.status as "awaiting_response" | "awaiting_admin",
           missedDeadline: d.missedDeadline,

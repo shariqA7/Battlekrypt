@@ -442,7 +442,9 @@ npx tsx scripts/migrate-proofs-to-private.ts --delete-old  # moves them and dele
 
 It reads `.env.local`. Per proof it copies the file, updates the database, and only then deletes the public copy, so a failure leaves the old link working. It is safe to run again. Until it has run, old proofs still open (through the same checked route, which redirects an old public link as it is) but remain reachable by anyone who has the link.
 
-**Still public:** logos, banners, branding, avatars, ledger expense receipts, and the screenshots and payment receipts players and posters upload on challenges. Logos, banners, branding and avatars are meant to be public; expense receipts and challenge uploads should move to private storage too (not done yet).
+The same private bucket and the same checked route also hold **challenge** match screenshots, payout receipts and dispute evidence (only the poster, the challenger of that entry, and admins with Approvals can open them) and **ledger expense receipts** (only admins with the Ledger permission). The migration script moves their old public files too.
+
+**Still public, on purpose:** logos, banners, branding images, carousel slides and avatars.
 
 ### Supabase storage for ID photos
 

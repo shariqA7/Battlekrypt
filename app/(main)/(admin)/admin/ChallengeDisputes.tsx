@@ -7,6 +7,7 @@ import { Chip, ExpandAllBar, Expandable, useOpenSet } from "@/components/admin/E
 
 export interface AdminDispute {
   id: string;
+  applicationId: string;
   kind: "proof" | "payment";
   status: "awaiting_response" | "awaiting_admin";
   missedDeadline: boolean;
@@ -41,12 +42,13 @@ const BANS = [
   { value: "permanent", label: "Ban permanently" },
 ];
 
-function Links({ urls, label }: { urls: string[]; label: string }) {
-  if (urls.length === 0) return <span className="text-bk-muted">none</span>;
+// Files are private: they open through the checked route, never by their stored path.
+function Links({ count, href, label }: { count: number; href: (i: number) => string; label: string }) {
+  if (count === 0) return <span className="text-bk-muted">none</span>;
   return (
     <>
-      {urls.map((u, i) => (
-        <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-3">
+      {Array.from({ length: count }, (_, i) => (
+        <a key={i} href={href(i)} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline mr-3">
           {label} {i + 1}
         </a>
       ))}
@@ -135,24 +137,24 @@ export default function ChallengeDisputes({ initial }: { initial: AdminDispute[]
               <div className="bg-bk-bg border border-bk-border p-3 space-y-1">
                 <p className="text-bk-heading font-medium">{d.openedByPoster ? "Poster" : "Challenger"} opened this</p>
                 <p className="whitespace-pre-wrap">{d.reason}</p>
-                <p><Links urls={d.openerEvidenceUrls} label="Evidence" /></p>
+                <p><Links count={d.openerEvidenceUrls.length} href={(i) => `/api/proofs/challenge_dispute/${d.id}?side=opener&i=${i}`} label="Evidence" /></p>
               </div>
               <div className="bg-bk-bg border border-bk-border p-3 space-y-1">
                 <p className="text-bk-heading font-medium">Response</p>
                 {d.responderNote ? <p className="whitespace-pre-wrap">{d.responderNote}</p> : <p className="text-bk-muted">No response yet.</p>}
-                <p><Links urls={d.responderEvidenceUrls} label="Evidence" /></p>
+                <p><Links count={d.responderEvidenceUrls.length} href={(i) => `/api/proofs/challenge_dispute/${d.id}?side=responder&i=${i}`} label="Evidence" /></p>
               </div>
             </div>
 
             <div className="mt-3 font-sans text-[12px] text-bk-body space-y-1">
               <p>
-                Proof: match <span className="text-bk-heading">{d.matchId ?? "—"}</span> · <Links urls={d.proofUrls} label="Screenshot" />
+                Proof: match <span className="text-bk-heading">{d.matchId ?? "—"}</span> · <Links count={d.proofUrls.length} href={(i) => `/api/proofs/challenge_proof/${d.applicationId}?i=${i}`} label="Screenshot" />
                 {d.proofNote ? ` · "${d.proofNote}"` : ""}
               </p>
               {d.kind === "payment" && (
                 <>
                   <p>Pays via: {d.payoutDetails ? <span className="text-bk-heading whitespace-pre-wrap">{d.payoutDetails}</span> : "—"}</p>
-                  <p>Receipt from poster: <Links urls={d.receiptUrls} label="Receipt" />{d.paymentNote ? ` · "${d.paymentNote}"` : ""}</p>
+                  <p>Receipt from poster: <Links count={d.receiptUrls.length} href={(i) => `/api/proofs/challenge_receipt/${d.applicationId}?i=${i}`} label="Receipt" />{d.paymentNote ? ` · "${d.paymentNote}"` : ""}</p>
                 </>
               )}
             </div>

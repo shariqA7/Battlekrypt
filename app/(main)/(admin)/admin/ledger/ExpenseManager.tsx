@@ -84,7 +84,7 @@ export default function ExpenseManager({ expenses, total, currencies }: { expens
           </div>
           <div>
             <p className="font-sans text-[12px] text-bk-muted mb-1">Receipt or bill (optional){editing !== "new" ? " — leave empty to keep the current one" : ""}</p>
-            <FileUpload bucket="tournament-assets" pathPrefix="expense-receipts" label="Upload receipt" onUploaded={(url: string) => setF((p) => ({ ...p, receiptUrl: url }))} />
+            <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="expense-receipts" label="Upload receipt" onUploaded={(url: string) => setF((p) => ({ ...p, receiptUrl: url }))} />
           </div>
           {error && <p role="alert" className="font-sans text-[12px] text-bk-live">{error}</p>}
           <div className="flex gap-2">
@@ -108,7 +108,7 @@ export default function ExpenseManager({ expenses, total, currencies }: { expens
                 <td className="px-3 py-2 text-bk-heading">
                   {x.title}
                   {x.vendor && <span className="text-bk-muted"> · {x.vendor}</span>}
-                  {x.receiptUrl && <> · <a href={x.receiptUrl} target="_blank" rel="noreferrer" className="text-bk-gold-light underline">receipt</a></>}
+                  {x.receiptUrl && <> · <a href={`/api/proofs/expense/${x.id}`} target="_blank" rel="noreferrer" className="text-bk-gold-light underline">receipt</a></>}
                   {x.note && <span className="block text-[11px] text-bk-muted">{x.note}</span>}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-bk-heading">{formatMoney(x.amount, x.currency)}</td>

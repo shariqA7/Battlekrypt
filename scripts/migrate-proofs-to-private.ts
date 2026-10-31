@@ -4,6 +4,9 @@
 //   npx tsx scripts/migrate-proofs-to-private.ts --dry-run       shows what would move, changes nothing
 //   npx tsx scripts/migrate-proofs-to-private.ts --delete-old    moves them AND deletes the public copy
 //
+// Covers payment proofs (entries, plan payments, club fees, invoices), payment-dispute evidence,
+// challenge screenshots / receipts / dispute evidence, and ledger expense receipts.
+//
 // Reads .env.local (DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY). Safe to run
 // again: only proofs that are still public links are touched. Per proof it copies the file,
 // updates the database, and only then (with --delete-old) deletes the public copy, so a failure
@@ -96,6 +99,47 @@ async function main() {
       }
       if (!dry) { await prisma.paymentDispute.update({ where: { id: d.id }, data: { [s.key]: next } }); for (const o of olds) await finish(o); }
     }
+  }
+
+  /** Move every old public link in a list of files; returns the new list (and the public copies to delete). */
+  async function moveList(urls: string[], owner: string | null | undefined, folder: string) {
+    const next: string[] = [];
+    const olds: string[] = [];
+    for (const u of urls) {
+      const c = u.startsWith(prefix) ? await copy(u, owner, folder) : null;
+      next.push(c?.path ?? u);
+      if (c) olds.push(c.old);
+    }
+    return { next, olds, changed: olds.length > 0 };
+  }
+
+  console.log("Challenge proofs and receipts");
+  for (const a of await prisma.challengeApplication.findMany({
+    select: { id: true, applicantUserId: true, proofUrls: true, paymentReceiptUrls: true, challenge: { select: { posterUserId: true } } },
+  })) {
+    const proofs = a.proofUrls.some((u: string) => u.startsWith(prefix)) ? await moveList(a.proofUrls, a.applicantUserId, "challenge-proofs") : null;
+    const receipts = a.paymentReceiptUrls.some((u: string) => u.startsWith(prefix)) ? await moveList(a.paymentReceiptUrls, a.challenge.posterUserId, "challenge-receipts") : null;
+    if (dry || (!proofs?.changed && !receipts?.changed)) continue;
+    await prisma.challengeApplication.update({ where: { id: a.id }, data: { ...(proofs?.changed ? { proofUrls: proofs.next } : {}), ...(receipts?.changed ? { paymentReceiptUrls: receipts.next } : {}) } });
+    for (const o of [...(proofs?.olds ?? []), ...(receipts?.olds ?? [])]) await finish(o);
+  }
+
+  console.log("Challenge dispute evidence");
+  for (const d of await prisma.challengeDispute.findMany({
+    select: { id: true, openedById: true, openerEvidenceUrls: true, responderEvidenceUrls: true, application: { select: { applicantUserId: true, challenge: { select: { posterUserId: true } } } } },
+  })) {
+    const other = d.openedById === d.application.challenge.posterUserId ? d.application.applicantUserId : d.application.challenge.posterUserId;
+    const opener = d.openerEvidenceUrls.some((u: string) => u.startsWith(prefix)) ? await moveList(d.openerEvidenceUrls, d.openedById, "challenge-disputes") : null;
+    const responder = d.responderEvidenceUrls.some((u: string) => u.startsWith(prefix)) ? await moveList(d.responderEvidenceUrls, other, "challenge-disputes") : null;
+    if (dry || (!opener?.changed && !responder?.changed)) continue;
+    await prisma.challengeDispute.update({ where: { id: d.id }, data: { ...(opener?.changed ? { openerEvidenceUrls: opener.next } : {}), ...(responder?.changed ? { responderEvidenceUrls: responder.next } : {}) } });
+    for (const o of [...(opener?.olds ?? []), ...(responder?.olds ?? [])]) await finish(o);
+  }
+
+  console.log("Ledger expense receipts");
+  for (const x of await prisma.expense.findMany({ where: { receiptUrl: { startsWith: prefix } }, select: { id: true, receiptUrl: true, createdById: true } })) {
+    const c = await copy(x.receiptUrl!, x.createdById ?? "migrated", "expense-receipts");
+    if (c && !dry) { await prisma.expense.update({ where: { id: x.id }, data: { receiptUrl: c.path } }); await finish(c.old); }
   }
 
   console.log(`\n${dry ? "Would move" : "Moved"}: ${counts.moved}. Skipped (no owner): ${counts.skippedNoOwner}. Failed: ${counts.failed}.`);

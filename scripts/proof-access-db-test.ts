@@ -70,6 +70,28 @@ async function main() {
   ok("dispute: an admin with Approvals can", (await can("mgr", "dispute", d.id)) !== "forbidden");
   ok("dispute: a position past the last file is not found", (await can("payer", "dispute", d.id, { side: "opener", index: 5 })) === "not_found");
 
+  // ---- challenges and expenses
+  const challenge = await prisma.challenge.create({ data: {
+    posterUserId: "owner", posterType: "organizer", posterName: "Org", title: "Beat us", description: "Win a match against us",
+    gameId: game.id, slots: 1, maxApplicants: 10, applicationsCloseAt: new Date(Date.now() + 864e5), completeWithinDays: 7,
+    prizeType: "cash", prizeDescription: "PKR 1000", payoutMethod: "bank transfer",
+  } });
+  const app = await prisma.challengeApplication.create({ data: {
+    challengeId: challenge.id, applicantUserId: "payer", kind: "player", entrantName: "Payer", rating: 1000, status: "selected",
+    proofUrls: ["payer/challenge-proofs/ffffffff-7.png"], paymentReceiptUrls: ["owner/challenge-receipts/gggggggg-8.png"],
+  } });
+  ok("challenge proof: the challenger and the poster can open it", (await can("payer", "challenge_proof", app.id)) !== "forbidden" && (await can("owner", "challenge_proof", app.id)) !== "forbidden");
+  ok("challenge proof: a stranger and another organizer can NOT", (await can("stranger", "challenge_proof", app.id)) === "forbidden" && (await can("rivalorg", "challenge_receipt", app.id)) === "forbidden");
+  ok("challenge receipt: the challenger can see the poster's receipt", (await can("payer", "challenge_receipt", app.id)) === "owner/challenge-receipts/gggggggg-8.png");
+  ok("challenge: an Approvals admin can open both, a position past the end is not found", (await can("mgr", "challenge_proof", app.id)) !== "forbidden" && (await can("mgr", "challenge_receipt", app.id, { index: 3 })) === "not_found");
+  const cd = await prisma.challengeDispute.create({ data: {
+    applicationId: app.id, challengeId: challenge.id, kind: "payment", openedById: "payer", reason: "never paid me",
+    openerEvidenceUrls: ["payer/challenge-disputes/hhhhhhhh-9.png"], responseDueAt: new Date(Date.now() + 864e5),
+  } });
+  ok("challenge dispute: both sides and an Approvals admin can open evidence, a stranger can NOT", (await can("owner", "challenge_dispute", cd.id, { side: "opener" })) !== "forbidden" && (await can("payer", "challenge_dispute", cd.id)) !== "forbidden" && (await can("mgr", "challenge_dispute", cd.id)) !== "forbidden" && (await can("stranger", "challenge_dispute", cd.id)) === "forbidden");
+  const exp = await prisma.expense.create({ data: { date: new Date(), category: "service", title: "Hosting", amount: 10, currency: "USD", receiptUrl: "boss/expense-receipts/iiiiiiii-0.png", createdById: "boss" } });
+  ok("expense receipt: only the Ledger permission (a super admin) can open it", (await can("boss", "expense", exp.id)) !== "forbidden" && (await can("mgr", "expense", exp.id)) === "forbidden" && (await can("owner", "expense", exp.id)) === "forbidden");
+
   if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
   console.log("\nall passed");
 }

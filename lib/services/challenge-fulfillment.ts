@@ -146,7 +146,7 @@ export async function submitProof(
 ): Promise<{ data: { id: string } } | Failure> {
   const matchId = cleanText(input.matchId, { min: 3, max: 80, label: "Match / game ID" });
   if ("error" in matchId) return matchId;
-  const urls = cleanUrls(input.proofUrls, { min: 1, max: 4, label: "screenshot", allowedPrefix: uploadPrefix() });
+  const urls = cleanUrls(input.proofUrls, { min: 1, max: 4, label: "screenshot", allowedPrefix: uploadPrefix(), ownerId: userId });
   if ("error" in urls) return urls;
   const note = optionalText(input.note, 500, "Note");
   if ("error" in note) return note;
@@ -195,7 +195,7 @@ export async function reviewProof(
     const r = cleanText(input.reason, { min: 10, max: 1000, label: "Reason" });
     if ("error" in r) return r;
     reason = r.data;
-    const ev = cleanUrls(input.evidenceUrls ?? [], { min: 0, max: 4, label: "screenshot", allowedPrefix: uploadPrefix() });
+    const ev = cleanUrls(input.evidenceUrls ?? [], { min: 0, max: 4, label: "screenshot", allowedPrefix: uploadPrefix(), ownerId: posterId });
     if ("error" in ev) return ev;
     evidence = ev.data;
   }
@@ -295,7 +295,7 @@ export async function markPaid(
   entryId: string,
   input: { receiptUrls?: unknown; note?: unknown }
 ): Promise<{ data: { id: string } } | Failure> {
-  const urls = cleanUrls(input.receiptUrls, { min: 1, max: 3, label: "receipt screenshot", allowedPrefix: uploadPrefix() });
+  const urls = cleanUrls(input.receiptUrls, { min: 1, max: 3, label: "receipt screenshot", allowedPrefix: uploadPrefix(), ownerId: posterId });
   if ("error" in urls) return urls;
   const note = optionalText(input.note, 500, "Note");
   if ("error" in note) return note;
@@ -349,7 +349,7 @@ export async function reportNotPaid(
 ): Promise<{ data: { id: string } } | Failure> {
   const reason = cleanText(input.reason, { min: 10, max: 1000, label: "Reason" });
   if ("error" in reason) return reason;
-  const ev = cleanUrls(input.evidenceUrls ?? [], { min: 0, max: 4, label: "screenshot", allowedPrefix: uploadPrefix() });
+  const ev = cleanUrls(input.evidenceUrls ?? [], { min: 0, max: 4, label: "screenshot", allowedPrefix: uploadPrefix(), ownerId: userId });
   if ("error" in ev) return ev;
 
   const now = new Date();
@@ -389,7 +389,7 @@ export async function respondToDispute(
 ): Promise<{ data: { id: string } } | Failure> {
   const note = cleanText(input.note, { min: 5, max: 1000, label: "Response" });
   if ("error" in note) return note;
-  const ev = cleanUrls(input.evidenceUrls ?? [], { min: 0, max: 4, label: "screenshot", allowedPrefix: uploadPrefix() });
+  const ev = cleanUrls(input.evidenceUrls ?? [], { min: 0, max: 4, label: "screenshot", allowedPrefix: uploadPrefix(), ownerId: userId });
   if ("error" in ev) return ev;
 
   const now = new Date();
@@ -686,6 +686,7 @@ export interface EntryView {
   failedReason: string | null;
   canReportNotPaid: boolean;
   dispute: null | {
+    id: string;
     kind: string; status: string; reason: string; openerEvidenceUrls: string[];
     responderNote: string | null; responderEvidenceUrls: string[];
     responseDueAt: string; missedDeadline: boolean; outcome: string | null; adminNote: string | null;
@@ -720,7 +721,7 @@ export async function getEntriesForViewer(challengeId: string, viewerId: string,
       failedReason: r.failedReason,
       canReportNotPaid: canReportNotPaid(r.stage, r.stageDeadline, now),
       dispute: d && {
-        kind: d.kind, status: d.status, reason: d.reason, openerEvidenceUrls: d.openerEvidenceUrls,
+        id: d.id, kind: d.kind, status: d.status, reason: d.reason, openerEvidenceUrls: d.openerEvidenceUrls,
         responderNote: d.responderNote, responderEvidenceUrls: d.responderEvidenceUrls,
         responseDueAt: d.responseDueAt.toISOString(), missedDeadline: d.missedDeadline,
         outcome: d.outcome, adminNote: d.adminNote, openedByViewer: d.openedById === viewerId,
