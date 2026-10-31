@@ -80,11 +80,14 @@ export async function getInvoiceSettings() {
     invoiceTaxLabel: s?.invoiceTaxLabel ?? "Tax",
     renewalInvoicesEnabled: s?.renewalInvoicesEnabled ?? true,
     renewalLeadDays: s?.renewalLeadDays ?? 7,
+    invoiceIssuerName: s?.invoiceIssuerName ?? "BattleKrypt",
+    invoiceIssuerDetails: s?.invoiceIssuerDetails ?? "",
+    invoiceFooterNote: s?.invoiceFooterNote ?? "",
   };
 }
 
-export async function updateInvoiceSettings(adminId: string, input: { paymentGatewayEnabled?: unknown; invoiceTaxRate?: unknown; invoiceTaxLabel?: unknown; renewalInvoicesEnabled?: unknown; renewalLeadDays?: unknown }) {
-  const data: { paymentGatewayEnabled?: boolean; invoiceTaxRate?: number; invoiceTaxLabel?: string; renewalInvoicesEnabled?: boolean; renewalLeadDays?: number } = {};
+export async function updateInvoiceSettings(adminId: string, input: { paymentGatewayEnabled?: unknown; invoiceTaxRate?: unknown; invoiceTaxLabel?: unknown; renewalInvoicesEnabled?: unknown; renewalLeadDays?: unknown; invoiceIssuerName?: unknown; invoiceIssuerDetails?: unknown; invoiceFooterNote?: unknown }) {
+  const data: { paymentGatewayEnabled?: boolean; invoiceTaxRate?: number; invoiceTaxLabel?: string; renewalInvoicesEnabled?: boolean; renewalLeadDays?: number; invoiceIssuerName?: string; invoiceIssuerDetails?: string | null; invoiceFooterNote?: string | null } = {};
   if (input.paymentGatewayEnabled !== undefined) {
     if (typeof input.paymentGatewayEnabled !== "boolean") return { error: "validation_error", message: "Invalid gateway switch." } as Fail;
     data.paymentGatewayEnabled = input.paymentGatewayEnabled;
@@ -109,6 +112,21 @@ export async function updateInvoiceSettings(adminId: string, input: { paymentGat
       return { error: "validation_error", message: `Renewal invoices go out ${MIN_LEAD_DAYS}–${MAX_LEAD_DAYS} days before the plan ends.` } as Fail;
     }
     data.renewalLeadDays = d;
+  }
+  if (input.invoiceIssuerName !== undefined) {
+    const n = typeof input.invoiceIssuerName === "string" ? input.invoiceIssuerName.trim() : "";
+    if (n.length < 2 || n.length > 80) return { error: "validation_error", message: "The name on invoices must be 2–80 characters." } as Fail;
+    data.invoiceIssuerName = n;
+  }
+  if (input.invoiceIssuerDetails !== undefined) {
+    const d = typeof input.invoiceIssuerDetails === "string" ? input.invoiceIssuerDetails.trim() : "";
+    if (d.length > 500) return { error: "validation_error", message: "Keep the issuer details under 500 characters." } as Fail;
+    data.invoiceIssuerDetails = d || null;
+  }
+  if (input.invoiceFooterNote !== undefined) {
+    const f = typeof input.invoiceFooterNote === "string" ? input.invoiceFooterNote.trim() : "";
+    if (f.length > 300) return { error: "validation_error", message: "Keep the footer note under 300 characters." } as Fail;
+    data.invoiceFooterNote = f || null;
   }
   if (Object.keys(data).length === 0) return { error: "validation_error", message: "Nothing to update." } as Fail;
   await prisma.siteSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });

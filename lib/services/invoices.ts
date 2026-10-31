@@ -33,6 +33,7 @@ import {
 } from "@/lib/invoice-math";
 import { cursorArgs, toPage, type Page, type PageQuery } from "@/lib/admin-paging";
 import { notify } from "@/lib/services/notifications";
+import { emailInvoiceIssued, emailInvoicePaid, emailInvoiceProofRejected } from "@/lib/services/invoice-emails";
 import { getInvoiceSettings } from "@/lib/services/payment-methods";
 
 export const INVOICE_ERRORS = {
@@ -211,6 +212,7 @@ export async function createInvoice(input: CreateInvoiceInput) {
     body: `${formatMoney(totals.total, currency)}${due instanceof Date ? ` · due ${due.toLocaleDateString("en-GB", { timeZone: "UTC" })}` : ""}. Open it to see how to pay.`,
     href: `/invoices/${invoice.id}`,
   });
+  await emailInvoiceIssued(invoice.id);
   return { data: invoice };
 }
 
@@ -411,6 +413,7 @@ export async function rejectInvoiceProof(adminId: string, invoiceId: string, not
     body: text,
     href: `/invoices/${invoiceId}`,
   });
+  await emailInvoiceProofRejected(invoiceId, text);
   return { data: { ok: true as const } };
 }
 
@@ -580,6 +583,14 @@ export async function markInvoicePaid(input: MarkPaidInput) {
         : "Thank you. Your payment was received.",
       href: `/invoices/${d.id}`,
     });
+    await emailInvoicePaid(
+      d.id,
+      d.planName && d.expiresAt && d.startsAt
+        ? `Your ${d.planName} plan starts on ${fmtDay(d.startsAt)}, when your current plan ends, and runs until ${fmtDay(d.expiresAt)}.`
+        : d.planName && d.expiresAt
+        ? `Your ${d.planName} plan is active until ${fmtDay(d.expiresAt)}.`
+        : null
+    );
   }
   return result;
 }
