@@ -70,6 +70,13 @@ function RegistrationCard({ r, canReport = false }: { r: Reg; canReport?: boolea
         </p>
       )}
     </Link>
+    {t.entryType === "paid" && r.paymentProofUrl && (
+      <p className="font-sans text-[11px] mt-1">
+        <Link href={`/disputes/new?registrationId=${r.id}`} className="text-bk-muted underline">
+          Payment problem with this entry?
+        </Link>
+      </p>
+    )}
     {canReport && staked && (
       <p className="font-sans text-[11px] mt-1">
         <Link href={`/reports/new?tournamentId=${t.id}`} className="text-bk-muted underline">

@@ -46,6 +46,7 @@ export default async function AdminDashboardPage({
           <Gated staff={staff} index={4} href="/admin/approvals/tournaments" icon="tournaments" label="Tournament reviews" count={attention.items.tournamentReviews} />
           <Gated staff={staff} index={5} href="/admin/approvals/games" icon="games" label="Game requests" count={attention.items.games} />
           <Gated staff={staff} index={6} href="/admin/approvals/challenges" icon="review" label="Challenge review" count={attention.items.challengeReview} />
+          <Gated staff={staff} index={15} href="/admin/approvals/payment-disputes" icon="disputes" label="Payment disputes" count={attention.items.paymentDisputes} />
           <Gated staff={staff} index={7} href="/admin/approvals/disputes" icon="disputes" label="Challenge disputes" count={attention.items.challengeDisputes} />
           <Gated staff={staff} index={8} href="/admin/approvals/reports" icon="reports" label="Reports & flags" count={attention.items.challengeIntegrity} />
           <Gated staff={staff} index={9} href="/admin/approvals/consent" icon="consent" label="Parental-consent cases" count={attention.items.consent} />

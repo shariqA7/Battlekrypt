@@ -13,6 +13,7 @@
 // Entry fees and prizes are paid directly between people; the platform only
 // records the organizer's claim ("I paid") and each winner's answer. Every
 // number comes from OrganizerTrustConfig (admin-editable), not constants.
+import { getRefundHolds } from "@/lib/services/payment-disputes";
 import { prisma } from "@/lib/prisma";
 import { tryToUsd } from "@/lib/currency-fx";
 import { notify, notifyMany } from "@/lib/services/notifications";
@@ -82,12 +83,13 @@ export async function countFullyConfirmedEvents(organizerId: string) {
 
 // Completed prize tournaments past the grace period whose payout is
 // unmarked or disputed. Each one blocks new paid/prized events.
-export type HoldReason = "disputed" | "not_marked_paid" | "refunds_not_confirmed";
+export type HoldReason = "disputed" | "not_marked_paid" | "refunds_not_confirmed" | "refund_unpaid";
 
 export const HOLD_REASON_TEXT: Record<HoldReason, string> = {
   disputed: "a winner reported not being paid",
   not_marked_paid: "prize payout not marked as sent",
   refunds_not_confirmed: "refunds for a cancelled event not confirmed",
+  refund_unpaid: "a refund an admin ordered has not been paid",
 };
 
 // Unsettled obligations from earlier events. Each blocks new paid/prized
@@ -96,7 +98,7 @@ export const HOLD_REASON_TEXT: Record<HoldReason, string> = {
 // their due date. graceDays = 0 means "anything outstanding right now".
 export async function getPayoutHolds(organizerId: string, graceDays: number) {
   const cutoff = new Date(Date.now() - graceDays * DAY_MS);
-  const [prizeRows, cancelled] = await Promise.all([
+  const [prizeRows, cancelled, refundHolds] = await Promise.all([
     prisma.tournament.findMany({
       where: {
         organizerId,
@@ -119,6 +121,7 @@ export async function getPayoutHolds(organizerId: string, graceDays: number) {
       },
       select: { id: true, name: true },
     }),
+    getRefundHolds(organizerId, graceDays),
   ]);
   return [
     ...prizeRows.map((t) => ({
@@ -127,6 +130,7 @@ export async function getPayoutHolds(organizerId: string, graceDays: number) {
       reason: (t.payoutConfirmed ? "disputed" : "not_marked_paid") as HoldReason,
     })),
     ...cancelled.map((t) => ({ tournamentId: t.id, name: t.name, reason: "refunds_not_confirmed" as HoldReason })),
+    ...refundHolds.map((h) => ({ tournamentId: h.tournamentId, name: h.name, reason: h.reason as HoldReason })),
   ];
 }
 

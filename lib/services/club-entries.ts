@@ -174,6 +174,7 @@ export async function submitClubTeamEntry(
     skipInstitutionProof: true,
     paymentProofUrl: opts.paymentProofUrl,
     paymentReference: opts.paymentReference,
+    payerUserId: userId,
     customFieldResponses: opts.customFieldResponses,
   });
   if ("error" in result) return result as { error: string };
@@ -217,6 +218,7 @@ export async function submitClubSoloEntry(
     skipInstitutionProof: true,
     paymentProofUrl: opts.paymentProofUrl,
     paymentReference: opts.paymentReference,
+    payerUserId: userId,
     customFieldResponses: opts.customFieldResponses,
   });
 }
