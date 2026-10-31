@@ -37,6 +37,19 @@ export interface IncomeEntry {
   invoiceId?: string;
 }
 
+export interface TaxPaymentRow {
+  id: string;
+  date: string; // YYYY-MM-DD
+  type: string;
+  amount: number;
+  currency: string;
+  authority: string | null;
+  reference: string | null;
+  periodNote: string | null;
+  note: string | null;
+  receiptUrl: string | null;
+}
+
 export interface ExpenseRow {
   id: string;
   date: string; // YYYY-MM-DD
@@ -53,7 +66,7 @@ export async function getLedger(range: DateRange, opts: { all?: boolean } = {}) 
   const inRange = { gte: range.from, lt: range.to };
   const take = opts.all ? undefined : MAX_ROWS;
 
-  const [invoices, payments, forfeitedDeps, resolvedDeps, waivedInvoices, expenses, heldNow] = await Promise.all([
+  const [invoices, payments, forfeitedDeps, resolvedDeps, waivedInvoices, expenses, heldNow, taxRows, collectedAll, remittedAll] = await Promise.all([
     prisma.invoice.findMany({
       where: { status: "paid", paidAt: inRange },
       include: { lines: true, organizer: { select: { orgName: true } } },
@@ -73,6 +86,10 @@ export async function getLedger(range: DateRange, opts: { all?: boolean } = {}) 
     prisma.invoice.findMany({ where: { status: "waived", waivedAt: inRange }, include: { lines: true } }),
     prisma.expense.findMany({ where: { voidedAt: null, date: inRange }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] }),
     prisma.securityDeposit.groupBy({ by: ["currency"], where: { status: { in: ["held", "refund_requested"] } }, _sum: { amount: true } }),
+    prisma.taxPayment.findMany({ where: { voidedAt: null, date: inRange }, orderBy: [{ date: "desc" }, { createdAt: "desc" }] }),
+    // All time, not just this period: the tax collected from customers, and what was handed over.
+    prisma.invoice.groupBy({ by: ["currency"], where: { status: "paid" }, _sum: { taxAmount: true } }),
+    prisma.taxPayment.groupBy({ by: ["currency"], where: { type: "collected_tax", voidedAt: null }, _sum: { amount: true } }),
   ]);
 
   const others = payments.filter((p) => !isInvoicePaymentRef(p.reference) && !isDepositRef(p.reference));
@@ -91,6 +108,12 @@ export async function getLedger(range: DateRange, opts: { all?: boolean } = {}) 
     discounts: invoices.flatMap((i) => i.lines.filter((l) => l.kind === "discount").map((l) => ({ currency: i.currency, amount: -num(l.amount) }))),
     waived: waivedInvoices.map((i) => ({ currency: i.currency, amount: i.lines.filter((l) => l.kind !== "discount").reduce((s, l) => s + num(l.unitAmount), 0) })),
     expenses: expenses.map((e) => ({ currency: e.currency, category: e.category, amount: num(e.amount) })),
+    taxPaid: taxRows.map((t) => ({ currency: t.currency, type: t.type, amount: num(t.amount) })),
+    taxToDate: [...new Set([...collectedAll.map((c) => c.currency), ...remittedAll.map((r) => r.currency)])].map((cur) => ({
+      currency: cur,
+      collected: num(collectedAll.find((c) => c.currency === cur)?._sum.taxAmount),
+      remitted: num(remittedAll.find((r) => r.currency === cur)?._sum.amount),
+    })),
   });
   // A currency that only has held deposits still shows up.
   for (const h of heldNow) {
@@ -153,8 +176,23 @@ export async function getLedger(range: DateRange, opts: { all?: boolean } = {}) 
     receiptUrl: e.receiptUrl,
   }));
 
+  const taxPaymentRows: TaxPaymentRow[] = taxRows.map((t) => ({
+    id: t.id,
+    date: t.date.toISOString().slice(0, 10),
+    type: t.type,
+    amount: num(t.amount),
+    currency: t.currency,
+    authority: t.authority,
+    reference: t.reference,
+    periodNote: t.periodNote,
+    note: t.note,
+    receiptUrl: t.receiptUrl,
+  }));
+
   return {
     summaries,
+    taxPayments: take ? taxPaymentRows.slice(0, take) : taxPaymentRows,
+    taxPaymentsTotal: taxPaymentRows.length,
     heldNow: heldNow.map((h) => ({ currency: h.currency, amount: num(h._sum.amount) })),
     entries: take ? entries.slice(0, take) : entries,
     entriesTotal: entries.length,
@@ -174,9 +212,10 @@ function cell(v: string | number): string {
 }
 
 export function ledgerToCsv(l: Awaited<ReturnType<typeof getLedger>>): string {
-  const rows: (string | number)[][] = [["type", "date", "currency", "reference", "description", "gross_received", "tax_collected", "security_fee_held", "net_income", "expense_category", "expense_amount"]];
-  for (const e of l.entries) rows.push([e.type, e.date.slice(0, 10), e.currency, e.reference, e.description, e.gross, e.tax, e.deposit, e.net, "", ""]);
-  for (const x of l.expenses) rows.push(["expense", x.date, x.currency, x.vendor ?? "", x.title, "", "", "", "", x.category, x.amount]);
+  const rows: (string | number)[][] = [["type", "date", "currency", "reference", "description", "gross_received", "tax_collected", "security_fee_held", "net_income", "expense_category", "expense_amount", "tax_paid_type", "tax_paid_amount"]];
+  for (const e of l.entries) rows.push([e.type, e.date.slice(0, 10), e.currency, e.reference, e.description, e.gross, e.tax, e.deposit, e.net, "", "", "", ""]);
+  for (const x of l.expenses) rows.push(["expense", x.date, x.currency, x.vendor ?? "", x.title, "", "", "", "", x.category, x.amount, "", ""]);
+  for (const t of l.taxPayments) rows.push(["tax_payment", t.date, t.currency, t.reference ?? "", [t.authority, t.periodNote].filter(Boolean).join(" · "), "", "", "", "", "", "", t.type, t.amount]);
   return rows.map((r) => r.map(cell).join(",")).join("\r\n") + "\r\n";
 }
 
@@ -248,5 +287,65 @@ export async function voidExpense(adminId: string, id: string, note: unknown) {
   const claimed = await prisma.expense.updateMany({ where: { id, voidedAt: null }, data: { voidedAt: new Date(), voidNote: why, voidedById: adminId } });
   if (claimed.count !== 1) return fail("not_found", "That expense doesn't exist or is already voided.");
   await prisma.adminActionLog.create({ data: { adminId, action: "voided_expense", targetType: "Expense", targetId: id, notes: why } });
+  return { data: { ok: true as const } };
+}
+
+
+// ---- tax payments ----
+
+function parseTaxPayment(input: Record<string, unknown>) {
+  const date = parseDueDate(input.date);
+  if (!(date instanceof Date)) return fail("validation_error", "Enter the date it was paid.");
+  const type: "collected_tax" | "income_tax" | null = input.type === "collected_tax" ? "collected_tax" : input.type === "income_tax" ? "income_tax" : null;
+  if (!type) return fail("validation_error", "Choose which tax this is: collected from users, or income tax on profit.");
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount <= 0 || amount > 999_999_999) return fail("validation_error", "Enter an amount greater than zero.");
+  const currency = typeof input.currency === "string" ? input.currency.toUpperCase() : "";
+  if (!isSupportedCurrency(currency)) return fail("validation_error", "Choose a supported currency.");
+  const text = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+  return {
+    data: {
+      date,
+      type,
+      amount: roundMoney(amount, currency),
+      currency,
+      authority: text(input.authority, 80),
+      reference: text(input.reference, 80),
+      periodNote: text(input.periodNote, 120),
+      note: text(input.note, 500),
+      receiptUrl: typeof input.receiptUrl === "string" && input.receiptUrl.startsWith("http") ? input.receiptUrl : null,
+    },
+  };
+}
+
+export async function createTaxPayment(adminId: string, input: Record<string, unknown>) {
+  const p = parseTaxPayment(input);
+  if ("error" in p) return p;
+  const t = await prisma.taxPayment.create({ data: { ...p.data, createdById: adminId } });
+  await prisma.adminActionLog.create({
+    data: { adminId, action: "added_tax_payment", targetType: "TaxPayment", targetId: t.id, notes: `${t.type}: ${t.amount} ${t.currency}${t.reference ? ` · ${t.reference}` : ""}` },
+  });
+  return { data: t };
+}
+
+export async function updateTaxPayment(adminId: string, id: string, input: Record<string, unknown>) {
+  const existing = await prisma.taxPayment.findUnique({ where: { id } });
+  if (!existing) return fail("not_found", "That tax payment doesn't exist.");
+  if (existing.voidedAt) return fail("validation_error", "A voided tax payment can't be edited.");
+  const p = parseTaxPayment(input);
+  if ("error" in p) return p;
+  const t = await prisma.taxPayment.update({ where: { id }, data: { ...p.data, receiptUrl: p.data.receiptUrl ?? existing.receiptUrl } });
+  await prisma.adminActionLog.create({
+    data: { adminId, action: "edited_tax_payment", targetType: "TaxPayment", targetId: id, notes: `was ${existing.type} ${existing.amount} ${existing.currency}; now ${t.type} ${t.amount} ${t.currency}` },
+  });
+  return { data: t };
+}
+
+export async function voidTaxPayment(adminId: string, id: string, note: unknown) {
+  const why = typeof note === "string" ? note.trim().slice(0, 300) : "";
+  if (!why) return fail("validation_error", "Add a short reason for voiding it.");
+  const claimed = await prisma.taxPayment.updateMany({ where: { id, voidedAt: null }, data: { voidedAt: new Date(), voidNote: why, voidedById: adminId } });
+  if (claimed.count !== 1) return fail("not_found", "That tax payment doesn't exist or is already voided.");
+  await prisma.adminActionLog.create({ data: { adminId, action: "voided_tax_payment", targetType: "TaxPayment", targetId: id, notes: why } });
   return { data: { ok: true as const } };
 }

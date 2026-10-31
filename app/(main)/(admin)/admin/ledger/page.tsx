@@ -6,6 +6,7 @@ import { RANGE_PRESETS, categoryLabel, resolveRange } from "@/lib/ledger-math";
 import { formatMoney } from "@/lib/money";
 import { SectionHeading } from "@/components/ui/Panel";
 import ExpenseManager from "./ExpenseManager";
+import TaxPaymentManager from "./TaxPaymentManager";
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { timeZone: "UTC" });
 
@@ -81,6 +82,21 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
             )}
             <Line label="Total expenses" value={s.expenses} currency={s.currency} minus />
             <Line label="Profit before tax" value={s.profit} currency={s.currency} sub="Net revenue minus expenses — what tax on your profit is based on" strong />
+            {s.incomeTaxPaid > 0 && (
+              <>
+                <Line label="Income tax paid" value={s.incomeTaxPaid} currency={s.currency} sub="Tax on your profit, paid to the authority in this period" minus />
+                <Line label="Profit after tax" value={s.profitAfterTax} currency={s.currency} strong />
+              </>
+            )}
+            {(s.taxCollectedToDate > 0 || s.taxRemittedToDate > 0) && (
+              <div className="mt-3 border-t border-bk-border pt-3">
+                <p className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-muted mb-1">Tax collected from users, owed to the authority (all time)</p>
+                <Line label="Collected from users" value={s.taxCollectedToDate} currency={s.currency} />
+                <Line label="Handed to the authority" value={s.taxRemittedToDate} currency={s.currency} minus />
+                <Line label={s.taxStillToPay < 0 ? "Overpaid" : "Still to pay"} value={Math.abs(s.taxStillToPay)} currency={s.currency} strong />
+                {s.collectedTaxRemitted > 0 && <p className="font-sans text-[11px] text-bk-muted">Handed over in this period: {formatMoney(s.collectedTaxRemitted, s.currency)}</p>}
+              </div>
+            )}
             <p className="font-sans text-[11px] text-bk-muted mt-3">
               Security fees held right now: {formatMoney(held, s.currency)}
               {s.depositsRefunded > 0 && ` · returned to organizations in this period: ${formatMoney(s.depositsRefunded, s.currency)}`}
@@ -119,6 +135,8 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
       </section>
 
       <ExpenseManager expenses={ledger.expenses} total={ledger.expensesTotal} currencies={currencies} />
+
+      <TaxPaymentManager payments={ledger.taxPayments} total={ledger.taxPaymentsTotal} currencies={currencies} />
     </div>
   );
 }

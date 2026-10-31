@@ -2879,3 +2879,42 @@ model FundAllocation {
   @@index([campaignId])
   @@index([tournamentId])
 }
+
+
+// ------------------------------------------------------------
+// TAX PAID TO THE AUTHORITY
+// ------------------------------------------------------------
+// Two different taxes, kept apart:
+//   collected_tax: tax charged to customers on invoices (sales tax / GST) and handed over. It is not
+//                  the platform's money, so paying it is not an expense.
+//   income_tax:    tax the platform pays on its own profit; shown after profit.
+// A payment is voided, never deleted.
+
+enum TaxPaymentType {
+  collected_tax
+  income_tax
+}
+
+model TaxPayment {
+  id        String         @id @default(uuid())
+  date      DateTime // the day it was paid (00:00 UTC)
+  type      TaxPaymentType
+  amount    Decimal        @db.Decimal(14, 2)
+  currency  String
+  authority String? // e.g. FBR, PRA
+  reference String? // challan / payment slip number
+  periodNote String? // what it covers, e.g. "Sales tax, October 2026"
+  note      String?
+  receiptUrl String?
+
+  voidedAt   DateTime?
+  voidNote   String?
+  voidedById String?
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@index([type, date])
+}

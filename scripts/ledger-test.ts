@@ -40,6 +40,21 @@ ok("one ledger per currency, never blended", two.length === 2 && two[0].currency
 ok("invoice payment records are recognised", isInvoicePaymentRef("BK-2026-0001") && isInvoicePaymentRef("BK-2026-0001-deposit") && !isInvoicePaymentRef("INV-1") && !isInvoicePaymentRef(null));
 ok("deposit records are recognised", isDepositRef("abc-123-deposit") && !isDepositRef("abc-123") && !isDepositRef(null));
 
+// ---- tax paid to the authority ----
+const taxed = buildLedger({
+  ...empty,
+  invoices: [{ currency: "PKR", gross: 7500, tax: 500, gatewayFee: 0, deposit: 2000 }],
+  expenses: [{ currency: "PKR", category: "service", amount: 1000 }],
+  taxPaid: [{ currency: "PKR", type: "income_tax", amount: 300 }, { currency: "PKR", type: "collected_tax", amount: 200 }],
+  taxToDate: [{ currency: "PKR", collected: 1500, remitted: 600 }],
+})[0];
+ok("income tax comes off profit, giving profit after tax", taxed.profit === 4000 && taxed.incomeTaxPaid === 300 && taxed.profitAfterTax === 3700);
+ok("handing over collected tax is not an expense", taxed.expenses === 1000 && taxed.collectedTaxRemitted === 200);
+ok("tax still to pay is collected minus handed over, all time", taxed.taxStillToPay === 900 && taxed.taxCollectedToDate === 1500 && taxed.taxRemittedToDate === 600);
+const over = buildLedger({ ...empty, taxToDate: [{ currency: "USD", collected: 100, remitted: 150 }] })[0];
+ok("overpaid tax shows as negative", over.taxStillToPay === -50);
+ok("a currency with only tax payments still appears", buildLedger({ ...empty, taxPaid: [{ currency: "USD", type: "income_tax", amount: 10 }] }).length === 1);
+
 // ---- ranges ----
 const now = new Date("2026-11-15T10:00:00Z");
 const m = resolveRange("this_month", undefined, undefined, now);
