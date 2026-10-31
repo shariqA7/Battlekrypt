@@ -69,7 +69,7 @@ export default function NewTournamentPage() {
   // Admin feature switches. Everything shows until loaded (the server enforces anyway).
   const [flags, setFlags] = useState<FeatureFlags>({
     deposit: false, organizerTrust: true, tournamentLock: true, prizeBreakdown: true,
-    specialAwards: true, entryConditions: true, challenges: true, guardianConsent: false, playerReports: true,
+    specialAwards: true, entryConditions: true, challenges: true, guardianConsent: false, playerReports: true, organizerRatings: true, donations: true,
   });
   useEffect(() => {
     fetch("/api/site/features")

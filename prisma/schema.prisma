@@ -73,6 +73,7 @@ model User {
 
   adminActionLogs AdminActionLog[] @relation("AdminActor")
   planRequests    PlanRequest[]
+  donations Donation[]
 }
 
 enum StaffRole {
@@ -396,6 +397,7 @@ model OrganizerProfile {
   reportsPausedAt     DateTime?
   reportsPauseReason  String?
   reports             OrganizerReport[]
+  ratings             OrganizerRating[]
   deposits     SecurityDeposit[]
   invoices     Invoice[]
   identity     IdentityVerification?
@@ -554,6 +556,7 @@ enum PaymentKind {
   club_upgrade
   org_plan
   player_plan
+  donation
   other
 }
 
@@ -1047,6 +1050,8 @@ model Tournament {
   changeRequests    TournamentChangeRequest[]
   prizeAwards       PrizeAward[]
   reports           OrganizerReport[]
+  ratings           OrganizerRating[]
+  fundAllocations   FundAllocation[]
 
   competitiveTier CompetitiveTier @default(none)
 
@@ -1404,6 +1409,14 @@ model SiteSettings {
   // Automatic renewal invoices: how many days before a paid plan ends the invoice is created.
   renewalInvoicesEnabled  Boolean  @default(true)
   renewalLeadDays         Int      @default(7)
+  // Players can rate an organizer (1-5 stars) after a completed event they took part in.
+  organizerRatingsEnabled Boolean  @default(true)
+  // Donations: people give to the platform's community fund; admins decide how it is used.
+  donationsEnabled        Boolean  @default(true)
+  // Default for the general fund: only users and organizations on a paid plan ("verified") may give.
+  donationsVerifiedOnly   Boolean  @default(false)
+  // How to pay (account numbers, wallet, etc.), shown on the Donate page.
+  donationInstructions    String?
   updatedAt               DateTime @updatedAt
 }
 
@@ -2417,6 +2430,31 @@ model OrganizerReport {
   @@index([tournamentId])
 }
 
+// A player's star rating of an organizer after an event they took part in (one per event,
+// editable). Hidden ratings (abuse, a rating for the wrong event) don't count in averages.
+model OrganizerRating {
+  id           String           @id @default(uuid())
+  organizerId  String
+  organizer    OrganizerProfile @relation(fields: [organizerId], references: [id])
+  tournamentId String
+  tournament   Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  raterUserId  String
+
+  stars   Int
+  comment String?
+
+  hiddenAt     DateTime?
+  hiddenById   String?
+  hiddenReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tournamentId, raterUserId])
+  @@index([organizerId, hiddenAt])
+  @@index([raterUserId, createdAt])
+}
+
 // ------------------------------------------------------------
 // RATE LIMIT BUCKET — counters for the sign-in / sign-up / email routes (lib/rate-limit.ts).
 // Kept in Postgres so every server instance sees the same counts; an in-memory counter only
@@ -2663,6 +2701,7 @@ enum ProofKind {
   plan_request // an upgrade to a paid plan, reviewed by an admin
   invoice      // an invoice payment, reviewed by an admin
   club_fee     // a club's paid-plan fee, reviewed by an admin
+  donation     // a donation to the community fund, reviewed by an admin
 }
 
 model ProofFingerprint {
@@ -2750,4 +2789,93 @@ model PaymentDispute {
   @@index([registrationId])
   @@index([organizerId, status])
   @@index([payerUserId])
+}
+
+// ------------------------------------------------------------
+// DONATIONS & THE COMMUNITY FUND
+// There is no payment gateway: a donor pays outside the app and uploads proof, an admin approves
+// it, and the money joins the fund. Admins then record how the fund is used (allocations).
+// ------------------------------------------------------------
+
+enum DonationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum DonationCampaignStatus {
+  draft
+  active
+  closed
+}
+
+// A donation drive an admin opens (e.g. "Prize pool for the Ramadan Cup"). Gifts with no campaign
+// go to the general fund.
+model DonationCampaign {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  title       String
+  description String
+  goalAmount  Decimal? @db.Decimal(14, 2)
+  currency    String
+  endsAt      DateTime?
+  status      DonationCampaignStatus @default(active)
+  // Only users and organizations on a paid plan may give. Decided per campaign by an admin.
+  verifiedOnly Boolean @default(false)
+  createdById String
+
+  donations   Donation[]
+  allocations FundAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model Donation {
+  id         String            @id @default(uuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id])
+  campaignId String?
+  campaign   DonationCampaign? @relation(fields: [campaignId], references: [id])
+
+  amount   Decimal @db.Decimal(14, 2)
+  currency String
+  proofUrl String
+  // The transaction ID the donor typed from their payment receipt (see lib/proof-match.ts).
+  reference String?
+  message  String?
+  // Hide the donor's name on the public supporters list.
+  anonymous Boolean @default(false)
+
+  status       DonationStatus @default(pending)
+  adminNote    String?
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+  @@index([campaignId, status])
+}
+
+// How the fund was used: an admin records each use (a prize pool, a giveaway, running costs).
+model FundAllocation {
+  id           String            @id @default(uuid())
+  amount       Decimal           @db.Decimal(14, 2)
+  currency     String
+  purpose      String
+  campaignId   String?
+  campaign     DonationCampaign? @relation(fields: [campaignId], references: [id])
+  tournamentId String?
+  tournament   Tournament?       @relation(fields: [tournamentId], references: [id])
+  allocatedById String
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([campaignId])
+  @@index([tournamentId])
 }

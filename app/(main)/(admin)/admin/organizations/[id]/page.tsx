@@ -14,6 +14,7 @@ import Avatar from "@/components/ui/Avatar";
 import BanUserButton from "../../BanUserButton";
 import AssignPlan from "../AssignPlan";
 import KycPanel from "./KycPanel";
+import HideRatingButton from "./HideRatingButton";
 
 const date = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
 const money = (r: Record<string, number>) => {
@@ -69,6 +70,9 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
               {isInst && <Chip tone={o.institute?.verified ? "good" : "warn"}>{o.institute?.verified ? "Verified institute" : "Unverified"}</Chip>}
               <Chip tone={o.plan.state === "expired" ? "bad" : o.plan.isPaid ? "warn" : "plain"}>{o.plan.name}</Chip>
               <Chip tone={idTone}>Identity: {o.identity ? label(o.identity.state) : "not checked"}</Chip>
+              <Chip tone={o.ratings.average !== null && o.ratings.average < 3 ? "bad" : "plain"}>
+                {o.ratings.average === null ? "No ratings yet" : `★ ${o.ratings.average} (${o.ratings.count})`}
+              </Chip>
             </div>
             <p className="font-sans text-[12px] text-bk-muted mt-1">
               Joined {date(o.joinedAt)}
@@ -313,6 +317,49 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         )}
       </Panel>
 
+      <Panel title="Player ratings">
+        {o.ratings.count === 0 && o.ratings.recent.length === 0 ? (
+          <p className="font-sans text-[12px] text-bk-muted">No player has rated this organizer yet. Players who took part in a completed event can rate it from their dashboard.</p>
+        ) : (
+          <div className="grid md:grid-cols-[220px_1fr] gap-6">
+            <div>
+              <p className="font-sans font-bold text-[34px] text-bk-heading leading-none">
+                {o.ratings.average ?? "—"}
+                <span className="text-[14px] text-bk-muted font-normal"> / 5</span>
+              </p>
+              <p className="font-sans text-[12px] text-bk-muted mt-1">
+                {o.ratings.count} rating{o.ratings.count === 1 ? "" : "s"}
+                {o.ratings.hiddenCount > 0 && ` · ${o.ratings.hiddenCount} hidden`}
+              </p>
+              <ul className="mt-3 space-y-1" aria-label="Ratings by number of stars">
+                {[...o.ratings.distribution].reverse().map((d) => (
+                  <li key={d.stars} className="flex items-center gap-2 font-sans text-[11px] text-bk-muted">
+                    <span className="w-6">{d.stars} ★</span>
+                    <span className="flex-1 h-2 bg-bk-border">
+                      <span className="block h-2 bg-bk-gold-light" style={{ width: `${o.ratings.count ? (d.count / o.ratings.count) * 100 : 0}%` }} />
+                    </span>
+                    <span className="w-5 text-right">{d.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <ul className="space-y-3">
+              {o.ratings.recent.map((r) => (
+                <li key={r.id} className={`font-sans text-[12px] border-l-2 pl-3 ${r.hidden ? "border-bk-live/60 opacity-70" : "border-bk-border"}`}>
+                  <p className="text-bk-heading">
+                    <span className="text-bk-gold-light" aria-label={`${r.stars} stars`}>{"★".repeat(r.stars)}{"☆".repeat(5 - r.stars)}</span>{" "}
+                    <span className="text-bk-muted">· {r.rater} · {r.tournament} · {date(r.at)}</span>
+                  </p>
+                  {r.comment && <p className="text-bk-body">{r.comment}</p>}
+                  {r.hidden && <p className="text-bk-live">Hidden: {r.hiddenReason}</p>}
+                  <HideRatingButton ratingId={r.id} hidden={r.hidden} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Panel>
+
       <div className="grid lg:grid-cols-2 gap-6">
         <Panel title="Complaints from players">
           {o.complaints.total === 0 ? (
@@ -351,9 +398,24 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         </Panel>
       </div>
 
+      <Panel title="Community fund support">
+        {o.fundSupport.count === 0 ? (
+          <p className="font-sans text-[12px] text-bk-muted">The community fund hasn&apos;t paid toward any of this organizer&apos;s events. Record a use of the fund on <Link href="/admin/donations" className="text-bk-gold-light underline">Donations</Link>.</p>
+        ) : (
+          <>
+            <p className="font-sans text-[13px] text-bk-heading mb-2">{money(o.fundSupport.totals)} <span className="text-bk-muted text-[12px]">across {o.fundSupport.count} use{o.fundSupport.count === 1 ? "" : "s"} of the fund</span></p>
+            <ul className="font-sans text-[12px] text-bk-body space-y-1">
+              {o.fundSupport.items.map((f) => (
+                <li key={f.id}><span className="text-bk-muted">{date(f.at)}</span> · {formatMoney(f.amount, f.currency)} · {f.purpose} <span className="text-bk-muted">· {f.tournament}</span></li>
+              ))}
+            </ul>
+          </>
+        )}
+      </Panel>
+
       <Panel title="Not tracked yet">
         <p className="font-sans text-[12px] text-bk-body">
-          These are not recorded anywhere on the platform yet, so there is nothing to show: <strong>giveaways</strong>, <strong>donations</strong>, and <strong>ratings players give an organizer</strong>. Until they exist, the payout confirmation rate and the complaints above are the closest signals of how players find this organizer.
+          Not recorded anywhere on the platform yet, so there is nothing to show: <strong>giveaways</strong>.
         </p>
       </Panel>
 
