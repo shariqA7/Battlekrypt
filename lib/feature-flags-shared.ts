@@ -9,6 +9,8 @@ export interface FeatureFlags {
   challenges: boolean;
   guardianConsent: boolean;
   playerReports: boolean;
+  organizerRatings: boolean;
+  donations: boolean;
 }
 
 export type FeatureKey = keyof FeatureFlags;
@@ -55,6 +57,18 @@ export const FEATURE_ROWS: { key: FeatureKey; label: string; on: string; off: st
     label: "Player reports",
     on: "Players who took part in a paid or prized event can report its organizer. Enough reports pause the organizer's new paid registrations and events until an admin reviews.",
     off: "The report button is hidden and no new reports can be filed. Existing reports and pauses stay for admins to handle.",
+  },
+  {
+    key: "organizerRatings",
+    label: "Organizer ratings",
+    on: "Players who took part in a completed event can rate its organizer from 1 to 5 stars. Admins see the average and the comments on the organization's page.",
+    off: "The rate button is hidden and no new ratings can be given. Existing ratings are kept and stay visible to admins.",
+  },
+  {
+    key: "donations",
+    label: "Donations",
+    on: "People can donate to the community fund and to donation campaigns from the Donate page. Admins approve each donation and decide how the fund is used.",
+    off: "The Donate page shows a notice and no new donations can be made. Existing donations and the fund records are kept.",
   },
   {
     key: "guardianConsent",

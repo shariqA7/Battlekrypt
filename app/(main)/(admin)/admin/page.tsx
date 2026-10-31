@@ -54,6 +54,7 @@ export default async function AdminDashboardPage({
           <Gated staff={staff} index={11} href="/admin/change-requests" icon="changeRequests" label="Tournament change requests" count={attention.items.changeRequests} />
           <Gated staff={staff} index={13} href="/admin/reports" icon="reports" label="Player reports" count={attention.items.playerReports} />
           <Gated staff={staff} index={14} href="/admin/invoices?filter=proof_submitted" icon="payments" label="Invoice payments to check" count={attention.items.invoices} />
+          <Gated staff={staff} index={15} href="/admin/donations" icon="donations" label="Donations to review" count={attention.items.donations} />
         </div>
       </section>
 

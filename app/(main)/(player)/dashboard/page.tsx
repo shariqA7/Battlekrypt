@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyRegistrations } from "@/lib/services/tournaments";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
+import { listMyRatings } from "@/lib/services/organizer-ratings";
 import { listPlayerInvites, getPlayerMembership } from "@/lib/services/club-roster";
 import ClubInvites from "./ClubInvites";
 import Link from "next/link";
@@ -34,7 +35,7 @@ const PAYMENT_NOTE: Record<string, string> = {
 
 type Reg = Awaited<ReturnType<typeof getMyRegistrations>>[number];
 
-function RegistrationCard({ r, canReport = false }: { r: Reg; canReport?: boolean }) {
+function RegistrationCard({ r, canReport = false, canRate = false, myStars = null }: { r: Reg; canReport?: boolean; canRate?: boolean; myStars?: number | null }) {
   const status = REG_STATUS[r.status];
   const t = r.tournament;
   const staked = t.entryType === "paid" || (t.prizePoolAmount != null && Number(t.prizePoolAmount) > 0);
@@ -84,12 +85,21 @@ function RegistrationCard({ r, canReport = false }: { r: Reg; canReport?: boolea
         </Link>
       </p>
     )}
+    {canRate && t.status === "completed" && r.status === "approved" && (
+      <p className="font-sans text-[11px] mt-1">
+        <Link href={`/ratings/new?tournamentId=${t.id}`} className="text-bk-gold-light underline">
+          {myStars ? `You rated the organizer ${myStars} of 5 · change` : "Rate the organizer"}
+        </Link>
+      </p>
+    )}
     </div>
   );
 }
 
 export default async function PlayerDashboard() {
-  const reportsOn = (await getFeatureFlags()).playerReports;
+  const flags = await getFeatureFlags();
+  const reportsOn = flags.playerReports;
+  const ratingsOn = flags.organizerRatings;
   const supabase = await createClient();
   const {
     data: { user },
@@ -109,6 +119,8 @@ export default async function PlayerDashboard() {
         getPlayerMembership(playerProfile.id),
       ])
     : [[], [], null];
+
+  const myRatings = ratingsOn ? await listMyRatings(user.id) : new Map<string, number>();
 
   // One consent state for the player; shown under each registration that asks for it.
   const consent =
@@ -191,7 +203,7 @@ export default async function PlayerDashboard() {
                 <p className="font-sans font-bold text-[11px] uppercase tracking-[1.6px] text-bk-muted mt-8 mb-3">Past tournaments</p>
                 <div className="flex flex-col gap-3">
                   {past.map((r) => (
-                    <RegistrationCard key={r.id} r={r} canReport={reportsOn} />
+                    <RegistrationCard key={r.id} r={r} canReport={reportsOn} canRate={ratingsOn} myStars={myRatings.get(r.tournament.id) ?? null} />
                   ))}
                 </div>
               </>

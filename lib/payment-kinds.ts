@@ -3,5 +3,6 @@ export const PAYMENT_KINDS = [
   { value: "club_upgrade", label: "Paid club plan" },
   { value: "org_plan", label: "Organization plan" },
   { value: "player_plan", label: "Player plan" },
+  { value: "donation", label: "Donation" },
   { value: "other", label: "Other" },
 ] as const;

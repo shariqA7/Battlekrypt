@@ -6,7 +6,7 @@
 export type AdminIconName =
   | "dashboard" | "approvals" | "users" | "institutions" | "idPhotos" | "currencies"
   | "organizations" | "clubs" | "plans" | "featured" | "changeRequests"
-  | "organizerTrust" | "deposits" | "payments" | "traffic" | "settings"
+  | "organizerTrust" | "donations" | "deposits" | "payments" | "traffic" | "settings"
   // Dashboard stat cards
   | "teams" | "tournaments" | "registrations" | "bans" | "sessions"
   // Sub tabs
@@ -57,6 +57,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/payments", label: "Payments", icon: "payments" },
       { href: "/admin/ledger", label: "Ledger", icon: "payments" },
       { href: "/admin/deposits", label: "Deposits", icon: "deposits" },
+      { href: "/admin/donations", label: "Donations", icon: "donations", badgeKeys: ["donations"] },
       { href: "/admin/currencies", label: "Currencies", icon: "currencies" },
     ],
   },

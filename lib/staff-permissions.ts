@@ -19,6 +19,7 @@ export const STAFF_PERMISSIONS = [
   { key: "clubs", label: "Clubs", group: "People", hint: "Club list and details" },
   { key: "plans", label: "Plans", group: "Money", hint: "Plan catalogue and assignment (no payment amounts)" },
   { key: "payments", label: "Payments & transactions", group: "Money", hint: "Payments, invoices, plan-payment approvals, payouts, payment methods, billing settings, and the revenue figure on the dashboard" },
+  { key: "donations", label: "Donations & fund", group: "Money", hint: "Donations, donation campaigns and how the community fund is used" },
   { key: "deposits", label: "Deposits", group: "Money", hint: "Security deposits" },
   { key: "currencies", label: "Currencies", group: "Money", hint: "Enabled currencies" },
   { key: "ledger", label: "Ledger", group: "Money", hint: "Income and expense book and profit reports" },
@@ -51,7 +52,7 @@ export const ROLE_TEMPLATES: Record<"admin" | "manager", StaffGrants> = {
   admin: {
     approvals: "edit", change_requests: "edit", reports: "edit", institutions: "edit", organizer_trust: "edit",
     users: "edit", organizations: "edit", clubs: "edit", plans: "edit", payments: "edit", deposits: "edit",
-    currencies: "edit", featured: "edit", traffic: "edit", settings: "edit",
+    currencies: "edit", donations: "edit", featured: "edit", traffic: "edit", settings: "edit",
     // ledger deliberately left out: switch it on per person.
   },
   manager: {
@@ -95,6 +96,7 @@ const PATH_AREAS: [string, StaffPermissionKey | "staff" | null][] = [
   ["/admin/plans", "plans"],
   ["/admin/payments", "payments"],
   ["/admin/invoices", "payments"],
+  ["/admin/donations", "donations"],
   ["/admin/deposits", "deposits"],
   ["/admin/currencies", "currencies"],
   ["/admin/ledger", "ledger"],
@@ -119,7 +121,7 @@ export const API_FOLDER_AREAS: Record<string, AdminArea | null> = {
   dashboard: null,
   staff: "staff",
   bans: "users", users: "users",
-  organizations: "organizations", organizers: "organizations",
+  organizations: "organizations", organizers: "organizations", ratings: "organizations",
   clubs: "clubs",
   "org-applications": "approvals", identity: "approvals", "club-name-claims": "approvals", "game-requests": "approvals",
   "challenge-disputes": "approvals", "challenge-flags": "approvals", "challenge-reports": "approvals",
@@ -134,6 +136,7 @@ export const API_FOLDER_AREAS: Record<string, AdminArea | null> = {
   expenses: "ledger", ledger: "ledger",
   "payment-disputes": "approvals",
   deposits: "deposits",
+  donations: "donations", "donation-campaigns": "donations", "fund-allocations": "donations", "donation-settings": "donations",
   currencies: "currencies",
   featured: "featured",
   "site-settings": "settings", "login-options": "settings", "challenge-settings": "settings", "tier-settings": "settings",

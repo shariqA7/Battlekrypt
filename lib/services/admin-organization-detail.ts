@@ -13,6 +13,8 @@ import { identityState } from "@/lib/identity";
 import { sumByCurrency, type MoneyLike } from "@/lib/money";
 import { getOrganizerTrustSummary, HOLD_REASON_TEXT } from "@/lib/services/organizer-trust";
 import { planStateOf } from "@/lib/services/admin-organizations";
+import { getRatingSummary } from "@/lib/services/organizer-ratings";
+import { getFundSupportFor } from "@/lib/services/donations";
 
 const num = (d: { toString(): string } | null | undefined) => (d == null ? 0 : Number(d.toString()));
 const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
@@ -172,6 +174,8 @@ export async function getOrganizationDetail(id: string) {
   const chStatus: Record<string, number> = {};
   for (const c of challengeRows) chStatus[c.status] = (chStatus[c.status] ?? 0) + 1;
 
+  const [ratings, fundSupport] = await Promise.all([getRatingSummary(id), getFundSupportFor(id)]);
+
   const ident = org.identity;
   const iState = identityState(ident);
   const p = org.user.playerProfile;
@@ -307,6 +311,9 @@ export async function getOrganizationDetail(id: string) {
       unique: uniquePlayers[0]?.n ?? 0,
     },
     growth,
+
+    ratings,
+    fundSupport,
 
     complaints: {
       total: reports.reduce((n, r) => n + r._count, 0),

@@ -93,3 +93,21 @@ export async function listClubsPage({ q, cursor, limit }: PageQuery): Promise<Pa
     })),
   };
 }
+
+export type TournamentHit = { id: string; name: string; organizer: string; status: string };
+
+// For pickers (e.g. "which tournament does this fund money go to"), 10 at a time.
+export async function searchTournamentsPage({ q, cursor, limit }: PageQuery): Promise<Page<TournamentHit>> {
+  const where: Prisma.TournamentWhereInput = q
+    ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { slug: { contains: q, mode: "insensitive" } }, { organizer: { orgName: { contains: q, mode: "insensitive" } } }] }
+    : {};
+  const rows = await prisma.tournament.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take: limit + 1,
+    ...cursorArgs(cursor),
+    select: { id: true, name: true, status: true, organizer: { select: { orgName: true } } },
+  });
+  const page = toPage(rows, limit);
+  return { nextCursor: page.nextCursor, items: page.items.map((t) => ({ id: t.id, name: t.name, organizer: t.organizer.orgName, status: t.status })) };
+}

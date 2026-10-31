@@ -6,7 +6,7 @@
 //   reference the same transaction ID typed by the payer (the reliable one: a re-saved or
 //             re-screenshotted copy still carries the same ID)
 
-export type ProofKindName = "registration" | "plan_request" | "invoice" | "club_fee";
+export type ProofKindName = "registration" | "plan_request" | "invoice" | "club_fee" | "donation";
 
 export type ProofMatch = {
   /** How many OTHER submissions match. */
