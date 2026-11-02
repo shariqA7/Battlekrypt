@@ -61,7 +61,7 @@ async function main() {
 
   // ---- erasure
   await prisma.notification.create({ data: { userId: "clean", type: "x", title: "hello", body: "b" } });
-  const don = await prisma.donation.create({ data: { userId: "clean", amount: 10, currency: "PKR", proofUrl: "https://x/proof.png", status: "approved", message: "for the kids", anonymous: false } });
+  const don = await prisma.donation.create({ data: { userId: "clean", amount: 10, currency: "PKR", proofUrl: "clean/donation-proofs/lllllll1-9.png", status: "approved", message: "for the kids", anonymous: false } });
   const rate = await prisma.organizerRating.create({ data: { organizerId: org.id, tournamentId: t.id, raterUserId: "clean", stars: 4, comment: "Great organizer, call me on 0300" } });
   const cp = await profile("clean");
   await prisma.playerPayoutMethod.create({ data: { playerId: cp.id, payeeName: "Real Name", method: "JazzCash", detailsEnc: "enc" } });
@@ -69,13 +69,13 @@ async function main() {
   const cReg = await prisma.registration.create({ data: { tournamentId: t.id, playerId: cp.id, status: "rejected", payerUserId: "clean", paymentProofUrl: "clean/payment-proofs/dddddddd-4.png", customFieldResponses: { ign: "CleanIGN" } } });
   const plan = await prisma.plan.findFirst();
   if (plan) await prisma.planRequest.create({ data: { userId: "clean", audience: plan.audience, planCode: plan.code, status: "approved", proofUrl: "clean/plan-proofs/eeeeeeee-5.png" } });
-  files[`${PROOF_BUCKET}/clean`] = ["clean/payment-proofs/dddddddd-4.png", ...(plan ? ["clean/plan-proofs/eeeeeeee-5.png"] : [])];
+  files[`${PROOF_BUCKET}/clean`] = ["clean/payment-proofs/dddddddd-4.png", "clean/donation-proofs/lllllll1-9.png", ...(plan ? ["clean/plan-proofs/eeeeeeee-5.png"] : [])];
   files[`${ID_BUCKET}/clean`] = ["clean/front.jpg"];
 
   const staffTry = await eraseUser("staff", deps);
   ok("a staff account is never erased", staffTry.erased === false && authDeleted.length === 0);
   const res = await eraseUser("clean", deps);
-  ok("erasure reports what it did", res.erased === true && res.filesRemoved === 2 && res.filesKept === (plan ? 1 : 0));
+  ok("erasure reports what it did", res.erased === true && res.filesRemoved === 2 && res.filesKept === (plan ? 2 : 1));
   ok("unneeded payment files and ID photos were removed", removed.some((r) => r.bucket === PROOF_BUCKET && r.paths.includes("clean/payment-proofs/dddddddd-4.png")) && removed.some((r) => r.bucket === ID_BUCKET && r.paths.includes("clean/front.jpg")));
   ok("a file behind an approved plan payment is kept", !plan || !removed.some((r) => r.paths.includes("clean/plan-proofs/eeeeeeee-5.png")));
   ok("the sign-in account was deleted", authDeleted.join() === "clean");
@@ -88,7 +88,7 @@ async function main() {
   ok("consent keeps that it was given, not who signed", pc?.guardianEmail === "erased" && pc.signedName === null && pc.signedIp === null && pc.manageTokenHash === null);
   const rr = await prisma.registration.findUnique({ where: { id: cReg.id } });
   ok("the entry stays (results history) without personal answers or the deleted proof", !!rr && rr.customFieldResponses === null && rr.paymentProofUrl === null);
-  ok("a donation stays but the donor's message goes", (await prisma.donation.findUnique({ where: { id: don.id } }))?.message === null && (await prisma.donation.findUnique({ where: { id: don.id } }))?.proofUrl === "https://x/proof.png");
+  ok("a donation stays but the donor's message goes, and its screenshot is kept", (await prisma.donation.findUnique({ where: { id: don.id } }))?.message === null && (await prisma.donation.findUnique({ where: { id: don.id } }))?.proofUrl === "clean/donation-proofs/lllllll1-9.png" && !removed.some((r) => r.paths.includes("clean/donation-proofs/lllllll1-9.png")));
   ok("a rating keeps its stars but loses the comment", (await prisma.organizerRating.findUnique({ where: { id: rate.id } }))?.comment === null && (await prisma.organizerRating.findUnique({ where: { id: rate.id } }))?.stars === 4);
   ok("notifications are deleted", (await prisma.notification.count({ where: { userId: "clean" } })) === 0);
   ok("an erasure record exists and holds no name", (await prisma.accountErasure.count({ where: { userId: "clean" } })) === 1);

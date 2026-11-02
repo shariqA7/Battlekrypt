@@ -92,6 +92,14 @@ async function main() {
   const exp = await prisma.expense.create({ data: { date: new Date(), category: "service", title: "Hosting", amount: 10, currency: "USD", receiptUrl: "boss/expense-receipts/iiiiiiii-0.png", createdById: "boss" } });
   ok("expense receipt: only the Ledger permission (a super admin) can open it", (await can("boss", "expense", exp.id)) !== "forbidden" && (await can("mgr", "expense", exp.id)) === "forbidden" && (await can("owner", "expense", exp.id)) === "forbidden");
 
+  // ---- donations and tax slips
+  const don = await prisma.donation.create({ data: { userId: "payer", amount: 10, currency: "PKR", proofUrl: "payer/donation-proofs/jjjjjjjj-1.png", reference: "TXN123456", anonymous: true } });
+  await prisma.staffPermission.create({ data: { userId: "mgr", permission: "donations", access: "view" } });
+  ok("donation: the donor can open their screenshot, even when the gift is anonymous", (await can("payer", "donation", don.id)) === "payer/donation-proofs/jjjjjjjj-1.png");
+  ok("donation: an admin with Donations can, a stranger and the organizer can NOT", (await can("mgr", "donation", don.id)) !== "forbidden" && (await can("stranger", "donation", don.id)) === "forbidden" && (await can("owner", "donation", don.id)) === "forbidden");
+  const tax = await prisma.taxPayment.create({ data: { date: new Date(), type: "collected_tax", amount: 100, currency: "PKR", receiptUrl: "boss/tax-receipts/kkkkkkkk-2.png", createdById: "boss" } });
+  ok("tax slip: only the Ledger permission can open it", (await can("boss", "tax_payment", tax.id)) !== "forbidden" && (await can("mgr", "tax_payment", tax.id)) === "forbidden" && (await can("payer", "tax_payment", tax.id)) === "forbidden");
+
   if (fails) { console.log(`\n${fails} FAILED`); process.exit(1); }
   console.log("\nall passed");
 }

@@ -7,6 +7,7 @@
 //
 // An admin can open a donation campaign (a goal, a deadline, a purpose) and choose per campaign
 // whether only verified accounts (those on an active paid plan) may give.
+import { normalizeProofInput } from "@/lib/proof-storage";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isSupportedCurrency, sumByCurrency } from "@/lib/money";
@@ -225,8 +226,8 @@ export async function createDonation(input: {
   if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_DONATION) return { error: "validation_error", message: "Enter an amount more than zero." };
   if (Math.round(amount * 100) !== amount * 100 && Math.abs(Math.round(amount * 100) - amount * 100) > 1e-6) return { error: "validation_error", message: "Use at most two decimal places." };
   if (!isSupportedCurrency(input.currency)) return { error: "validation_error", message: "Choose a supported currency." };
-  const proofUrl = typeof input.proofUrl === "string" ? input.proofUrl.trim() : "";
-  if (!/^https:\/\/\S+$/.test(proofUrl) || proofUrl.length > 600) return { error: "validation_error", message: "Upload a screenshot of your payment." };
+  const proofUrl = normalizeProofInput(input.proofUrl, input.userId) ?? "";
+  if (!proofUrl) return { error: "validation_error", message: "Upload a screenshot of your payment." };
   const reference = parseReference(input.reference);
   if (!reference) return { error: "validation_error", message: REFERENCE_REQUIRED_MESSAGE };
   const message = typeof input.message === "string" ? input.message.trim() : "";

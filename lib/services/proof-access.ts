@@ -9,7 +9,9 @@
 //   dispute        the two sides of the case; admins with Approvals (the evidence they uploaded)
 //   challenge_proof / challenge_receipt / challenge_dispute
 //                  the poster and the challenger of that entry; admins with Approvals
-//   expense        admins with Ledger (the receipt on a ledger expense)
+//   expense / tax_payment
+//                  admins with Ledger (a ledger expense receipt, a tax payment slip)
+//   donation       the donor; admins with Donations
 import { prisma } from "@/lib/prisma";
 import { loadStaffContext } from "@/lib/services/staff";
 import { hasAccess, type AdminArea } from "@/lib/staff-permissions";
@@ -18,10 +20,10 @@ import { createServiceClient } from "@/lib/supabase/admin";
 
 export type ProofKindParam =
   | "registration" | "plan_request" | "club_fee" | "invoice" | "dispute"
-  | "challenge_proof" | "challenge_receipt" | "challenge_dispute" | "expense";
+  | "challenge_proof" | "challenge_receipt" | "challenge_dispute" | "expense" | "tax_payment" | "donation";
 export const PROOF_KINDS: ProofKindParam[] = [
   "registration", "plan_request", "club_fee", "invoice", "dispute",
-  "challenge_proof", "challenge_receipt", "challenge_dispute", "expense",
+  "challenge_proof", "challenge_receipt", "challenge_dispute", "expense", "tax_payment", "donation",
 ];
 
 export type ProofAccessResult = { value: string } | { error: "not_found" | "forbidden" };
@@ -130,6 +132,16 @@ export async function authorizeProofView(input: {
       if (!(await isStaffFor(uid, "ledger"))) return no;
       const e = await prisma.expense.findUnique({ where: { id }, select: { receiptUrl: true } });
       return e?.receiptUrl ? { value: e.receiptUrl } : gone;
+    }
+    case "tax_payment": {
+      if (!(await isStaffFor(uid, "ledger"))) return no;
+      const t = await prisma.taxPayment.findUnique({ where: { id }, select: { receiptUrl: true } });
+      return t?.receiptUrl ? { value: t.receiptUrl } : gone;
+    }
+    case "donation": {
+      const d = await prisma.donation.findUnique({ where: { id }, select: { proofUrl: true, userId: true } });
+      if (!d) return gone;
+      return d.userId === uid || (await isStaffFor(uid, "donations")) ? { value: d.proofUrl } : no;
     }
   }
 }

@@ -2,7 +2,9 @@
 import { createHmac } from "node:crypto";
 import {
   buildInvoiceRequest,
+  checkReceived,
   checkSettlement,
+  isUsdPegged,
   classifyStatus,
   getNowPaymentsConfig,
   gatewaySupportsCurrency,
@@ -54,6 +56,19 @@ const cfg = getNowPaymentsConfig({ NOWPAYMENTS_API_KEY: "k", NOWPAYMENTS_IPN_SEC
 ok("sandbox is detected and the trailing slash dropped", cfg.sandbox && cfg.apiUrl === "https://api-sandbox.nowpayments.io/v1" && cfg.configured && cfg.hasIpnSecret);
 ok("production is the default", getNowPaymentsConfig({ NOWPAYMENTS_API_KEY: "k" }).apiUrl === "https://api.nowpayments.io/v1" && !getNowPaymentsConfig({}).configured);
 ok("only USD invoices are offered the gateway", gatewaySupportsCurrency("USD") && gatewaySupportsCurrency("usd") && !gatewaySupportsCurrency("PKR"));
+
+// ---- are we being charged the fee? ----
+ok("dollar coins and USD are recognised", ["usd", "USDT", "usdtbsc", "usdttrc20", "usdcmatic", "busd", "dai"].every(isUsdPegged) && !["btc", "eth", "bnbbsc", "", null, undefined].some((c) => isUsdPegged(c as string)));
+const recv = (outcomeAmount: number | null, outcomeCurrency: string | null = "usdtbsc", total = 100, invoiceCurrency = "USD") => checkReceived({ invoiceTotal: total, invoiceCurrency, outcomeAmount, outcomeCurrency });
+ok("receiving the full amount is fine", recv(100).status === "ok");
+ok("a few cents of rounding is fine", recv(99.7).status === "ok");
+const short = recv(97.2);
+ok("noticeably less is flagged with the shortfall", short.status === "short" && short.shortfall === 2.8 && /less/.test(short.note));
+ok("more than the invoice is fine", recv(100.4).status === "ok");
+ok("the tolerance grows with big invoices", recv(996, "usdtbsc", 1000).status === "ok" && recv(990, "usdtbsc", 1000).status === "short");
+ok("a missing amount can't be checked", recv(null).status === "skipped" && recv(0).status === "skipped");
+ok("a coin that isn't a dollar coin can't be compared", recv(0.002, "btc").status === "skipped");
+ok("a non-USD invoice can't be compared directly", recv(100, "usdtbsc", 100, "PKR").status === "skipped");
 
 if (fails) { console.log(`${fails} failed`); process.exit(1); }
 console.log("all passed");

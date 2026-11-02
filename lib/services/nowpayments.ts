@@ -16,6 +16,7 @@ import {
   NOWPAYMENTS_METHOD_NAME,
   STATUS_TEXT,
   buildInvoiceRequest,
+  checkReceived,
   checkSettlement,
   classifyStatus,
   getNowPaymentsConfig,
@@ -109,6 +110,8 @@ interface GatewayPayload {
   pay_currency?: string;
   pay_amount?: number | string;
   actually_paid?: number | string;
+  outcome_amount?: number | string;
+  outcome_currency?: string;
   order_id?: string;
 }
 
@@ -136,6 +139,8 @@ async function applyUpdate(attemptId: string, p: GatewayPayload) {
       payCurrency: p.pay_currency ?? attempt.payCurrency,
       payAmount: dec(p.pay_amount) ?? attempt.payAmount,
       actuallyPaid: dec(p.actually_paid) ?? attempt.actuallyPaid,
+      outcomeAmount: dec(p.outcome_amount) ?? attempt.outcomeAmount,
+      outcomeCurrency: p.outcome_currency ?? attempt.outcomeCurrency,
     },
   });
 
@@ -162,7 +167,18 @@ async function applyUpdate(attemptId: string, p: GatewayPayload) {
         amount: num(inv.total),
       });
       if ("data" in r && r.data) {
-        await prisma.gatewayPayment.update({ where: { id: attempt.id }, data: { settledAt: new Date(), needsReview: false, reviewNote: null } });
+        // Paid in full by the customer, so the plan stays. But if what reaches us is noticeably less
+        // than the invoice, some fee is coming out of our side: flag it for an admin.
+        const received = checkReceived({
+          invoiceTotal: num(inv.total),
+          invoiceCurrency: inv.currency,
+          outcomeAmount: p.outcome_amount !== undefined ? Number(p.outcome_amount) : attempt.outcomeAmount ? num(attempt.outcomeAmount) : null,
+          outcomeCurrency: p.outcome_currency ?? attempt.outcomeCurrency,
+        });
+        await prisma.gatewayPayment.update({
+          where: { id: attempt.id },
+          data: { settledAt: new Date(), needsReview: received.status === "short", reviewNote: received.status === "short" ? received.note.slice(0, 500) : null },
+        });
         return;
       }
       // Already paid? If it was by this very payment (a repeated notification), that's fine.
@@ -243,6 +259,8 @@ export async function listGatewayPayments(invoiceId: string) {
     payCurrency: r.payCurrency,
     payAmount: r.payAmount ? num(r.payAmount) : null,
     actuallyPaid: r.actuallyPaid ? num(r.actuallyPaid) : null,
+    outcomeAmount: r.outcomeAmount ? num(r.outcomeAmount) : null,
+    outcomeCurrency: r.outcomeCurrency,
     providerPaymentId: r.providerPaymentId,
     needsReview: r.needsReview,
     reviewNote: r.reviewNote,

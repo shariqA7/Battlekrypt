@@ -167,6 +167,7 @@ export async function eraseUser(userId: string, deps: ErasureDeps = storageDeps(
   const keep = new Set<string>();
   for (const i of await prisma.invoice.findMany({ where: { userId, proofUrl: { not: null } }, select: { proofUrl: true } })) if (i.proofUrl) keep.add(i.proofUrl);
   for (const p of await prisma.planRequest.findMany({ where: { userId, status: "approved" }, select: { proofUrl: true } })) keep.add(p.proofUrl);
+  for (const x of await prisma.donation.findMany({ where: { userId }, select: { proofUrl: true } })) keep.add(x.proofUrl);
   const proofFiles = splitFiles(await deps.listFolder(PROOF_BUCKET, userId), keep);
   await deps.removeFiles(PROOF_BUCKET, proofFiles.remove);
   const idFiles = await deps.listFolder(ID_BUCKET, userId);

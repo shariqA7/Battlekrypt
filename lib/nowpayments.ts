@@ -152,3 +152,42 @@ export function checkSettlement(i: {
 // A checkout can be reused for a while if nothing has been paid on it.
 export const CHECKOUT_REUSE_MS = 60 * 60 * 1000;
 export const IN_FLIGHT = ["confirming", "confirmed", "sending", "partially_paid"];
+
+// ---- are we being charged the fee? ----
+
+// Dollar-pegged coins (and USD itself), so an amount in them can be compared with a USD invoice
+// without a price lookup. NOWPayments names them like "usdtbsc", "usdc", "busd", "dai".
+export function isUsdPegged(currency: string | null | undefined): boolean {
+  const c = (currency ?? "").toLowerCase();
+  return c === "usd" || /^(usdt|usdc|busd|tusd|usdp|fdusd|pyusd|dai)/.test(c);
+}
+
+// How much less than the invoice we may receive before it is flagged: a little rounding is normal.
+export const SHORTFALL_TOLERANCE_MIN = 0.5;
+export const SHORTFALL_TOLERANCE_PCT = 0.005;
+
+export type ReceivedCheck =
+  | { status: "ok" }
+  | { status: "skipped"; reason: string }
+  | { status: "short"; shortfall: number; note: string };
+
+// The customer pays NOWPayments' fee on top, so what reaches us should equal the invoice. If the
+// gateway reports noticeably less, the fee (or part of it) is coming out of our side, so an admin
+// should look. Only done when the amount can be compared directly (a USD invoice, a dollar coin).
+export function checkReceived(i: {
+  invoiceTotal: number;
+  invoiceCurrency: string;
+  outcomeAmount: number | null;
+  outcomeCurrency: string | null;
+}): ReceivedCheck {
+  if (i.outcomeAmount === null || !Number.isFinite(i.outcomeAmount) || i.outcomeAmount <= 0) return { status: "skipped", reason: "The gateway didn't report the amount we receive." };
+  if (i.invoiceCurrency.toUpperCase() !== "USD" || !isUsdPegged(i.outcomeCurrency)) return { status: "skipped", reason: "The amount we receive is in a coin that can't be compared with the invoice directly." };
+  const shortfall = Math.round((i.invoiceTotal - i.outcomeAmount) * 100) / 100;
+  const tolerance = Math.max(SHORTFALL_TOLERANCE_MIN, i.invoiceTotal * SHORTFALL_TOLERANCE_PCT);
+  if (shortfall <= tolerance) return { status: "ok" };
+  return {
+    status: "short",
+    shortfall,
+    note: `The invoice was ${i.invoiceTotal.toFixed(2)} USD but NOWPayments reports we receive ${i.outcomeAmount} ${String(i.outcomeCurrency).toUpperCase()}, about ${shortfall.toFixed(2)} less. Some fees may be coming out of your side. Check this payment in your NOWPayments dashboard.`,
+  };
+}

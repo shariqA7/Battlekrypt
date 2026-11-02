@@ -294,7 +294,7 @@ export async function voidExpense(adminId: string, id: string, note: unknown) {
 
 // ---- tax payments ----
 
-function parseTaxPayment(input: Record<string, unknown>) {
+function parseTaxPayment(adminId: string, input: Record<string, unknown>) {
   const date = parseDueDate(input.date);
   if (!(date instanceof Date)) return fail("validation_error", "Enter the date it was paid.");
   const type: "collected_tax" | "income_tax" | null = input.type === "collected_tax" ? "collected_tax" : input.type === "income_tax" ? "income_tax" : null;
@@ -314,13 +314,13 @@ function parseTaxPayment(input: Record<string, unknown>) {
       reference: text(input.reference, 80),
       periodNote: text(input.periodNote, 120),
       note: text(input.note, 500),
-      receiptUrl: typeof input.receiptUrl === "string" && input.receiptUrl.startsWith("http") ? input.receiptUrl : null,
+      receiptUrl: normalizeProofInput(input.receiptUrl, adminId),
     },
   };
 }
 
 export async function createTaxPayment(adminId: string, input: Record<string, unknown>) {
-  const p = parseTaxPayment(input);
+  const p = parseTaxPayment(adminId, input);
   if ("error" in p) return p;
   const t = await prisma.taxPayment.create({ data: { ...p.data, createdById: adminId } });
   await prisma.adminActionLog.create({
@@ -333,7 +333,7 @@ export async function updateTaxPayment(adminId: string, id: string, input: Recor
   const existing = await prisma.taxPayment.findUnique({ where: { id } });
   if (!existing) return fail("not_found", "That tax payment doesn't exist.");
   if (existing.voidedAt) return fail("validation_error", "A voided tax payment can't be edited.");
-  const p = parseTaxPayment(input);
+  const p = parseTaxPayment(adminId, input);
   if ("error" in p) return p;
   const t = await prisma.taxPayment.update({ where: { id }, data: { ...p.data, receiptUrl: p.data.receiptUrl ?? existing.receiptUrl } });
   await prisma.adminActionLog.create({

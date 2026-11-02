@@ -11,6 +11,8 @@ export type GatewayRow = {
   payCurrency: string | null;
   payAmount: number | null;
   actuallyPaid: number | null;
+  outcomeAmount: number | null;
+  outcomeCurrency: string | null;
   providerPaymentId: string | null;
   needsReview: boolean;
   reviewNote: string | null;
@@ -51,6 +53,9 @@ export default function GatewayPanel({ invoiceId, rows }: { invoiceId: string; r
                 {r.payAmount !== null ? ` of ${r.payAmount}` : ""}
                 {r.providerPaymentId ? ` · payment ${r.providerPaymentId}` : ""}
               </p>
+            )}
+            {r.outcomeAmount !== null && (
+              <p className="text-bk-muted font-mono text-[11px]">You receive: {r.outcomeAmount} {(r.outcomeCurrency ?? "").toUpperCase()}</p>
             )}
             {r.needsReview && r.reviewNote && <p className="text-bk-live mt-1">{r.reviewNote}</p>}
             <div className="flex gap-2 mt-1">
