@@ -1,5 +1,5 @@
 // GET   /api/admin/invoice-settings
-// PATCH /api/admin/invoice-settings — { paymentGatewayEnabled?, invoiceTaxRate?, invoiceTaxLabel?, renewalInvoicesEnabled?, renewalLeadDays?, invoiceIssuerName?, invoiceIssuerDetails?, invoiceFooterNote? }
+// PATCH /api/admin/invoice-settings — { invoiceTaxRate?, invoiceTaxLabel?, renewalInvoicesEnabled?, renewalLeadDays?, invoiceIssuerName?, invoiceIssuerDetails?, invoiceFooterNote? }
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-helpers";
 import { getInvoiceSettings, updateInvoiceSettings } from "@/lib/services/payment-methods";
@@ -16,7 +16,6 @@ export async function PATCH(request: Request) {
   if ("response" in auth) return auth.response;
   const body = await request.json().catch(() => ({}));
   const result = await updateInvoiceSettings(auth.admin.id, {
-    paymentGatewayEnabled: body.paymentGatewayEnabled,
     invoiceTaxRate: body.invoiceTaxRate,
     invoiceTaxLabel: body.invoiceTaxLabel,
     renewalInvoicesEnabled: body.renewalInvoicesEnabled,

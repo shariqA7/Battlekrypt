@@ -132,7 +132,7 @@ export const API_FOLDER_AREAS: Record<string, AdminArea | null> = {
   "organizer-trust": "organizer_trust",
   plans: "plans", "plan-fields": "plans",
   payments: "payments", payouts: "payments", "plan-requests": "payments",
-  invoices: "payments", "invoice-settings": "payments", "payment-methods": "payments",
+  invoices: "payments", "invoice-settings": "payments", "payment-methods": "payments", "payment-channels": "payments",
   expenses: "ledger", ledger: "ledger", "tax-payments": "ledger",
   "payment-disputes": "approvals",
   deposits: "deposits",

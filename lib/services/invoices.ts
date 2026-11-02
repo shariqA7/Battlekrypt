@@ -34,6 +34,7 @@ import {
 } from "@/lib/invoice-math";
 import { cursorArgs, toPage, type Page, type PageQuery } from "@/lib/admin-paging";
 import { notify } from "@/lib/services/notifications";
+import { isChannelEnabled } from "@/lib/services/payment-channels";
 import { emailInvoiceIssued, emailInvoicePaid, emailInvoiceProofRejected } from "@/lib/services/invoice-emails";
 import { getInvoiceSettings } from "@/lib/services/payment-methods";
 
@@ -50,6 +51,7 @@ const fail = (error: InvoiceErrorCode, message?: string): Fail => ({ error, mess
 
 const OPEN = ["unpaid", "proof_submitted"] as const;
 const money = (v: { toString(): string } | number | null | undefined) => Number(v?.toString() ?? 0);
+const SYSTEM_RECORDER = "system:gateway";
 const fmtDay = (d: Date) => d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 // ------------------------------------------------------------
@@ -364,6 +366,9 @@ export async function submitInvoiceProof(
   if (!inv) return fail("not_found");
   if (inv.userId !== userId) return fail("forbidden");
   if (inv.status !== "unpaid" && inv.status !== "proof_submitted") return fail("not_open");
+  if (!(await isChannelEnabled("manual"))) {
+    return fail("validation_error", "Manual payments are switched off right now, so a payment proof can't be sent. Please use the online payment option, or contact support.");
+  }
   const proof = normalizeProofInput(input.proofUrl, userId);
   if (!proof) {
     return fail("validation_error", "Upload your payment screenshot first.");
@@ -448,7 +453,8 @@ async function grantPlanFromInvoice(
 }
 
 export interface MarkPaidInput {
-  adminId: string;
+  /** The admin recording it, or null when the payment gateway confirmed it. */
+  adminId: string | null;
   invoiceId: string;
   methodId?: string | null;
   /** Used when the money came in a way that isn't a saved method (cash, a one-off transfer). */
@@ -543,7 +549,7 @@ export async function markInvoicePaid(input: MarkPaidInput) {
           method: methodName!,
           reference: inv.number,
           note,
-          recordedById: input.adminId,
+          recordedById: input.adminId ?? SYSTEM_RECORDER,
         },
       });
     }
@@ -557,19 +563,22 @@ export async function markInvoicePaid(input: MarkPaidInput) {
           method: methodName!,
           reference: `${inv.number}-deposit`,
           note: `${note} · security fee (refundable)`,
-          recordedById: input.adminId,
+          recordedById: input.adminId ?? SYSTEM_RECORDER,
         },
       });
     }
-    await tx.adminActionLog.create({
-      data: {
-        adminId: input.adminId,
-        action: "marked_invoice_paid",
-        targetType: "Invoice",
-        targetId: inv.id,
-        notes: `${inv.number} · ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` · plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
-      },
-    });
+    // The audit log needs an admin; a payment confirmed by the gateway is logged on the gateway record.
+    if (input.adminId) {
+      await tx.adminActionLog.create({
+        data: {
+          adminId: input.adminId,
+          action: "marked_invoice_paid",
+          targetType: "Invoice",
+          targetId: inv.id,
+          notes: `${inv.number} · ${formatMoney(money(inv.total), inv.currency)} via ${methodName}${expiresAt ? ` · plan until ${expiresAt.toISOString().slice(0, 10)}` : ""}`,
+        },
+      });
+    }
     return { data: { number: inv.number, userId: inv.userId, expiresAt, startsAt, planName: inv.planName, total: money(inv.total), currency: inv.currency, id: inv.id } };
   });
 

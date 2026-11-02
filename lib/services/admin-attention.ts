@@ -47,7 +47,8 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     countPendingChangeRequests(),
     prisma.identityVerification.count({ where: { status: "pending" } }),
     countOpenReports(),
-    prisma.invoice.count({ where: { status: "proof_submitted" } }),
+    // Payment proofs to check, plus online payments an admin has to look at.
+    Promise.all([prisma.invoice.count({ where: { status: "proof_submitted" } }), prisma.gatewayPayment.count({ where: { needsReview: true } })]).then(([a, b]) => a + b),
     countDisputesForAdmin(),
     prisma.donation.count({ where: { status: "pending" } }),
   ]);

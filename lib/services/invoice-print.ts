@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { displayStatus } from "@/lib/invoice-math";
 import { getInvoiceSettings, listPaymentMethods } from "@/lib/services/payment-methods";
+import { isChannelEnabled } from "@/lib/services/payment-channels";
 
 export async function getInvoicePrintData(invoiceId: string, who: { userId: string } | { admin: true }) {
   const inv = await prisma.invoice.findUnique({
@@ -16,9 +17,10 @@ export async function getInvoicePrintData(invoiceId: string, who: { userId: stri
   if ("userId" in who && inv.userId !== who.userId) return null;
 
   const open = inv.status === "unpaid" || inv.status === "proof_submitted";
+  const manualOn = open && (await isChannelEnabled("manual"));
   const [settings, methods] = await Promise.all([
     getInvoiceSettings(),
-    open ? listPaymentMethods({ activeOnly: true, currency: inv.currency }) : Promise.resolve([]),
+    manualOn ? listPaymentMethods({ activeOnly: true, currency: inv.currency }) : Promise.resolve([]),
   ]);
   return { invoice: inv, status: displayStatus(inv.status, inv.dueDate), settings, methods };
 }

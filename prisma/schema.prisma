@@ -2616,6 +2616,7 @@ model Invoice {
   waivedById String?
 
   lines InvoiceLine[]
+  gatewayPayments GatewayPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2936,4 +2937,72 @@ model AccountErasure {
   note        String?
 
   @@index([userId])
+}
+
+// ------------------------------------------------------------
+// ONLINE PAYMENT GATEWAY (NOWPayments, crypto)
+// ------------------------------------------------------------
+// One row per checkout an organization starts for an invoice. `id` is sent to the gateway as the
+// order id, so a notification can always be matched back to the right invoice. Only a verified
+// "finished" notification whose amount matches the invoice marks it paid.
+
+model GatewayPayment {
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  provider  String // "nowpayments"
+
+  providerInvoiceId String?
+  providerPaymentId String?
+  checkoutUrl       String?
+
+  // What the checkout was created for (the invoice total at that time).
+  priceAmount   Decimal @db.Decimal(14, 2)
+  priceCurrency String
+
+  // The gateway's own status: created (ours), waiting, confirming, confirmed, sending,
+  // partially_paid, finished, failed, refunded, expired.
+  status       String   @default("created")
+  payCurrency  String?
+  payAmount    Decimal? @db.Decimal(28, 12)
+  actuallyPaid Decimal? @db.Decimal(28, 12)
+
+  // Something an admin has to look at: a part payment, a refund, or an amount that didn't match.
+  needsReview Boolean @default(false)
+  reviewNote  String?
+  settledAt   DateTime?
+
+  events GatewayEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([providerPaymentId])
+  @@index([needsReview])
+}
+
+// Every notification the gateway sent (for audit and for working out what went wrong).
+model GatewayEvent {
+  id               String         @id @default(uuid())
+  gatewayPaymentId String
+  gatewayPayment   GatewayPayment @relation(fields: [gatewayPaymentId], references: [id], onDelete: Cascade)
+  status           String
+  payload          Json
+  createdAt        DateTime       @default(now())
+
+  @@index([gatewayPaymentId, createdAt])
+}
+
+// ------------------------------------------------------------
+// WAYS TO PAY: one on/off switch per payment channel
+// ------------------------------------------------------------
+// A channel is a whole way of paying an invoice: "manual" (bank, wallet or crypto-address methods
+// plus the screenshot proof), or an online gateway such as "nowpayments". Each can be switched on
+// or off on its own. A missing row means the channel's default (see lib/payment-channels.ts).
+
+model PaymentChannel {
+  key       String   @id
+  enabled   Boolean
+  updatedAt DateTime @updatedAt
 }

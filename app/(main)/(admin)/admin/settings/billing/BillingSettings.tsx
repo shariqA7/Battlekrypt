@@ -10,10 +10,9 @@ const field = "bg-bk-bg border border-bk-border text-bk-heading text-[13px] font
 export default function BillingSettings({
   initial,
 }: {
-  initial: { paymentGatewayEnabled: boolean; invoiceTaxRate: number; invoiceTaxLabel: string; renewalInvoicesEnabled: boolean; renewalLeadDays: number; invoiceIssuerName: string; invoiceIssuerDetails: string; invoiceFooterNote: string };
+  initial: { invoiceTaxRate: number; invoiceTaxLabel: string; renewalInvoicesEnabled: boolean; renewalLeadDays: number; invoiceIssuerName: string; invoiceIssuerDetails: string; invoiceFooterNote: string };
 }) {
   const router = useRouter();
-  const [gateway, setGateway] = useState(initial.paymentGatewayEnabled);
   const [rate, setRate] = useState(String(initial.invoiceTaxRate));
   const [label, setLabel] = useState(initial.invoiceTaxLabel);
   const [renew, setRenew] = useState(initial.renewalInvoicesEnabled);
@@ -32,7 +31,7 @@ export default function BillingSettings({
     const res = await fetch("/api/admin/invoice-settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentGatewayEnabled: gateway, invoiceTaxRate: Number(rate), invoiceTaxLabel: label, renewalInvoicesEnabled: renew, renewalLeadDays: Number(lead), invoiceIssuerName: issuer, invoiceIssuerDetails: issuerDetails, invoiceFooterNote: footer }),
+      body: JSON.stringify({ invoiceTaxRate: Number(rate), invoiceTaxLabel: label, renewalInvoicesEnabled: renew, renewalLeadDays: Number(lead), invoiceIssuerName: issuer, invoiceIssuerDetails: issuerDetails, invoiceFooterNote: footer }),
     });
     const body = await res.json().catch(() => ({}));
     setMsg(res.ok ? { text: "Saved.", error: false } : { text: body.error?.message ?? "Could not save.", error: true });
@@ -57,16 +56,6 @@ export default function BillingSettings({
     <section>
       <p className="font-sans font-medium text-bk-heading text-sm mb-3">Invoicing</p>
       <div className="bg-bk-surface border border-bk-border p-4 space-y-4">
-        <div>
-          <label className="flex items-center gap-2 font-sans text-[13px] text-bk-heading cursor-pointer">
-            <input type="checkbox" checked={gateway} onChange={(e) => setGateway(e.target.checked)} />
-            Payment gateway is on
-          </label>
-          <p className="font-sans text-[11px] text-bk-muted mt-1 pl-6">
-            Off (now): organizations pay one of the methods below and upload a screenshot, and you mark the invoice paid. A gateway
-            is not connected yet, so switching this on does not change how invoices are paid today.
-          </p>
-        </div>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block font-sans text-[12px] text-bk-muted">
             <span className="block mb-1">Default tax rate on new invoices (%)</span>
