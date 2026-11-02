@@ -62,3 +62,31 @@ export function consentWithdrawnEmail(opts: { to: string; childName: string }): 
   const text = `Permission withdrawn\n\n${childName}'s upcoming entries have been cancelled and they can no longer join anything new on BattleKrypt. They can still browse.\n\nIf this wasn't you, or you change your mind, ${childName} can send you a new request at any time.`;
   return { to, subject, html, text };
 }
+
+// ---------------------------------------------------------------- account deletion
+
+const shell = (title: string, body: string) =>
+  `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1c1a14"><h2 style="margin:0 0 12px">${title}</h2>${body}</div>`;
+
+export function deletionScheduledEmail(opts: { to: string; dueAt: Date; accountLink: string }): EmailMessage {
+  const due = opts.dueAt.toISOString().slice(0, 10);
+  const subject = "Your BattleKrypt account will be deleted";
+  const html = shell("Account deletion scheduled", `<p>We received a request to delete your BattleKrypt account. It will be permanently deleted on <strong>${due}</strong>.</p><p>Changed your mind, or didn't ask for this? Sign in and cancel before then:</p><p style="margin:24px 0"><a href="${esc(opts.accountLink)}" style="background:#1c1a14;color:#fff;padding:12px 20px;text-decoration:none;font-weight:bold">Review or cancel</a></p><p style="font-size:13px;color:#555">If you did not request this, someone may have access to your account: sign in, cancel the deletion, and change your password.</p>`);
+  const text = `Account deletion scheduled\n\nWe received a request to delete your BattleKrypt account. It will be permanently deleted on ${due}.\n\nChanged your mind, or didn't ask for this? Sign in and cancel before then:\n${opts.accountLink}\n\nIf you did not request this, someone may have access to your account: sign in, cancel the deletion, and change your password.`;
+  return { to: opts.to, subject, html, text };
+}
+
+export function deletionBlockedEmail(opts: { to: string; reasons: string[]; accountLink: string }): EmailMessage {
+  const subject = "Your account deletion was cancelled";
+  const items = opts.reasons.map((r) => `<li>${esc(r)}</li>`).join("");
+  const html = shell("We couldn't delete your account yet", `<p>Your scheduled account deletion was cancelled because something is still open on your account:</p><ul>${items}</ul><p>Once that is sorted out you can request deletion again.</p><p style="margin:24px 0"><a href="${esc(opts.accountLink)}" style="background:#1c1a14;color:#fff;padding:12px 20px;text-decoration:none;font-weight:bold">Go to your account</a></p>`);
+  const text = `We couldn't delete your account yet\n\nYour scheduled account deletion was cancelled because something is still open on your account:\n- ${opts.reasons.join("\n- ")}\n\nOnce that is sorted out you can request deletion again:\n${opts.accountLink}`;
+  return { to: opts.to, subject, html, text };
+}
+
+export function deletionCompletedEmail(opts: { to: string }): EmailMessage {
+  const subject = "Your BattleKrypt account has been deleted";
+  const html = shell("Account deleted", `<p>Your BattleKrypt account and the personal information on it have been deleted. We keep only what the law requires us to keep (for example payment and invoice records), which no longer carry your name.</p><p>You're welcome to sign up again any time.</p>`);
+  const text = `Account deleted\n\nYour BattleKrypt account and the personal information on it have been deleted. We keep only what the law requires us to keep (for example payment and invoice records), which no longer carry your name.\n\nYou're welcome to sign up again any time.`;
+  return { to: opts.to, subject, html, text };
+}

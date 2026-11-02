@@ -139,6 +139,10 @@ export default function UserMenu({
               <TrophyIcon />
               My plans
             </MenuLink>
+            <MenuLink href="/account" onNavigate={() => setOpen(false)}>
+              <UserIcon />
+              Account &amp; privacy
+            </MenuLink>
             {!isOrganizer && !orgApplicationStatus && (
               <MenuLink href="/organizer/register" onNavigate={() => setOpen(false)}>
                 <TrophyIcon />

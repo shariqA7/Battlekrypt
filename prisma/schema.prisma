@@ -54,6 +54,11 @@ model User {
   staffAddedById  String?
   staffAddedAt    DateTime?
   staffPermissions StaffPermission[] @relation("StaffPermissions")
+  // ACCOUNT DELETION (see lib/services/account-deletion.ts): requested -> 14-day cooling-off -> erased.
+  // After erasure the row stays (history links to it) as an anonymous "Deleted user".
+  deletionRequestedAt DateTime?
+  deletionDueAt       DateTime?
+  deletedAt           DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -2917,4 +2922,18 @@ model TaxPayment {
 
   @@index([date])
   @@index([type, date])
+}
+
+// One row per erased account: proof that the erasure happened and what it covered. Holds NO
+// personal data (the user id is just an anonymous id once the account is erased).
+model AccountErasure {
+  id          String   @id @default(uuid())
+  userId      String
+  requestedAt DateTime?
+  erasedAt    DateTime @default(now())
+  filesRemoved Int     @default(0)
+  filesKept    Int     @default(0) // financial records kept for the legal retention period
+  note        String?
+
+  @@index([userId])
 }
