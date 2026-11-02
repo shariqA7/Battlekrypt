@@ -13,7 +13,7 @@
 import { prisma } from "@/lib/prisma";
 import { loadStaffContext } from "@/lib/services/staff";
 import { hasAccess, type AdminArea } from "@/lib/staff-permissions";
-import { PROOF_BUCKET, PROOF_LINK_SECONDS, isPrivateProofPath } from "@/lib/proof-storage";
+import { PROOF_BUCKET, PROOF_LINK_SECONDS, isLegacyPublicLink, isPrivateProofPath } from "@/lib/proof-storage";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export type ProofKindParam =
@@ -136,7 +136,7 @@ export async function authorizeProofView(input: {
 
 /** Where to send the viewer: an old public link as it is, a private file as a 5-minute signed link. */
 export async function linkForProof(value: string): Promise<string | null> {
-  if (!isPrivateProofPath(value)) return value;
+  if (!isPrivateProofPath(value)) return isLegacyPublicLink(value) ? value : null; // e.g. "erased"
   const { data, error } = await createServiceClient().storage.from(PROOF_BUCKET).createSignedUrl(value, PROOF_LINK_SECONDS);
   return error || !data ? null : data.signedUrl;
 }
