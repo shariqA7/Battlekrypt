@@ -130,7 +130,7 @@ export default function PaymentMethodsManager({ methods }: { methods: MethodData
         )}
       </div>
       <p className="font-sans text-[12px] text-bk-muted mb-3">
-        Organizations see the active methods that match an invoice&apos;s currency, with every detail below, and pay one of them. Only you can see this page.
+        These are the methods for manual payments. Each has its own switch. Organizations see the active ones that match an invoice&apos;s currency, with every detail, and pay one of them. They only see them while Manual payments is switched on above. Only you can see this page.
       </p>
 
       {editing !== null && (

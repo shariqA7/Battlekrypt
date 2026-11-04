@@ -32,10 +32,9 @@ consent periods for the places you operate.
 ## Files and who can open them
 
 Payment screenshots (entries, plans, invoices, club fees), ID photos, challenge files, dispute evidence and expense receipts sit in
-**private** storage. **Not yet:** donation screenshots and tax payment slips are still uploaded to the public bucket and are
-being moved to private storage. Nobody opens a file by its link: the server first checks who is asking
+**private** storage. Donation screenshots and tax payment slips are private too. Nobody opens a file by its link: the server first checks who is asking
 (`lib/services/proof-access.ts`) and then hands out a link that works for 5 minutes. Only logos,
-banners, branding images, carousel slides and avatars should be public.
+banners, branding images, carousel slides and avatars are public.
 
 ## Account deletion
 

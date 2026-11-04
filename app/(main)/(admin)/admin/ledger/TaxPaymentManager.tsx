@@ -89,7 +89,7 @@ export default function TaxPaymentManager({ payments, total, currencies }: { pay
           <input value={f.note} onChange={set("note")} maxLength={500} placeholder="Note (optional)" className={`${field} w-full`} />
           <div>
             <p className="font-sans text-[12px] text-bk-muted mb-1">Payment slip or receipt (optional){editing !== "new" ? " — leave empty to keep the current one" : ""}</p>
-            <FileUpload bucket="tournament-assets" pathPrefix="tax-receipts" label="Upload slip" onUploaded={(url: string) => setF((p) => ({ ...p, receiptUrl: url }))} />
+            <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="tax-receipts" label="Upload slip" onUploaded={(url: string) => setF((p) => ({ ...p, receiptUrl: url }))} />
           </div>
           {error && <p role="alert" className="font-sans text-[12px] text-bk-live">{error}</p>}
           <div className="flex gap-2">
@@ -113,7 +113,7 @@ export default function TaxPaymentManager({ payments, total, currencies }: { pay
                 <td className="px-3 py-2 text-bk-heading">
                   {[x.authority, x.periodNote].filter(Boolean).join(" · ") || "—"}
                   {x.reference && <span className="font-mono text-bk-muted"> · {x.reference}</span>}
-                  {x.receiptUrl && <> · <a href={x.receiptUrl} target="_blank" rel="noreferrer" className="text-bk-gold-light underline">slip</a></>}
+                  {x.receiptUrl && <> · <a href={`/api/proofs/tax_payment/${x.id}`} target="_blank" rel="noreferrer" className="text-bk-gold-light underline">slip</a></>}
                   {x.note && <span className="block text-[11px] text-bk-muted">{x.note}</span>}
                 </td>
                 <td className="px-3 py-2 text-right font-mono text-bk-heading">{formatMoney(x.amount, x.currency)}</td>

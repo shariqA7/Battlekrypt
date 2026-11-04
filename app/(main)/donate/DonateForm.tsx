@@ -148,7 +148,7 @@ export default function DonateForm({
           <textarea id="d-message" value={message} onChange={(e) => setMessage(e.target.value)} rows={2} maxLength={300} className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2" />
 
           <div className="mt-4">
-            <FileUpload bucket="tournament-assets" pathPrefix="donation-proofs" label="Upload payment screenshot" onUploaded={setProof} />
+            <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="donation-proofs" label="Upload payment screenshot" onUploaded={setProof} />
             {proof && <p className="font-sans text-[11px] text-bk-teal mt-1">✓ screenshot uploaded</p>}
           </div>
 

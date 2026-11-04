@@ -35,9 +35,9 @@ export default function DonationsReview({ items }: { items: Pending[] }) {
       <ul className="divide-y divide-bk-border border border-bk-border">
         {items.map((d) => (
           <li key={d.id} className="p-3 flex flex-wrap items-start gap-4">
-            <a href={d.proofUrl} target="_blank" rel="noopener noreferrer" className="shrink-0" aria-label="Open the payment screenshot">
+            <a href={`/api/proofs/donation/${d.id}`} target="_blank" rel="noopener noreferrer" className="shrink-0" aria-label="Open the payment screenshot">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={d.proofUrl} alt="Payment screenshot" className="w-24 h-24 object-cover border border-bk-border" />
+              <img src={`/api/proofs/donation/${d.id}`} alt="Payment screenshot" className="w-24 h-24 object-cover border border-bk-border" />
             </a>
             <div className="min-w-0 flex-1 font-sans text-[12px]">
               <p className="text-bk-heading font-bold text-[15px]">{formatMoney(d.amount, d.currency)} <DuplicateProofBadge match={d.duplicate} scope="admin" /></p>

@@ -5,7 +5,8 @@
 //   npx tsx scripts/migrate-proofs-to-private.ts --delete-old    moves them AND deletes the public copy
 //
 // Covers payment proofs (entries, plan payments, club fees, invoices), payment-dispute evidence,
-// challenge screenshots / receipts / dispute evidence, and ledger expense receipts.
+// challenge screenshots / receipts / dispute evidence, ledger expense receipts, donation screenshots
+// and tax payment slips.
 //
 // Reads .env.local (DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY). Safe to run
 // again: only proofs that are still public links are touched. Per proof it copies the file,
@@ -140,6 +141,18 @@ async function main() {
   for (const x of await prisma.expense.findMany({ where: { receiptUrl: { startsWith: prefix } }, select: { id: true, receiptUrl: true, createdById: true } })) {
     const c = await copy(x.receiptUrl!, x.createdById ?? "migrated", "expense-receipts");
     if (c && !dry) { await prisma.expense.update({ where: { id: x.id }, data: { receiptUrl: c.path } }); await finish(c.old); }
+  }
+
+  console.log("Donations");
+  for (const r of await prisma.donation.findMany({ where: { proofUrl: { startsWith: prefix } }, select: { id: true, proofUrl: true, userId: true } })) {
+    const c = await copy(r.proofUrl, r.userId, "donation-proofs");
+    if (c && !dry) { await prisma.donation.update({ where: { id: r.id }, data: { proofUrl: c.path } }); await finish(c.old); }
+  }
+
+  console.log("Tax payment slips");
+  for (const r of await prisma.taxPayment.findMany({ where: { receiptUrl: { startsWith: prefix } }, select: { id: true, receiptUrl: true, createdById: true } })) {
+    const c = await copy(r.receiptUrl!, r.createdById ?? "migrated", "tax-receipts");
+    if (c && !dry) { await prisma.taxPayment.update({ where: { id: r.id }, data: { receiptUrl: c.path } }); await finish(c.old); }
   }
 
   console.log(`\n${dry ? "Would move" : "Moved"}: ${counts.moved}. Skipped (no owner): ${counts.skippedNoOwner}. Failed: ${counts.failed}.`);

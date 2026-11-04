@@ -7,6 +7,10 @@ import { formatMoney } from "@/lib/money";
 import InvoiceDocument from "@/components/invoices/InvoiceDocument";
 import CopyButton from "@/components/invoices/CopyButton";
 import ProofForm from "./ProofForm";
+import CryptoPay from "./CryptoPay";
+import { isChannelEnabled } from "@/lib/services/payment-channels";
+import { cryptoCheckoutAvailable, listGatewayPayments } from "@/lib/services/nowpayments";
+import { IN_FLIGHT } from "@/lib/nowpayments";
 
 type Method = Awaited<ReturnType<typeof listPaymentMethods>>[number];
 
@@ -61,8 +65,9 @@ function MethodCard({ m }: { m: Method }) {
   );
 }
 
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InvoicePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string }> }) {
   const { id } = await params;
+  const { paid: returned } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -73,7 +78,12 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   if (!mine) notFound();
   const { invoice: i, status } = mine;
   const open = i.status === "unpaid";
-  const methods = open ? await listPaymentMethods({ activeOnly: true, currency: i.currency }) : [];
+  // Manual payments (bank / wallet / crypto address + screenshot) can be switched off separately.
+  const manualOn = open && (await isChannelEnabled("manual"));
+  const methods = manualOn ? await listPaymentMethods({ activeOnly: true, currency: i.currency }) : [];
+  const attempts = i.status === "unpaid" || i.status === "paid" ? await listGatewayPayments(i.id) : [];
+  const inFlight = open ? attempts.find((a) => IN_FLIGHT.includes(a.status)) : undefined;
+  const cryptoAvailable = open && !inFlight && (await cryptoCheckoutAvailable(i.currency));
 
   return (
     <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full space-y-5">
@@ -108,8 +118,28 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
               Your last payment proof was not accepted: {i.proofRejectedNote}
             </p>
           )}
+          {returned === "1" && !inFlight && (
+            <p className="font-sans text-[13px] text-bk-amber border border-bk-amber/40 p-3">
+              Thanks. If you completed the payment, it can take a few minutes to confirm. This invoice updates by itself and you will get a notification.
+            </p>
+          )}
+          {inFlight && (
+            <div className="bg-bk-surface border border-bk-amber/40 p-4 font-sans text-[13px]">
+              <p className="text-bk-amber font-bold mb-1">Your crypto payment: {inFlight.statusText}</p>
+              <p className="text-bk-muted text-[12px]">
+                This invoice will be marked paid automatically when it completes. If it looks stuck, contact support and mention invoice {i.number}.
+              </p>
+            </div>
+          )}
+          {!manualOn && !cryptoAvailable && !inFlight && (
+            <p className="font-sans text-[13px] text-bk-muted border border-bk-border p-3">
+              Payments for this invoice aren&apos;t available online right now. Please contact support and mention invoice {i.number}.
+            </p>
+          )}
+          {cryptoAvailable && <CryptoPay invoiceId={i.id} amountLabel={formatMoney(Number(i.total.toString()), i.currency)} />}
+          {manualOn && (
           <section>
-            <h2 className="font-sans font-bold text-[15px] text-bk-heading mb-1">How to pay</h2>
+            <h2 className="font-sans font-bold text-[15px] text-bk-heading mb-1">{cryptoAvailable ? "Or pay by bank, wallet or crypto address" : "How to pay"}</h2>
             <p className="font-sans text-[12px] text-bk-muted mb-3">
               Send exactly <span className="font-mono text-bk-heading">{formatMoney(Number(i.total.toString()), i.currency)}</span> using one of these, then upload a screenshot below. Pay only to the details shown here.
             </p>
@@ -119,7 +149,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
               <div className="space-y-3">{methods.map((m) => <MethodCard key={m.id} m={m} />)}</div>
             )}
           </section>
-          <ProofForm invoiceId={i.id} methods={methods.map((m) => ({ id: m.id, name: m.name, type: m.type }))} />
+          )}
+          {manualOn && !inFlight && <ProofForm invoiceId={i.id} methods={methods.map((m) => ({ id: m.id, name: m.name, type: m.type }))} />}
         </>
       )}
     </main>

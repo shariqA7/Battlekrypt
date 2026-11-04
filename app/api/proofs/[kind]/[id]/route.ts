@@ -6,7 +6,8 @@ import { PROOF_KINDS, authorizeProofView, linkForProof, type ProofKindParam } fr
 // Opens a payment proof for someone who is allowed to see it, by redirecting to a short-lived
 // link. Works as a plain link or an <img src>. kind: registration, plan_request, club_fee,
 // invoice, dispute (evidence on a payment dispute), challenge_proof, challenge_receipt,
-// challenge_dispute (use ?i= and, for disputes, ?side=), or expense (a ledger receipt).
+// challenge_dispute (use ?i= and, for disputes, ?side=), expense (a ledger receipt), tax_payment
+// (a tax slip) or donation.
 export async function GET(request: Request, { params }: { params: Promise<{ kind: string; id: string }> }) {
   const { kind, id } = await params;
   const fail = (status: number, code: string, message: string) =>

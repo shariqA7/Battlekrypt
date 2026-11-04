@@ -75,7 +75,6 @@ export async function deletePaymentMethod(adminId: string, id: string) {
 export async function getInvoiceSettings() {
   const s = await prisma.siteSettings.findUnique({ where: { id: "singleton" } });
   return {
-    paymentGatewayEnabled: s?.paymentGatewayEnabled ?? false,
     invoiceTaxRate: Number(s?.invoiceTaxRate?.toString() ?? 0),
     invoiceTaxLabel: s?.invoiceTaxLabel ?? "Tax",
     renewalInvoicesEnabled: s?.renewalInvoicesEnabled ?? true,
@@ -86,12 +85,8 @@ export async function getInvoiceSettings() {
   };
 }
 
-export async function updateInvoiceSettings(adminId: string, input: { paymentGatewayEnabled?: unknown; invoiceTaxRate?: unknown; invoiceTaxLabel?: unknown; renewalInvoicesEnabled?: unknown; renewalLeadDays?: unknown; invoiceIssuerName?: unknown; invoiceIssuerDetails?: unknown; invoiceFooterNote?: unknown }) {
-  const data: { paymentGatewayEnabled?: boolean; invoiceTaxRate?: number; invoiceTaxLabel?: string; renewalInvoicesEnabled?: boolean; renewalLeadDays?: number; invoiceIssuerName?: string; invoiceIssuerDetails?: string | null; invoiceFooterNote?: string | null } = {};
-  if (input.paymentGatewayEnabled !== undefined) {
-    if (typeof input.paymentGatewayEnabled !== "boolean") return { error: "validation_error", message: "Invalid gateway switch." } as Fail;
-    data.paymentGatewayEnabled = input.paymentGatewayEnabled;
-  }
+export async function updateInvoiceSettings(adminId: string, input: { invoiceTaxRate?: unknown; invoiceTaxLabel?: unknown; renewalInvoicesEnabled?: unknown; renewalLeadDays?: unknown; invoiceIssuerName?: unknown; invoiceIssuerDetails?: unknown; invoiceFooterNote?: unknown }) {
+  const data: { invoiceTaxRate?: number; invoiceTaxLabel?: string; renewalInvoicesEnabled?: boolean; renewalLeadDays?: number; invoiceIssuerName?: string; invoiceIssuerDetails?: string | null; invoiceFooterNote?: string | null } = {};
   if (input.invoiceTaxRate !== undefined) {
     const r = input.invoiceTaxRate;
     if (typeof r !== "number" || !Number.isFinite(r) || r < 0 || r > 100) return { error: "validation_error", message: "Tax rate must be between 0 and 100." } as Fail;

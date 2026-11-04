@@ -6,6 +6,8 @@ import { listPaymentMethods } from "@/lib/services/payment-methods";
 import { formatMoney } from "@/lib/money";
 import InvoiceDocument from "@/components/invoices/InvoiceDocument";
 import InvoiceActions from "./InvoiceActions";
+import GatewayPanel from "./GatewayPanel";
+import { listGatewayPayments } from "@/lib/services/nowpayments";
 import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
 import { findProofMatches } from "@/lib/services/proof-fingerprints";
 
@@ -17,6 +19,7 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
   const { invoice: i, status } = detail;
   const methods = (await listPaymentMethods({ activeOnly: true, currency: i.currency })).map((m) => ({ id: m.id, name: m.name }));
   const open = i.status === "unpaid" || i.status === "proof_submitted";
+  const gatewayRows = await listGatewayPayments(i.id);
   const total = Number(i.total.toString());
   const duplicate = i.status === "proof_submitted" ? (await findProofMatches("invoice", [id])).get(id) : undefined;
 
@@ -37,6 +40,8 @@ export default async function AdminInvoicePage({ params }: { params: Promise<{ i
         </p>
         <p className="text-bk-muted">Created {i.source === "renewal" ? "automatically, to renew the plan" : i.source === "application_approved" ? "when the application was approved" : i.source === "admin_added" ? "when you added the organization" : "by an admin"}.</p>
       </div>
+
+      {gatewayRows.length > 0 && <GatewayPanel invoiceId={i.id} rows={gatewayRows} />}
 
       {i.status === "proof_submitted" && i.proofUrl && (
         <div className="bg-bk-surface border border-bk-amber/40 p-4">
