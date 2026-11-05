@@ -44,6 +44,7 @@ const LABELS: Record<string, { label: string; kind: "limit" | "count" | "flag" }
   maxChallengesPerMonth: { label: "Challenges posted / month", kind: "limit" },
   maxChallengePrizeUsd: { label: "Max challenge prize (USD)", kind: "limit" },
   canJoinChallenges: { label: "Can join challenges", kind: "flag" },
+  maxGiveawaysPerMonth: { label: "Giveaways run / month", kind: "limit" },
 };
 
 const input =

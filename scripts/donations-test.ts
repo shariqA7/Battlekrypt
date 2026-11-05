@@ -3,6 +3,7 @@
 // Needs a Postgres with all migrations applied (see phase8-1-test.ts).
 import { prisma } from "../lib/prisma";
 import { recordFingerprint } from "../lib/services/proof-fingerprints";
+import { authorizeProofView } from "../lib/services/proof-access";
 import { getVerifiedStatus } from "../lib/verified";
 import {
   createDonation, reviewDonation, createCampaign, updateCampaign, allocateFund, getFundSummary, getDonateOverview,
@@ -26,7 +27,12 @@ async function main() {
   await prisma.plan.update({ where: { code: "player_basic" }, data: { isPaid: false } }); // a free custom plan is not "verified"
   await plan("donor1", "player_free"); await plan("donor2", "player_free"); await plan("spam", "player_free");
   await prisma.organizerProfile.create({ data: { userId: "org", orgName: "Verified Org", planCode: "organizer_pro", planExpiresAt: null } });
-  await prisma.clubProfile.create({ data: { userId: "club", clubName: "Paid Club", subscriptionPlanCode: "club_pro", planExpiresAt: new Date(Date.now() + day) } as never });
+  await prisma.clubProfile.create({ data: { userId: "club", clubName: "Paid Club", subscriptionPlanCode: "club_pro", planExpiresAt: new Date(Date.now() + day), status: "approved" } as never });
+  // A paid club that no admin has approved yet, and an organizer whose scheduled paid plan has already started.
+  await prisma.user.createMany({ data: ["clubPending", "scheduled", "scheduledLater"].map((u) => ({ id: u, email: `${u}@x.com`, displayName: u })) });
+  await prisma.clubProfile.create({ data: { userId: "clubPending", clubName: "Pending Club", subscriptionPlanCode: "club_pro", planExpiresAt: null, status: "pending" } as never });
+  await prisma.organizerProfile.create({ data: { userId: "scheduled", orgName: "Scheduled Org", planCode: "organizer_free", nextPlanCode: "organizer_pro", nextPlanStartsAt: new Date(Date.now() - day), nextPlanDays: 30 } });
+  await prisma.organizerProfile.create({ data: { userId: "scheduledLater", orgName: "Later Org", planCode: "organizer_free", nextPlanCode: "organizer_pro", nextPlanStartsAt: new Date(Date.now() + 5 * day), nextPlanDays: 30 } });
 
   // ---- "verified" = an active paid plan ----
   ok("free player is not verified", !(await getVerifiedStatus("free")).verified);
@@ -36,6 +42,9 @@ async function main() {
   ok("organization on a paid plan (no end date) is verified", (await getVerifiedStatus("org")).via === "organizer");
   ok("club on a paid plan is verified", (await getVerifiedStatus("club")).via === "club");
   ok("unknown user is not verified", !(await getVerifiedStatus("nobody")).verified);
+  ok("a paid club nobody has approved yet is not verified", !(await getVerifiedStatus("clubPending")).verified);
+  ok("a scheduled paid plan counts from the day it starts", (await getVerifiedStatus("scheduled")).via === "organizer");
+  ok("a scheduled plan that has not started yet does not count", !(await getVerifiedStatus("scheduledLater")).verified);
 
   // ---- giving to the general fund ----
   let seq = 0;
@@ -52,6 +61,29 @@ async function main() {
   ok("a donation waits as pending", "data" in d1 && (await prisma.donation.findUnique({ where: { id: (d1 as { data: { id: string } }).data.id } }))?.status === "pending");
   ok("pending money is not in the fund yet", Object.keys((await getFundSummary()).raised).length === 0);
   ok("pending list shows donor and verified flag", (await listPendingDonations())[0]?.donor === "Name donor1" && (await listPendingDonations())[0].verified === false);
+
+  // ---- the screenshot is private: only the donor's own file is accepted, and only the right people can open it ----
+  await prisma.user.createMany({ data: [
+    { id: "boss", email: "boss@x.com", displayName: "Boss", isAdmin: true, staffRole: "super_admin" },
+    { id: "mgrAppr", email: "mgra@x.com", displayName: "Mgr A", isAdmin: true, staffRole: "manager" },
+    { id: "mgrDon", email: "mgrd@x.com", displayName: "Mgr D", isAdmin: true, staffRole: "manager" },
+  ] });
+  await prisma.staffPermission.create({ data: { userId: "mgrAppr", permission: "approvals", access: "view" } });
+  await prisma.staffPermission.create({ data: { userId: "mgrDon", permission: "donations", access: "view" } });
+  const own = "donor1/donation-proofs/aaaaaaaa-1111.png";
+  ok("a donor can submit their own private file", "data" in (await give("donor1", { proofUrl: own })));
+  ok("a donor can NOT name someone else's file", code(await give("donor1", { proofUrl: "donor2/donation-proofs/bbbbbbbb-2222.png" })) === "validation_error");
+  ok("a path with the wrong shape is refused", code(await give("donor1", { proofUrl: "donor1/../donor2/x.png" })) === "validation_error" && code(await give("donor1", { proofUrl: "donor1/donation-proofs/x" })) === "validation_error");
+  const priv = (await prisma.donation.findFirstOrThrow({ where: { proofUrl: own } })).id;
+  const view = async (viewer: string) => { const r = await authorizeProofView({ viewerUserId: viewer, kind: "donation", id: priv }); return "value" in r ? r.value : r.error; };
+  ok("the donor can open their own proof", (await view("donor1")) === own);
+  ok("another donor can NOT", (await view("donor2")) === "forbidden");
+  ok("a manager with only Approvals can NOT", (await view("mgrAppr")) === "forbidden");
+  ok("a manager with Donations can", (await view("mgrDon")) === own);
+  ok("a super admin can", (await view("boss")) === own);
+  ok("an unknown donation is not found", ("error" in (await authorizeProofView({ viewerUserId: "boss", kind: "donation", id: "nope" })) && (await authorizeProofView({ viewerUserId: "boss", kind: "donation", id: "nope" }) as { error: string }).error === "not_found"));
+  ok("the review queue never sends the storage path to the browser", !JSON.stringify(await listPendingDonations()).includes("donation-proofs"));
+  await prisma.donation.deleteMany({ where: { proofUrl: own } });
 
   // ---- the same screenshot or transaction ID on two donations is flagged (never blocked) ----
   const dupA = (await give("donor2", { amount: 7, reference: "AB-12 34 56" })) as { data: { id: string } };

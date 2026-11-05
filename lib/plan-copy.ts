@@ -43,6 +43,10 @@ export function describeLimits(audience: PlanAudience, l: Limits): string[] {
       ? "No cap on challenge prize size"
       : `Challenge prizes up to $${l.maxChallengePrizeUsd}`
   );
+  if (audience === "organizer") {
+    const g = (l as { maxGiveawaysPerMonth: number | null }).maxGiveawaysPerMonth;
+    out.push(g === null ? "Run unlimited giveaways" : `Run ${g} giveaway${g === 1 ? "" : "s"} per month`);
+  }
   if (l.canJoinChallenges) out.push("Join challenges");
   return out;
 }

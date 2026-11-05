@@ -24,6 +24,7 @@ export const STAFF_PERMISSIONS = [
   { key: "currencies", label: "Currencies", group: "Money", hint: "Enabled currencies" },
   { key: "ledger", label: "Ledger", group: "Money", hint: "Income and expense book and profit reports" },
   { key: "featured", label: "Featured", group: "Platform", hint: "Featured tournaments" },
+  { key: "giveaways", label: "Giveaways", group: "Platform", hint: "Run giveaways, approve organizers' giveaways, draw winners and follow prize delivery" },
   { key: "traffic", label: "Traffic", group: "Platform", hint: "Visits and sessions" },
   { key: "settings", label: "Settings", group: "Platform", hint: "Branding, login options, tiers, features and other platform settings" },
 ] as const;
@@ -52,7 +53,7 @@ export const ROLE_TEMPLATES: Record<"admin" | "manager", StaffGrants> = {
   admin: {
     approvals: "edit", change_requests: "edit", reports: "edit", institutions: "edit", organizer_trust: "edit",
     users: "edit", organizations: "edit", clubs: "edit", plans: "edit", payments: "edit", deposits: "edit",
-    currencies: "edit", donations: "edit", featured: "edit", traffic: "edit", settings: "edit",
+    currencies: "edit", donations: "edit", featured: "edit", giveaways: "edit", traffic: "edit", settings: "edit",
     // ledger deliberately left out: switch it on per person.
   },
   manager: {
@@ -101,6 +102,7 @@ const PATH_AREAS: [string, StaffPermissionKey | "staff" | null][] = [
   ["/admin/currencies", "currencies"],
   ["/admin/ledger", "ledger"],
   ["/admin/featured", "featured"],
+  ["/admin/giveaways", "giveaways"],
   ["/admin/traffic", "traffic"],
   ["/admin/settings", "settings"],
   ["/admin/staff", "staff"],
@@ -139,6 +141,7 @@ export const API_FOLDER_AREAS: Record<string, AdminArea | null> = {
   donations: "donations", "donation-campaigns": "donations", "fund-allocations": "donations", "donation-settings": "donations",
   currencies: "currencies",
   featured: "featured",
+  giveaways: "giveaways",
   "site-settings": "settings", "login-options": "settings", "challenge-settings": "settings", "tier-settings": "settings",
   features: "settings", "club-settings": "settings", "plan-settings": "settings", "carousel-slides": "settings",
 };

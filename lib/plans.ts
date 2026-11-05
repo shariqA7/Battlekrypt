@@ -41,6 +41,7 @@ export const LIMIT_KEYS = {
     maxChallengesPerMonth: "limit",
     maxChallengePrizeUsd: "limit",
     canJoinChallenges: "flag",
+    maxGiveawaysPerMonth: "limit",
   },
   club: {
     maxEntriesPerGame: "limit",
@@ -80,6 +81,8 @@ export interface OrganizerLimits {
   maxChallengesPerMonth: number | null;
   maxChallengePrizeUsd: number | null;
   canJoinChallenges: boolean;
+  // Giveaways this organization may run per calendar month (null = unlimited).
+  maxGiveawaysPerMonth: number | null;
 }
 
 export interface ClubPlanLimits {
@@ -128,6 +131,7 @@ const FREE_DEFAULTS: LimitsByAudience = {
     maxChallengesPerMonth: 1,
     maxChallengePrizeUsd: 10,
     canJoinChallenges: false,
+    maxGiveawaysPerMonth: 1,
   },
   club: {
     maxEntriesPerGame: 1,
@@ -165,6 +169,7 @@ const PAID_DEFAULTS: LimitsByAudience = {
     maxChallengesPerMonth: 10,
     maxChallengePrizeUsd: 100,
     canJoinChallenges: true,
+    maxGiveawaysPerMonth: 10,
   },
   club: {
     maxEntriesPerGame: null,
