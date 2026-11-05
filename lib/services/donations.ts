@@ -274,7 +274,6 @@ export async function listPendingDonations() {
     verified: verified[i].verified,
     amount: num(d.amount),
     currency: d.currency,
-    proofUrl: d.proofUrl,
     reference: d.reference,
     message: d.message,
     anonymous: d.anonymous,

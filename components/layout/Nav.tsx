@@ -15,13 +15,14 @@ const NAV_LINKS = [
   { label: "Live", href: "/live" },
   { label: "Tournaments", href: "/tournaments" },
   { label: "Challenges", href: "/challenges" },
+  { label: "Giveaways", href: "/giveaways" },
   { label: "Rankings", href: "/rankings" },
   { label: "Organizers", href: "/organizers" },
 ];
 
 export default async function Nav() {
   const featureFlags = await getFeatureFlags();
-  const links = NAV_LINKS.filter((l) => l.href !== "/challenges" || featureFlags.challenges);
+  const links = NAV_LINKS.filter((l) => (l.href !== "/challenges" || featureFlags.challenges) && (l.href !== "/giveaways" || featureFlags.giveaways));
   const supabase = await createClient();
   const {
     data: { user },

@@ -33,6 +33,11 @@ export const RETENTION = {
   consentYearsAfterEnd: 3,
   /** Invoices, approved plan payments and ledger expense receipts (tax records). */
   financialRecordYears: 6,
+  /** A giveaway winner's delivery details (name, phone, address): removed this long after the prize was
+   *  confirmed received, or after the winner was replaced or the giveaway cancelled. */
+  giveawayDetailsDaysAfterSettled: 60,
+  /** ...or this long after it was sent, if the winner never confirmed (and never reported a problem). */
+  giveawayDetailsDaysAfterSentUnconfirmed: 180,
 } as const;
 
 const DAY = 86_400_000;
@@ -54,6 +59,8 @@ export function retentionCutoffs(now: Date) {
     unansweredConsent: daysBefore(now, RETENTION.unansweredConsentDays),
     consentEnd: yearsBefore(now, RETENTION.consentYearsAfterEnd),
     financial: yearsBefore(now, RETENTION.financialRecordYears),
+    giveawaySettled: daysBefore(now, RETENTION.giveawayDetailsDaysAfterSettled),
+    giveawaySentUnconfirmed: daysBefore(now, RETENTION.giveawayDetailsDaysAfterSentUnconfirmed),
   };
 }
 

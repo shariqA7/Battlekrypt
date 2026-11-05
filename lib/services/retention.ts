@@ -160,6 +160,29 @@ export async function runRetention(now: Date = new Date(), deps: RetentionDeps =
     return n + donations.length;
   });
 
+  // A winner's name, phone and address are only needed to get the prize to them. Once it is settled
+  // they go; the fact that it was delivered stays.
+  await task("giveawayDeliveryDetails", async () => {
+    const rows = await prisma.giveawayWinner.findMany({
+      where: {
+        AND: [
+          { OR: [{ deliveryName: { not: null } }, { deliveryPhone: { not: null } }, { deliveryAddress: { not: null } }, { deliveryNote: { not: null } }, { disputeNote: { not: null } }] },
+          {
+            OR: [
+              { status: "confirmed", confirmedAt: { lt: k.giveawaySettled } },
+              { status: "delivered", deliveredAt: { lt: k.giveawaySentUnconfirmed } },
+              { status: "replaced", giveaway: { drawnAt: { lt: k.giveawaySettled } } },
+              { giveaway: { status: "cancelled", updatedAt: { lt: k.giveawaySettled } } },
+            ],
+          },
+        ],
+      },
+      take: BATCH, select: { id: true },
+    });
+    if (rows.length) await prisma.giveawayWinner.updateMany({ where: { id: { in: rows.map((r: { id: string }) => r.id) } }, data: { deliveryName: null, deliveryPhone: null, deliveryAddress: null, deliveryNote: null, disputeNote: null } });
+    return rows.length;
+  });
+
   await task("consentRecords", async () => {
     const rows = await prisma.parentalConsent.findMany({
       // Only records that COULD be due (consentAction makes the final call), so records still in force

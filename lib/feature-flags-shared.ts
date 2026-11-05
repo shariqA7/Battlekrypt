@@ -11,6 +11,7 @@ export interface FeatureFlags {
   playerReports: boolean;
   organizerRatings: boolean;
   donations: boolean;
+  giveaways: boolean;
 }
 
 export type FeatureKey = keyof FeatureFlags;
@@ -69,6 +70,12 @@ export const FEATURE_ROWS: { key: FeatureKey; label: string; on: string; off: st
     label: "Donations",
     on: "People can donate to the community fund and to donation campaigns from the Donate page. Admins approve each donation and decide how the fund is used.",
     off: "The Donate page shows a notice and no new donations can be made. Existing donations and the fund records are kept.",
+  },
+  {
+    key: "giveaways",
+    label: "Giveaways",
+    on: "Admins and organizers can run giveaways, and players can enter them (some can be limited to verified members). Winners are drawn at random and the prize is delivered and confirmed.",
+    off: "Giveaway pages show a notice and nobody can create or enter one. Existing giveaways, winners and delivery records are kept.",
   },
   {
     key: "guardianConsent",

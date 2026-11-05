@@ -22,7 +22,9 @@ consent periods for the places you operate.
 | **Challenge match screenshots and payout receipts** | Prove a win or a payout | The poster and the challenger of that entry; admins with Approvals | **12 months** after the entry finished, never while a dispute is open **(config)**. Payout details are erased as soon as the challenge finishes | Daily job; account deletion |
 | **Ledger expense receipts and tax payment slips** | Business accounts and tax records | Admins with the Ledger permission only | **6 years** **(config)** | Daily job |
 | **Donations**: amount, payment screenshot, transaction ID, optional message | Record money given to the community fund | The donor; admins with Donations | Record and screenshot: **6 years** (accepted money) **(config)**. The donor's message is removed when their account is deleted | Daily job; account deletion removes the message |
-| **Organizer ratings**: stars and comment | Organizer credibility | Public (stars and comment, by a player who joined) | Kept | Account deletion removes the comment and keeps the stars |
+| **Organizer ratings**: stars and comment | Organizer credibility | The player who gave it; admins with Organizations (not shown to the public yet) | Kept | Account deletion removes the comment and keeps the stars |
+| **Giveaway entries** | Draw the winners fairly | Admins with Giveaways; the host sees how many entered, not who | Kept with the giveaway | Account deletion removes a person's entries into giveaways that haven't been drawn |
+| **Giveaway winners' delivery details**: name, phone, address, notes | Get the prize to the winner | The winner; the organizer who runs that giveaway; admins with Giveaways | **60 days** after the prize is confirmed received, or after the winner was replaced or the giveaway cancelled. **180 days** after it was sent if never confirmed **(config)**. Whether it was delivered stays | Daily job; account deletion removes them at once |
 | **Payment records, invoices, ledger entries, admin action log, bans** | Accounting, tax, audit trail, stopping repeat abuse | Admins with the matching permission | Kept (financial records at least the 6 years above) | Not deleted with an account; they stay tied to an anonymous "Deleted user" |
 | **Duplicate-check fingerprints** (a hash of a screenshot, never the picture) | Flag the same payment proof used twice | Reviewers see only a "duplicate" flag, never who else used it | **24 months** **(config)** | Daily job |
 | **Notifications** | Tell people what changed | The person | Read: **90 days**. Unread: **365 days** **(config)** | Daily job; account deletion |
@@ -41,6 +43,6 @@ banners, branding images, carousel slides and avatars are public.
 A person can ask for deletion on the Account & privacy page. They have **14 days** to cancel, and
 we email them when they ask and when it is done. It is refused while something is open (a dispute,
 a refund owed, a live event or entry, a club roster, unpaid invoices, a challenge in progress, a
-prize in dispute, or a staff role). On the day, their files and personal details are removed and
+prize in dispute, a giveaway prize they won that isn't finished, giveaways their organization still owes, or a staff role). On the day, their files and personal details are removed and
 the sign-in account is deleted. The record stays as "Deleted user" so history and accounts still
 add up; financial records, bans and the audit log are kept without their name.

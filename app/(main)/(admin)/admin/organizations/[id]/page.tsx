@@ -413,10 +413,25 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
         )}
       </Panel>
 
-      <Panel title="Not tracked yet">
-        <p className="font-sans text-[12px] text-bk-body">
-          Not recorded anywhere on the platform yet, so there is nothing to show: <strong>giveaways</strong>.
-        </p>
+      <Panel title="Giveaways">
+        {o.giveaways.total === 0 ? (
+          <p className="font-sans text-[12px] text-bk-muted">This organizer hasn&apos;t run a giveaway.</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Chip>{o.giveaways.total} run</Chip>
+              <Chip>{o.giveaways.entries} entries</Chip>
+              <Chip>{o.giveaways.winners} winners</Chip>
+              <Chip tone={o.giveaways.confirmationRate !== null && o.giveaways.confirmationRate < 70 ? "bad" : "good"}>{o.giveaways.confirmationRate === null ? "No winners yet" : `${o.giveaways.confirmationRate}% confirmed received`}</Chip>
+              {o.giveaways.disputed > 0 && <Chip tone="bad">{o.giveaways.disputed} reported as not received</Chip>}
+            </div>
+            <ul className="font-sans text-[12px] text-bk-body space-y-1">
+              {o.giveaways.recent.map((g) => (
+                <li key={g.id}><span className="text-bk-muted">{date(g.at)}</span> · <Link href={`/giveaways/${g.slug}`} className="text-bk-heading underline">{g.title}</Link> <span className="text-bk-muted">· {label(g.status)} · {g.entries} entr{g.entries === 1 ? "y" : "ies"}</span></li>
+              ))}
+            </ul>
+          </>
+        )}
       </Panel>
 
       <Panel title="Admin activity">

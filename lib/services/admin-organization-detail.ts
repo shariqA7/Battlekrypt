@@ -15,6 +15,7 @@ import { getOrganizerTrustSummary, HOLD_REASON_TEXT } from "@/lib/services/organ
 import { planStateOf } from "@/lib/services/admin-organizations";
 import { getRatingSummary } from "@/lib/services/organizer-ratings";
 import { getFundSupportFor } from "@/lib/services/donations";
+import { getGiveawayStatsFor } from "@/lib/services/giveaways";
 
 const num = (d: { toString(): string } | null | undefined) => (d == null ? 0 : Number(d.toString()));
 const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
@@ -174,7 +175,7 @@ export async function getOrganizationDetail(id: string) {
   const chStatus: Record<string, number> = {};
   for (const c of challengeRows) chStatus[c.status] = (chStatus[c.status] ?? 0) + 1;
 
-  const [ratings, fundSupport] = await Promise.all([getRatingSummary(id), getFundSupportFor(id)]);
+  const [ratings, fundSupport, giveaways] = await Promise.all([getRatingSummary(id), getFundSupportFor(id), getGiveawayStatsFor(id)]);
 
   const ident = org.identity;
   const iState = identityState(ident);
@@ -314,6 +315,7 @@ export async function getOrganizationDetail(id: string) {
 
     ratings,
     fundSupport,
+    giveaways,
 
     complaints: {
       total: reports.reduce((n, r) => n + r._count, 0),

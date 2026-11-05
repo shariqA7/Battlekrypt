@@ -14,7 +14,7 @@ export const confirmPhraseOk = (typed: unknown) =>
 
 export type BlockerKind =
   | "staff" | "payment_dispute" | "refund_owed" | "payout_hold" | "organizer_events" | "club_roster"
-  | "live_entries" | "open_invoices" | "challenge_posted" | "challenge_entry" | "prize_dispute";
+  | "live_entries" | "open_invoices" | "challenge_posted" | "challenge_entry" | "prize_dispute" | "giveaway_prize" | "giveaway_hosted";
 
 export type Blocker = { kind: BlockerKind; count: number; message: string };
 
@@ -32,6 +32,8 @@ export function blockerMessage(kind: BlockerKind, count: number): string {
     case "open_invoices": return `You have ${count} unpaid invoice${s}, pending plan request${s} or donation${s} waiting for review. Settle or cancel ${count === 1 ? "it" : "them"} first.`;
     case "challenge_posted": return `You have ${count} challenge${s} still open or in progress. Finish or cancel ${count === 1 ? "it" : "them"} first.`;
     case "challenge_entry": return `You are in the middle of ${count} challenge${s}. Finish ${count === 1 ? "it" : "them"} first.`;
+    case "giveaway_prize": return `You won ${count} giveaway prize${s} that ${count === 1 ? "isn't" : "aren't"} finished yet. Send your details or confirm you received ${count === 1 ? "it" : "them"} first.`;
+    case "giveaway_hosted": return `Your organization has ${count} giveaway${s} still running or with a prize to deliver. Finish or cancel ${count === 1 ? "it" : "them"} first.`;
     case "prize_dispute": return `A prize payout you're part of is in dispute (${count}). Wait for the decision first.`;
   }
 }

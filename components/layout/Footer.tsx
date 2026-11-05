@@ -8,6 +8,7 @@ const LINKS = [
   { label: "Games", href: "/games" },
   { label: "Tournaments", href: "/tournaments" },
   { label: "Challenges", href: "/challenges" },
+  { label: "Giveaways", href: "/giveaways" },
   { label: "Organizers", href: "/organizers" },
   { label: "Host a tournament", href: "/organizer/register" },
   { label: "Register a club", href: "/club/register" },
@@ -27,7 +28,7 @@ export default async function Footer() {
             BattleKrypt
           </Link>
           <nav aria-label="Footer" className="flex flex-wrap gap-x-7 gap-y-3 lg:justify-end">
-            {LINKS.filter((l) => l.href !== "/challenges" || flags.challenges).map((l) => (
+            {LINKS.filter((l) => (l.href !== "/challenges" || flags.challenges) && (l.href !== "/giveaways" || flags.giveaways) && (l.href !== "/donate" || flags.donations)).map((l) => (
               <Link key={l.href} href={l.href} className={linkClass}>
                 {l.label}
               </Link>

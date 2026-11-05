@@ -6,7 +6,7 @@ import { formatMoney } from "@/lib/money";
 import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
 import type { ProofMatch } from "@/lib/proof-match";
 
-type Pending = { id: string; donor: string; email: string; verified: boolean; amount: number; currency: string; proofUrl: string; reference: string | null; message: string | null; anonymous: boolean; campaign: string | null; at: string; duplicate: ProofMatch | null };
+type Pending = { id: string; donor: string; email: string; verified: boolean; amount: number; currency: string; reference: string | null; message: string | null; anonymous: boolean; campaign: string | null; at: string; duplicate: ProofMatch | null };
 
 export default function DonationsReview({ items }: { items: Pending[] }) {
   const router = useRouter();

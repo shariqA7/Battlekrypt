@@ -41,7 +41,7 @@ export async function deletionBlockers(userId: string): Promise<Blocker[]> {
     prisma.clubProfile.findUnique({ where: { userId }, select: { id: true } }),
   ]);
   const party = { OR: [{ payerUserId: userId }, { organizerUserId: userId }] };
-  const [openDisputes, refundsOwed, rosterCount, liveEntries, openInvoices, openPlanRequests, pendingDonations, postedChallenges, activeEntries, prizeDisputes, liveEvents, holds] = await Promise.all([
+  const [openDisputes, refundsOwed, rosterCount, liveEntries, openInvoices, openPlanRequests, pendingDonations, postedChallenges, activeEntries, prizeDisputes, liveEvents, holds, giveawayPrizes, giveawaysHosted] = await Promise.all([
     prisma.paymentDispute.count({ where: { ...party, status: { not: "resolved" } } }),
     prisma.paymentDispute.count({ where: { ...party, outcome: "for_payer", refundDueAt: { not: null }, refundReceivedAt: null } }),
     club ? prisma.clubRoster.count({ where: { clubId: club.id } }) : Promise.resolve(0),
@@ -56,6 +56,10 @@ export async function deletionBlockers(userId: string): Promise<Blocker[]> {
     prisma.prizePayout.count({ where: { status: "disputed", OR: [{ recipientUserId: userId }, { registration: regOf }] } }),
     organizer ? prisma.tournament.count({ where: { organizerId: organizer.id, status: { in: ["registration_open", "registration_closed", "in_progress"] } } }) : Promise.resolve(0),
     organizer ? getPayoutHolds(organizer.id, 0) : Promise.resolve([]),
+    // A giveaway prize the person won and hasn't finished (sent details, or confirmed it arrived).
+    prisma.giveawayWinner.count({ where: { userId, status: { in: ["awaiting_details", "details_submitted", "delivered", "disputed"] as never[] } } }),
+    // Giveaways the organization still runs, or whose winners are still waiting for a prize.
+    organizer ? prisma.giveaway.count({ where: { organizerId: organizer.id, OR: [{ status: { in: ["pending_review", "active"] } }, { winners: { some: { status: { in: ["awaiting_details", "details_submitted", "delivered", "disputed"] as never[] } } } }] } }) : Promise.resolve(0),
   ]);
   return [
     user?.isAdmin ? makeBlocker("staff", 1) : null,
@@ -69,6 +73,8 @@ export async function deletionBlockers(userId: string): Promise<Blocker[]> {
     makeBlocker("challenge_posted", postedChallenges),
     makeBlocker("challenge_entry", activeEntries),
     makeBlocker("prize_dispute", prizeDisputes),
+    makeBlocker("giveaway_prize", giveawayPrizes),
+    makeBlocker("giveaway_hosted", giveawaysHosted),
   ].filter((b): b is Blocker => b !== null);
 }
 
@@ -167,7 +173,8 @@ export async function eraseUser(userId: string, deps: ErasureDeps = storageDeps(
   const keep = new Set<string>();
   for (const i of await prisma.invoice.findMany({ where: { userId, proofUrl: { not: null } }, select: { proofUrl: true } })) if (i.proofUrl) keep.add(i.proofUrl);
   for (const p of await prisma.planRequest.findMany({ where: { userId, status: "approved" }, select: { proofUrl: true } })) keep.add(p.proofUrl);
-  for (const x of await prisma.donation.findMany({ where: { userId }, select: { proofUrl: true } })) keep.add(x.proofUrl);
+  // A donation that was accepted is a financial record: its screenshot stays (see lib/retention.ts).
+  for (const d of await prisma.donation.findMany({ where: { userId, status: "approved" }, select: { proofUrl: true } })) keep.add(d.proofUrl);
   const proofFiles = splitFiles(await deps.listFolder(PROOF_BUCKET, userId), keep);
   await deps.removeFiles(PROOF_BUCKET, proofFiles.remove);
   const idFiles = await deps.listFolder(ID_BUCKET, userId);
@@ -250,6 +257,11 @@ export async function eraseUser(userId: string, deps: ErasureDeps = storageDeps(
 
     // Donations are financial records and stay (the name is already gone), but what the donor wrote goes.
     await tx.donation.updateMany({ where: { userId }, data: { message: null } });
+    // Giveaways: the delivery details a winner sent (name, phone, address, notes) go; whether the
+    // prize was delivered stays, so an organizer's record is still true. Entries into giveaways that
+    // haven't been drawn go, so a deleted account can't win.
+    await tx.giveawayWinner.updateMany({ where: { userId }, data: { deliveryName: null, deliveryPhone: null, deliveryAddress: null, deliveryNote: null, disputeNote: null } });
+    await tx.giveawayEntry.deleteMany({ where: { userId, giveaway: { status: { in: ["draft", "pending_review", "active"] } } } });
     // Ratings an organizer received keep their stars; the written comment of a deleted person goes.
     await tx.organizerRating.updateMany({ where: { raterUserId: userId }, data: { comment: null } });
 
@@ -271,6 +283,10 @@ export async function eraseUser(userId: string, deps: ErasureDeps = storageDeps(
     }
     for (const p of await tx.planRequest.findMany({ where: { userId, status: { not: "approved" } }, select: { id: true, proofUrl: true } })) {
       if (gone(p.proofUrl)) await tx.planRequest.update({ where: { id: p.id }, data: { proofUrl: "erased" } });
+    }
+    // A rejected donation's screenshot was removed above; its record stays, without the link.
+    for (const d of await tx.donation.findMany({ where: { userId, status: { not: "approved" } }, select: { id: true, proofUrl: true } })) {
+      if (gone(d.proofUrl)) await tx.donation.update({ where: { id: d.id }, data: { proofUrl: "erased" } });
     }
     for (const x of await tx.expense.findMany({ where: { createdById: userId, receiptUrl: { not: null } }, select: { id: true, receiptUrl: true } })) {
       if (gone(x.receiptUrl)) await tx.expense.update({ where: { id: x.id }, data: { receiptUrl: null } });

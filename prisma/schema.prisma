@@ -79,6 +79,7 @@ model User {
   adminActionLogs AdminActionLog[] @relation("AdminActor")
   planRequests    PlanRequest[]
   donations Donation[]
+  giveawayWins GiveawayWinner[]
 }
 
 enum StaffRole {
@@ -403,6 +404,7 @@ model OrganizerProfile {
   reportsPauseReason  String?
   reports             OrganizerReport[]
   ratings             OrganizerRating[]
+  giveaways           Giveaway[]
   deposits     SecurityDeposit[]
   invoices     Invoice[]
   identity     IdentityVerification?
@@ -1057,6 +1059,7 @@ model Tournament {
   reports           OrganizerReport[]
   ratings           OrganizerRating[]
   fundAllocations   FundAllocation[]
+  giveaways         Giveaway[]
 
   competitiveTier CompetitiveTier @default(none)
 
@@ -1422,6 +1425,15 @@ model SiteSettings {
   donationsVerifiedOnly   Boolean  @default(false)
   // How to pay (account numbers, wallet, etc.), shown on the Donate page.
   donationInstructions    String?
+  // Giveaways: run by the platform (admins) or by organizers; entry can be limited to verified accounts.
+  giveawaysEnabled        Boolean  @default(true)
+  // Default for organizer giveaways: only users and organizations on a paid plan ("verified") may enter.
+  // Organizers can't change it; an admin can override it on any single giveaway.
+  giveawaysVerifiedOnly   Boolean  @default(false)
+  // An organizer giveaway whose prize is worth more than this (USD) waits for an admin to approve it.
+  giveawayReviewAboveUsd  Decimal  @default(50) @db.Decimal(12, 2)
+  // Days a winner has to send delivery details before the prize can go to someone else.
+  giveawayClaimDays       Int      @default(14)
   updatedAt               DateTime @updatedAt
 }
 
@@ -3008,4 +3020,130 @@ model PaymentChannel {
   key       String   @id
   enabled   Boolean
   updatedAt DateTime @updatedAt
+}
+
+// ------------------------------------------------------------
+// GIVEAWAYS
+// Run by the platform (an admin, often for a sponsoring brand) or by an organizer. Entry can be
+// limited to "verified" accounts (an active paid plan); only an admin decides that. When it ends,
+// the host or an admin draws the winners at random. A winner sends delivery details, the host
+// delivers, and the winner confirms.
+// ------------------------------------------------------------
+
+enum GiveawayHost {
+  platform
+  organizer
+}
+
+enum GiveawayStatus {
+  draft
+  pending_review
+  active
+  ended
+  cancelled
+  rejected
+}
+
+enum GiveawayPrizeKind {
+  physical
+  code
+  cash
+}
+
+enum GiveawayWinnerStatus {
+  awaiting_details
+  details_submitted
+  delivered
+  confirmed
+  disputed
+  replaced
+}
+
+model Giveaway {
+  id          String @id @default(uuid())
+  slug        String @unique
+  title       String
+  description String
+
+  hostType    GiveawayHost
+  organizerId String?
+  organizer   OrganizerProfile? @relation(fields: [organizerId], references: [id])
+  createdById String
+
+  // A brand or partner behind the giveaway (shown on its page).
+  sponsorName    String?
+  sponsorLogoUrl String?
+  sponsorUrl     String?
+
+  prizeKind     GiveawayPrizeKind
+  prizeTitle    String
+  prizeValueUsd Decimal?          @db.Decimal(12, 2)
+  prizeImageUrl String?
+
+  winnersCount Int      @default(1)
+  startsAt     DateTime @default(now())
+  endsAt       DateTime
+
+  // Only users and organizations on a paid plan may enter. Set by an admin.
+  verifiedOnly Boolean @default(false)
+  // Optional: entrants must have an approved entry in this tournament.
+  tournamentId String?
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+
+  status        GiveawayStatus @default(active)
+  reviewNote    String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  drawnAt       DateTime?
+  drawnById     String?
+  cancelledNote String?
+
+  entries GiveawayEntry[]
+  winners GiveawayWinner[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, endsAt])
+  @@index([organizerId, createdAt])
+}
+
+model GiveawayEntry {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@unique([giveawayId, userId])
+  @@index([userId, createdAt])
+}
+
+model GiveawayWinner {
+  id         String   @id @default(uuid())
+  giveawayId String
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  status        GiveawayWinnerStatus @default(awaiting_details)
+  claimDeadline DateTime
+
+  // What the winner sends so the prize can reach them. Private: only the winner, the host and admins see it.
+  deliveryName    String?
+  deliveryPhone   String?
+  deliveryAddress String?
+  deliveryNote    String?
+
+  hostNote     String?
+  deliveredAt  DateTime?
+  confirmedAt  DateTime?
+  disputeNote  String?
+  replacedNote String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([giveawayId, userId])
+  @@index([userId, status])
+  @@index([giveawayId, status])
 }

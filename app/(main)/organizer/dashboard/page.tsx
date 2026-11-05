@@ -71,6 +71,9 @@ export default async function OrganizerDashboard() {
           <ButtonLink href="/organizer/dashboard/institute" variant="outline" size="sm">
             My institute{pendingInvites > 0 ? ` (${pendingInvites})` : ""}
           </ButtonLink>
+          <ButtonLink href="/organizer/dashboard/giveaways" variant="outline" size="sm">
+            Giveaways
+          </ButtonLink>
           <ButtonLink href="/organizer/dashboard/members" variant="outline" size="sm">
             Members
           </ButtonLink>

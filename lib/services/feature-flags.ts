@@ -23,6 +23,7 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
     playerReports: s?.playerReportsEnabled ?? true,
     organizerRatings: s?.organizerRatingsEnabled ?? true,
     donations: s?.donationsEnabled ?? true,
+    giveaways: s?.giveawaysEnabled ?? true,
   };
 }
 
@@ -47,6 +48,7 @@ const COLUMN: Record<keyof FeatureFlags, string> = {
   playerReports: "playerReportsEnabled",
   organizerRatings: "organizerRatingsEnabled",
   donations: "donationsEnabled",
+  giveaways: "giveawaysEnabled",
 };
 
 export async function updateFeatureFlags(adminId: string, input: Partial<Record<keyof FeatureFlags, unknown>>) {
