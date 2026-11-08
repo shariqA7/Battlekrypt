@@ -1381,7 +1381,16 @@ model Registration {
 
 model SiteSettings {
   id                      String   @id @default("singleton")
+  // Brand assets (Admin > Settings > Branding). logoUrl is the logo for DARK
+  // backgrounds; logoLightUrl is for light ones. If only one is set it is used
+  // on both themes. The rest are fallbacks shown when someone has not uploaded
+  // their own image.
   logoUrl                 String?
+  logoLightUrl            String?
+  shareImageUrl           String?  // default 1200x630 link-preview image
+  defaultBannerUrl        String?  // tournament without a banner
+  defaultAvatarUrl        String?  // player without a photo
+  defaultOrgLogoUrl       String?  // organizer / club without a logo
   // Shown on the club registration form: amount + where to send the fee.
   clubPaymentInstructions String?
   // Shown on the plan-upgrade form: where to send the plan payment.

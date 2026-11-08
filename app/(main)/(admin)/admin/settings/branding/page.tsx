@@ -1,9 +1,22 @@
 import { requireAdminPage } from "@/lib/admin-page";
-import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
+import { listCarouselSlides } from "@/lib/services/tournaments";
+import { getBranding } from "@/lib/services/branding";
 import BrandingManager from "../../BrandingManager";
 
 export default async function SettingsBrandingPage() {
   await requireAdminPage("settings");
-  const [siteSettings, slides] = await Promise.all([getSiteSettings(), listCarouselSlides()]);
-  return <BrandingManager initialLogoUrl={siteSettings.logoUrl ?? ""} initialSlides={slides} />;
+  const [b, slides] = await Promise.all([getBranding(), listCarouselSlides()]);
+  return (
+    <BrandingManager
+      initialAssets={{
+        logoUrl: b.logoUrl ?? "",
+        logoLightUrl: b.logoLightUrl ?? "",
+        shareImageUrl: b.shareImageUrl ?? "",
+        defaultBannerUrl: b.defaultBannerUrl ?? "",
+        defaultAvatarUrl: b.defaultAvatarUrl ?? "",
+        defaultOrgLogoUrl: b.defaultOrgLogoUrl ?? "",
+      }}
+      initialSlides={slides}
+    />
+  );
 }

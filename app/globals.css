@@ -237,3 +237,8 @@ p, h1, h2, h3, h4, li, td, th, label {
 @media (prefers-reduced-motion: reduce) {
   .bk-shimmer { animation: none; }
 }
+
+/* Logo pair: the dark-background logo shows by default, the light one on the light theme. */
+.bk-logo-on-light { display: none; }
+:root[data-theme="light"] .bk-logo-on-dark { display: none; }
+:root[data-theme="light"] .bk-logo-on-light { display: block; }

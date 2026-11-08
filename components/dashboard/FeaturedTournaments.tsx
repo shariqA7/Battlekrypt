@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { listUpcomingFeatured } from "@/lib/services/featured";
+import { getBranding } from "@/lib/services/branding";
 
 // The admin's hand-picked upcoming tournaments, shown under the carousel.
 export default async function FeaturedTournaments() {
   const items = await listUpcomingFeatured();
   if (items.length === 0) return null;
+  const { defaultBannerUrl } = await getBranding();
 
   return (
     <section className="mb-8">
@@ -16,9 +18,9 @@ export default async function FeaturedTournaments() {
             href={`/tournaments/${t.slug}`}
             className="bg-bk-surface border border-bk-border hover:border-bk-gold-light overflow-hidden block"
           >
-            {t.bannerUrl && (
+            {(t.bannerUrl || defaultBannerUrl) && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={t.bannerUrl} alt="" className="h-28 w-full object-cover" />
+              <img src={(t.bannerUrl || defaultBannerUrl)!} alt="" className="h-28 w-full object-cover" />
             )}
             <div className="p-3">
               <p className="font-sans font-bold text-[14px] text-bk-heading">{t.name}</p>
