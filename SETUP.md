@@ -654,6 +654,37 @@ Where the rules are used:
 
 To change a rule later, edit the game in `lib/game-catalog.ts` for new databases, and update the `Game` row in the database for the live one.
 
+## Admin -> Games (descriptions, pictures, visibility)
+
+Staff manage how games look to players from **Admin -> Games**: description, short description, developer, platforms (PC / Mobile / Console), a cover picture, a gallery of up to 12 pictures, a Visible/Hidden switch, a Featured flag and an order number. Players see the cover on the Games page and the rest on each game's own page (`/games/<slug>`). **Team size, substitutes, coach and region rules are not edited here**: they stay in `lib/game-catalog.ts` and `lib/game-regions.ts`.
+
+**Who can do what** (Admin -> Staff, area **Games**, in the Platform group):
+- *View*: open the list and any game, change nothing.
+- *Edit*: add games, change details and pictures, switch a game Visible/Hidden.
+- *Delete*: **super admin only**, with no switch for it. A game is refused while any tournament, challenge, club roster/team/invite, rating, template or request uses it, and the built-in games (the ones in `lib/game-catalog.ts` and `lib/game-regions.ts`) can only be hidden, never deleted or renamed, because the seed would bring them back.
+- New staff get Games by their role (admin: edit, manager: view). Staff added **before** this update have no Games row, so a super admin turns it on for them under Admin -> Staff.
+
+**Setup**: run `npx prisma migrate deploy` (migration `20261106100000_game_details`; it also gives every existing game its address), then create the picture bucket once in the Supabase SQL editor. It needs `public.bk_is_admin()` from the *Institutes and co-hosts* section above. Safe to run again.
+
+```sql
+-- public bucket (pictures are shown to everyone): images only, 5 MB each
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('game-assets', 'game-assets', true, 5242880, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update
+  set public = true, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+-- only admins may upload. Everyone can read a public bucket's files; deleting is done by the
+-- server (with the service role key) when a picture is removed or a game is deleted.
+drop policy if exists "admins upload game pictures" on storage.objects;
+create policy "admins upload game pictures"
+on storage.objects for insert to authenticated
+with check (bucket_id = 'game-assets' and public.bk_is_admin());
+```
+
+Staff with *view* only can still reach the upload box through the browser, because the storage rule only asks "is an admin". That is harmless: an uploaded file does nothing until someone with *edit* saves it onto a game, and the server only accepts links into this bucket.
+
+Every add, change and delete is written to the admin log (`game_created`, `game_updated`, `game_deleted`). `npx prisma db seed` also gives any game without an address one (it never changes an existing address).
+
 ## Regional game versions (India and others)
 
 Some games are blocked in a country and replaced there by a local version. The site shows each visitor only the version that applies to them, using three columns on `Game`: `onlyInCountries` (only people in those countries see the game), `blockedInCountries` (people in those countries don't see it) and `localVersionOf` (which global game a local version stands in for, for admins).

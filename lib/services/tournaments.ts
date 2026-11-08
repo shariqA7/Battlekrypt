@@ -45,6 +45,7 @@ import { hybridStagesError } from "@/lib/services/stages";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
 import { awardTournamentRatings } from "@/lib/services/ratings";
+import { uniqueGameSlug } from "@/lib/services/games-admin";
 import type { RuleFields } from "@/lib/rules";
 import type {
   Prisma,
@@ -944,7 +945,7 @@ export async function approveGameRequest(gameRequestId: string, adminId: string)
   if (request.status !== "pending") return { error: "already_reviewed" as const };
 
   const game = await prisma.game.create({
-    data: { name: request.gameName },
+    data: { name: request.gameName, slug: await uniqueGameSlug(request.gameName) },
   });
 
   const updated = await prisma.gameRequest.update({

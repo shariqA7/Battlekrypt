@@ -47,6 +47,20 @@ ok("only the Staff item is super-admin-only",
 ok("every sub tab maps to a permission (none fall through to staff)",
   Object.values(ADMIN_SUBTABS).flat().every((t) => { const a = areaForAdminPath(t.href); return a !== null && a !== "staff"; }));
 
+// --- Games section
+const adminCtx: StaffContext = { userId: "a", role: "admin", grants: { ...ROLE_TEMPLATES.admin } };
+ok("Games is a switch on the Staff page (Platform group)", STAFF_PERMISSION_KEYS.includes("games" as never));
+ok("admin role can edit games, manager can only view them", hasAccess(adminCtx, "games", "edit") && hasAccess(mgr, "games", "view") && !hasAccess(mgr, "games", "edit"));
+ok("staff with no Games switch can't open it", !hasAccess({ userId: "x", role: "admin", grants: { users: "edit" } }, "games"));
+ok("games pages and API belong to the games area", ["/admin/games", "/admin/games/new", "/admin/games/abc-123"].every((p) => areaForAdminPath(p) === "games") && API_FOLDER_AREAS.games === "games");
+ok("the games approvals tab still belongs to approvals, not games", areaForAdminPath("/admin/approvals/games") === "approvals");
+ok("Games has a sidebar item", ADMIN_NAV_ITEMS.some((i) => i.href === "/admin/games"));
+const gameApi = readFileSync("app/api/admin/games/[id]/route.ts", "utf8");
+ok("deleting a game is super admin only (no switch can grant it)", /export async function DELETE[\s\S]*?requireAdmin\("staff"\)/.test(gameApi));
+ok("reading is view access, changing is edit access", /export async function GET[\s\S]*?requireAdmin\("games", "view"\)/.test(gameApi) && /export async function PATCH[\s\S]*?requireAdmin\("games"\)/.test(gameApi));
+const gameList = readFileSync("app/api/admin/games/route.ts", "utf8");
+ok("the list is view access, adding is edit access", /export async function GET[\s\S]*?requireAdmin\("games", "view"\)/.test(gameList) && /export async function POST[\s\S]*?requireAdmin\("games"\)/.test(gameList));
+
 // --- guard rails on the source: nothing admin goes unchecked
 function walk(dir: string, out: string[] = []) {
   for (const f of readdirSync(dir)) {

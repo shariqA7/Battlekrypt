@@ -130,6 +130,21 @@ model Game {
   blockedInCountries String[] @default([])
   localVersionOf     String?
 
+  // Showcase details, managed by staff in Admin -> Games (see lib/game-details.ts).
+  // `slug` is the stable address of the public game page (/games/<slug>); it never changes
+  // when a game is renamed. `images` is the gallery, in display order; `coverImageUrl` is the
+  // tile picture. Both point into the public `game-assets` storage bucket.
+  slug             String?  @unique
+  shortDescription String?
+  description      String?
+  coverImageUrl    String?
+  images           String[] @default([])
+  developer        String?
+  platforms        String[] @default([]) // pc | mobile | console (display tags only)
+  websiteUrl       String?
+  sortOrder        Int      @default(0) // lower first, within a genre
+  isFeatured       Boolean  @default(false)
+
   tournaments   Tournament[]
   gameRequests  GameRequest[]
   clubRosters   ClubRoster[]

@@ -4,6 +4,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { GAME_CATALOG } from "../lib/game-catalog";
+import { gameSlugBase, pickUniqueSlug } from "../lib/game-details";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -168,6 +169,16 @@ async function main() {
     }
   }
   console.log(`Checked ${GAME_CATALOG.length} catalog games.`);
+
+  // Every game gets a public address (/games/<slug>). Only games without one are touched, so
+  // an address never changes once it exists.
+  const withSlug = await prisma.game.findMany({ where: { slug: { not: null } }, select: { slug: true } });
+  const taken = new Set(withSlug.flatMap((g) => (g.slug ? [g.slug] : [])));
+  for (const g of await prisma.game.findMany({ where: { slug: null }, select: { id: true, name: true } })) {
+    const slug = pickUniqueSlug(gameSlugBase(g.name), taken);
+    taken.add(slug);
+    await prisma.game.update({ where: { id: g.id }, data: { slug } });
+  }
   await seedSuggestedRules();
   await seedTierSettings();
 }
