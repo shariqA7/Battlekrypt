@@ -31,12 +31,13 @@ function GameTile({ g, note }: { g: GameRow; note?: string | null }) {
   const rules = describeRules(g);
   return (
     <Link
-      href={`/tournaments?game=${encodeURIComponent(g.name)}`}
+      href={g.slug ? `/games/${g.slug}` : `/tournaments?game=${encodeURIComponent(g.name)}`}
       className="group flex items-center gap-3 bg-bk-surface border border-bk-border p-4 transition-colors hover:border-bk-gold-from hover:bg-bk-surface-hover"
     >
-      <InitialTile name={g.name} />
+      <InitialTile name={g.name} src={g.coverImageUrl} />
       <div className="min-w-0">
         <p className="font-sans font-bold text-bk-heading text-sm break-words group-hover:text-bk-gold-light">{g.name}</p>
+        {g.shortDescription && <p className="font-sans text-bk-body text-[11px] mt-0.5 line-clamp-2">{g.shortDescription}</p>}
         {rules && <p className="font-mono text-bk-muted text-[11px] mt-0.5">{rules}</p>}
         {note && <p className="font-sans text-bk-amber text-[11px] mt-0.5">{note}</p>}
         <p className={`font-sans text-xs mt-0.5 ${active > 0 ? "text-bk-teal" : "text-bk-muted"}`}>

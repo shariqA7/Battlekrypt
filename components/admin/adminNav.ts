@@ -65,6 +65,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Platform",
     items: [
       { href: "/admin/featured", label: "Featured", icon: "featured" },
+      { href: "/admin/games", label: "Games", icon: "games" },
       { href: "/admin/giveaways", label: "Giveaways", icon: "giveaways", badgeKeys: ["giveaways"] },
       { href: "/admin/traffic", label: "Traffic", icon: "traffic" },
       { href: "/admin/settings", label: "Settings", icon: "settings" },

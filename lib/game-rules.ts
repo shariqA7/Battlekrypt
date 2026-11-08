@@ -44,8 +44,11 @@ export function gameRosterCap(g: GameRules, role: "player" | "substitute"): numb
 
 // Group games for display, in the order the genres are listed; games without a genre
 // (older or requested games) go last under "Other games".
-export function groupByGenre<T extends GameRules & { name: string }>(games: T[]): { genre: string; games: T[] }[] {
-  const byName = (a: T, b: T) => a.name.localeCompare(b.name);
+// Within a genre: featured games first, then the admin's order number (lower first), then A to Z.
+// A game with neither set (the default) is simply sorted by name, as before.
+export function groupByGenre<T extends GameRules & { name: string; isFeatured?: boolean | null; sortOrder?: number | null }>(games: T[]): { genre: string; games: T[] }[] {
+  const byName = (a: T, b: T) =>
+    Number(!!b.isFeatured) - Number(!!a.isFeatured) || (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.name.localeCompare(b.name);
   const groups = (GENRES as readonly string[])
     .map((genre) => ({ genre, games: games.filter((x) => x.genre === genre).sort(byName) }))
     .filter((x) => x.games.length > 0);
