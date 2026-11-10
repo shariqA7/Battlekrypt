@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { getBranding } from "@/lib/services/branding";
+import { BrandingProvider } from "@/components/layout/BrandingProvider";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -16,10 +18,21 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["500"],
 });
 
-export const metadata: Metadata = {
-  title: "BattleKrypt",
-  description: "Tournaments, leagues, and daily scrims for competitive gaming.",
-};
+const TITLE = "BattleKrypt";
+const DESCRIPTION = "Tournaments, leagues, and daily scrims for competitive gaming.";
+
+// The default link-preview image (1200x630) is uploaded in Admin > Settings >
+// Branding. A page that sets its own openGraph images overrides it.
+export async function generateMetadata(): Promise<Metadata> {
+  const { shareImageUrl } = await getBranding();
+  const images = shareImageUrl ? [{ url: shareImageUrl, width: 1200, height: 630 }] : undefined;
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    openGraph: { title: TITLE, description: DESCRIPTION, siteName: TITLE, type: "website", images },
+    twitter: { card: images ? "summary_large_image" : "summary", title: TITLE, description: DESCRIPTION, images: shareImageUrl ? [shareImageUrl] : undefined },
+  };
+}
 
 // viewport-fit=cover lets the page paint under the notch / home indicator so
 // there are no off-colour bars, and globals.css then keeps content clear of
@@ -31,7 +44,8 @@ export const viewport: Viewport = {
   themeColor: "#16130B",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const branding = await getBranding();
   return (
     <html
       lang="en"
@@ -45,7 +59,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col bg-bk-bg text-bk-heading">
 
-        {children}
+        <BrandingProvider branding={branding}>{children}</BrandingProvider>
       </body>
     </html>
   );

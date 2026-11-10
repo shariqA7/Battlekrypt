@@ -1,5 +1,6 @@
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 import Link from "next/link";
+import SiteLogo from "@/components/layout/SiteLogo";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import UserMenu from "@/components/layout/UserMenu";
@@ -66,8 +67,8 @@ export default async function Nav() {
     <nav className="nav-safe bg-bk-bg-nav border-b border-bk-border-nav">
       <NavFrame>
         <div className="flex items-center gap-8 min-w-0">
-          <Link href="/" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight shrink-0">
-            BattleKrypt
+          <Link href="/" className="shrink-0 flex items-center" aria-label="BattleKrypt home">
+            <SiteLogo heightClass="h-7 sm:h-8" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight" />
           </Link>
           <SearchBox className="hidden xl:block w-64" />
         </div>

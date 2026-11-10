@@ -1887,11 +1887,22 @@ export async function getSiteSettings() {
   });
 }
 
-export async function updateSiteSettings(logoUrl: string) {
+// Updates only the brand-asset fields that are present in `patch`
+// (a null value clears that slot).
+export async function updateSiteSettings(
+  patch: Partial<{
+    logoUrl: string | null;
+    logoLightUrl: string | null;
+    shareImageUrl: string | null;
+    defaultBannerUrl: string | null;
+    defaultAvatarUrl: string | null;
+    defaultOrgLogoUrl: string | null;
+  }>
+) {
   return prisma.siteSettings.upsert({
     where: { id: "singleton" },
-    update: { logoUrl },
-    create: { id: "singleton", logoUrl },
+    update: patch,
+    create: { id: "singleton", ...patch },
   });
 }
 

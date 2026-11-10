@@ -1,16 +1,26 @@
+"use client";
+
+import { useBranding } from "@/components/layout/BrandingProvider";
+
 // Square tile with 1-2 initials (logo/avatar fallback). Gold-tinted so it works
 // on both themes; `round` is for people, square for organizations and games.
+// With no image of its own, a round tile shows the admin-set default avatar and
+// an `org` tile the default organizer/club logo (both from Admin > Branding).
 export default function InitialTile({
   name,
   size = 44,
   round = false,
+  org = false,
   src,
 }: {
   name: string;
   size?: number;
   round?: boolean;
+  org?: boolean;
   src?: string | null;
 }) {
+  const { defaultAvatarUrl, defaultOrgLogoUrl } = useBranding();
+  src = src || (round ? defaultAvatarUrl : org ? defaultOrgLogoUrl : null);
   const initials = name
     .split(/\s+/)
     .filter(Boolean)

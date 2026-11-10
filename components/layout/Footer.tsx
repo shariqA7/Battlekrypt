@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteLogo from "@/components/layout/SiteLogo";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 
 // Site footer, from the design mockup: logo on the left, links in the middle,
@@ -24,8 +25,8 @@ export default async function Footer() {
     <footer className="mt-16 bg-bk-bg-footer border-t border-bk-border">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-10 flex flex-col gap-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <Link href="/" className="font-sans font-extrabold text-2xl text-bk-gold-light shrink-0">
-            BattleKrypt
+          <Link href="/" className="shrink-0 flex items-center" aria-label="BattleKrypt home">
+            <SiteLogo heightClass="h-8" className="font-sans font-extrabold text-2xl text-bk-gold-light" />
           </Link>
           <nav aria-label="Footer" className="flex flex-wrap gap-x-7 gap-y-3 lg:justify-end">
             {LINKS.filter((l) => (l.href !== "/challenges" || flags.challenges) && (l.href !== "/giveaways" || flags.giveaways) && (l.href !== "/donate" || flags.donations)).map((l) => (

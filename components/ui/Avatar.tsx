@@ -1,5 +1,11 @@
-// A person's photo, or a plain user silhouette when they have none.
+"use client";
+
+import { useBranding } from "@/components/layout/BrandingProvider";
+
+// A person's photo, else the admin-set default avatar, else a plain user silhouette.
 export default function Avatar({ src, name, size = 32, className = "" }: { src?: string | null; name?: string; size?: number; className?: string }) {
+  const { defaultAvatarUrl } = useBranding();
+  src = src || defaultAvatarUrl;
   return (
     <span
       style={{ width: size, height: size }}

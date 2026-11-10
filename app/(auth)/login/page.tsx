@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getSiteSettings, listCarouselSlides } from "@/lib/services/tournaments";
+import { listCarouselSlides } from "@/lib/services/tournaments";
 import LoginForm from "@/components/auth/LoginForm";
 import { getLoginOptions } from "@/lib/services/login-options";
 
@@ -12,22 +12,16 @@ import { getLoginOptions } from "@/lib/services/login-options";
 export const dynamic = "force-dynamic";
 import AuthCarousel from "@/components/auth/AuthCarousel";
 import Link from "next/link";
+import SiteLogo from "@/components/layout/SiteLogo";
 
 export default async function LoginPage() {
-  const [settings, slides, options] = await Promise.all([getSiteSettings(), listCarouselSlides(), getLoginOptions()]);
+  const [slides, options] = await Promise.all([listCarouselSlides(), getLoginOptions()]);
 
   return (
     <main className="flex-1 flex min-h-0 gap-6 p-6">
       <div className="flex-1 flex flex-col md:px-8">
         <Link href="/" className="inline-block w-fit">
-          {settings.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={settings.logoUrl} alt="BattleKrypt" className="h-7 object-contain" />
-          ) : (
-            <span className="text-bk-gold-light font-sans font-extrabold text-base tracking-wide">
-              BATTLEKRYPT
-            </span>
-          )}
+          <SiteLogo heightClass="h-7" className="text-bk-gold-light font-sans font-extrabold text-base tracking-wide" fallbackText="BATTLEKRYPT" />
         </Link>
 
         <div className="flex-1 flex flex-col items-center justify-center">

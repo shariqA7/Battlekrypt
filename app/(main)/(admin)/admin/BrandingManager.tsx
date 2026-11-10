@@ -12,15 +12,98 @@ interface Slide {
   text: string | null;
 }
 
+type AssetKey = "logoUrl" | "logoLightUrl" | "shareImageUrl" | "defaultBannerUrl" | "defaultAvatarUrl" | "defaultOrgLogoUrl";
+export type BrandAssets = Record<AssetKey, string>;
+
+// One upload slot per brand asset. `wide` previews on a wide, short frame;
+// `bg` is the surface the asset is meant to sit on, so it previews correctly.
+const SLOTS: { key: AssetKey; title: string; hint: string; preview: "logo-dark" | "logo-light" | "wide" | "square" | "round" }[] = [
+  { key: "logoUrl", title: "Logo for dark backgrounds", hint: "Horizontal logo (mark + wordmark). Used in the header, footer and sign-in pages on the dark theme. If it is the only logo uploaded, it is used on the light theme too.", preview: "logo-dark" },
+  { key: "logoLightUrl", title: "Logo for light backgrounds", hint: "Same logo, made for the light theme. Leave empty to reuse the dark-background logo.", preview: "logo-light" },
+  { key: "shareImageUrl", title: "Default share image (1200 × 630)", hint: "Shown when a link to the site is shared on WhatsApp, Discord, X and similar. Use exactly 1200 × 630 px.", preview: "wide" },
+  { key: "defaultBannerUrl", title: "Default tournament banner", hint: "Shown on tournaments whose organizer did not upload a banner.", preview: "wide" },
+  { key: "defaultAvatarUrl", title: "Default player avatar", hint: "Shown for players without a photo. Square image; it is shown in a circle.", preview: "round" },
+  { key: "defaultOrgLogoUrl", title: "Default organizer / club logo", hint: "Shown for organizers and clubs without a logo. Square, 512 px.", preview: "square" },
+];
+
+function AssetSlot({
+  slot,
+  value,
+  onChange,
+}: {
+  slot: (typeof SLOTS)[number];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const dirty = draft !== value;
+
+  async function save(next: string) {
+    setState("saving");
+    const res = await fetch("/api/admin/site-settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [slot.key]: next || null }),
+    });
+    if (res.ok) {
+      onChange(next);
+      setDraft(next);
+      setState("saved");
+      setTimeout(() => setState("idle"), 2000);
+    } else {
+      setState("error");
+    }
+  }
+
+  const frame =
+    slot.preview === "logo-dark" ? "bg-[#16130B] h-16 w-56 p-2"
+    : slot.preview === "logo-light" ? "bg-[#F6F1E7] h-16 w-56 p-2"
+    : slot.preview === "wide" ? "bg-bk-bg h-24 w-44"
+    : slot.preview === "round" ? "bg-bk-bg h-20 w-20 rounded-full"
+    : "bg-bk-bg h-20 w-20";
+  const fit = slot.preview.startsWith("logo") ? "object-contain" : "object-cover";
+
+  return (
+    <div className="bg-bk-surface border border-bk-border p-4 flex flex-col gap-3">
+      <div>
+        <p className="font-sans font-medium text-bk-heading text-sm">{slot.title}</p>
+        <p className="font-sans text-bk-muted text-[12px] mt-1">{slot.hint}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className={`${frame} border border-bk-border overflow-hidden flex items-center justify-center shrink-0`}>
+          {draft ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={draft} alt="" className={`w-full h-full ${fit}`} />
+          ) : (
+            <span className="font-sans text-[11px] text-bk-muted">Not set</span>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <FileUpload bucket="tournament-assets" pathPrefix="branding" label={draft ? "Replace" : "Upload"} onUploaded={setDraft} />
+          <button disabled={!dirty || state === "saving"} onClick={() => save(draft)} className={buttonClass("primary", "sm", "")}>
+            {state === "saving" ? "Saving…" : state === "saved" ? "Saved!" : "Save"}
+          </button>
+          {value && (
+            <button disabled={state === "saving"} onClick={() => save("")} className="text-bk-live text-[11px] font-sans uppercase tracking-[0.5px] px-2">
+              Reset to default
+            </button>
+          )}
+        </div>
+      </div>
+      {state === "error" && <p className="font-sans text-[12px] text-bk-live">Could not save. Try again.</p>}
+    </div>
+  );
+}
+
 export default function BrandingManager({
-  initialLogoUrl,
+  initialAssets,
   initialSlides,
 }: {
-  initialLogoUrl: string;
+  initialAssets: BrandAssets;
   initialSlides: Slide[];
 }) {
-  const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
-  const [logoSaved, setLogoSaved] = useState(false);
+  const [assets, setAssets] = useState(initialAssets);
   const [slides, setSlides] = useState(initialSlides);
 
   const [newMediaUrl, setNewMediaUrl] = useState("");
@@ -28,19 +111,6 @@ export default function BrandingManager({
   const [newTitle, setNewTitle] = useState("");
   const [newText, setNewText] = useState("");
   const [adding, setAdding] = useState(false);
-
-  async function saveLogo() {
-    if (!logoUrl) return;
-    const res = await fetch("/api/admin/site-settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ logoUrl }),
-    });
-    if (res.ok) {
-      setLogoSaved(true);
-      setTimeout(() => setLogoSaved(false), 2000);
-    }
-  }
 
   async function addSlide() {
     if (!newMediaUrl) return;
@@ -76,26 +146,14 @@ export default function BrandingManager({
   return (
     <div className="flex flex-col gap-10">
       <section>
-        <p className="font-sans font-medium text-bk-heading text-sm mb-3">
-          Site logo
+        <p className="font-sans font-medium text-bk-heading text-sm mb-1">Brand assets</p>
+        <p className="font-sans text-bk-muted text-[12px] mb-4">
+          Favicon and app icons are not here: they ship with the site code.
         </p>
-        <div className="flex items-center gap-4">
-          {logoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt="Logo preview" className="h-10 object-contain" />
-          )}
-          <FileUpload
-            bucket="tournament-assets"
-            pathPrefix="branding"
-            label="Upload logo"
-            onUploaded={setLogoUrl}
-          />
-          <button
-            onClick={saveLogo}
-            className={buttonClass("primary", "sm", "")}
-          >
-            {logoSaved ? "Saved!" : "Save logo"}
-          </button>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {SLOTS.map((slot) => (
+            <AssetSlot key={slot.key} slot={slot} value={assets[slot.key]} onChange={(v) => setAssets((p) => ({ ...p, [slot.key]: v }))} />
+          ))}
         </div>
       </section>
 

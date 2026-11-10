@@ -58,7 +58,7 @@ export default async function OrganizerDashboard() {
       </div>
       <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
         <div className="flex flex-wrap items-center gap-4 mb-6">
-          <InitialTile name={organizerProfile.orgName} size={52} />
+          <InitialTile org name={organizerProfile.orgName} size={52} />
           <SectionHeading className="!text-[22px] sm:!text-[26px] break-words min-w-0 flex-1">
             {organizerProfile.orgName}
           </SectionHeading>

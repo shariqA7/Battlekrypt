@@ -24,6 +24,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Eyebrow, SectionHeading } from "@/components/ui/Panel";
 import { CalendarIcon, CoinIcon } from "@/components/ui/icons";
 import { notFound } from "next/navigation";
+import { getBranding } from "@/lib/services/branding";
 
 const label = (v: string) => v.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -58,16 +59,18 @@ export default async function TournamentDetailPage({
     for (const u of users) winnerNames[u.id] = u.displayName;
   }
 
+  const bannerUrl = tournament.bannerUrl || (await getBranding()).defaultBannerUrl;
+
   return (
     <>
       <TrackView tournamentId={tournament.id} />
       <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
         {/* ---------------- hero ---------------- */}
         <header className="relative pt-10 sm:pt-14 pb-10 sm:pb-12 border-b border-bk-border">
-          {tournament.bannerUrl && (
+          {bannerUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={tournament.bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25 -z-10" />
+              <img src={bannerUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25 -z-10" />
               <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-bk-bg via-bk-bg/90 to-bk-bg/30" />
             </>
           )}
