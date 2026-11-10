@@ -1,27 +1,9 @@
 import { cache } from "react";
 import { getSiteSettings } from "@/lib/services/tournaments";
+import { BRANDING_KEYS, EMPTY_BRANDING, type Branding } from "@/lib/branding-shared";
 
-// The admin-managed brand assets. Every field is an image URL or null.
-export const BRANDING_KEYS = [
-  "logoUrl",
-  "logoLightUrl",
-  "shareImageUrl",
-  "defaultBannerUrl",
-  "defaultAvatarUrl",
-  "defaultOrgLogoUrl",
-] as const;
-
-export type BrandingKey = (typeof BRANDING_KEYS)[number];
-export type Branding = Record<BrandingKey, string | null>;
-
-export const EMPTY_BRANDING: Branding = {
-  logoUrl: null,
-  logoLightUrl: null,
-  shareImageUrl: null,
-  defaultBannerUrl: null,
-  defaultAvatarUrl: null,
-  defaultOrgLogoUrl: null,
-};
+export { BRANDING_KEYS, EMPTY_BRANDING };
+export type { Branding, BrandingKey } from "@/lib/branding-shared";
 
 // One database read per request, however many components ask. Never throws:
 // a database hiccup must not take the whole page down just to skip a logo.

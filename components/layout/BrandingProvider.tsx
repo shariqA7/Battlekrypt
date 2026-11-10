@@ -3,7 +3,7 @@
 // Hands the admin-set default images (avatar, organizer/club logo) to client
 // components such as Avatar and InitialTile without each page having to pass them.
 import { createContext, useContext } from "react";
-import { EMPTY_BRANDING, type Branding } from "@/lib/services/branding";
+import { EMPTY_BRANDING, type Branding } from "@/lib/branding-shared";
 
 const BrandingContext = createContext<Branding>(EMPTY_BRANDING);
 

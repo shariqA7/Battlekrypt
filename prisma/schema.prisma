@@ -1391,6 +1391,7 @@ model SiteSettings {
   defaultBannerUrl        String?  // tournament without a banner
   defaultAvatarUrl        String?  // player without a photo
   defaultOrgLogoUrl       String?  // organizer / club without a logo
+  defaultClubLogoUrl      String?
   // Shown on the club registration form: amount + where to send the fee.
   clubPaymentInstructions String?
   // Shown on the plan-upgrade form: where to send the plan payment.
