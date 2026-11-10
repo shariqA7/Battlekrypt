@@ -58,7 +58,7 @@ export default async function ClubDashboardPage() {
       </div>
     <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
       <div className="flex flex-wrap items-center gap-4 mb-6">
-        <InitialTile org name={club.clubName} size={56} src={club.logoUrl} />
+        <InitialTile kind="club" name={club.clubName} size={56} src={club.logoUrl} />
         <div className="min-w-0">
           <SectionHeading className="!text-[22px] sm:!text-[26px] break-words">{club.clubName}</SectionHeading>
         </div>

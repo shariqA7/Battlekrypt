@@ -14,7 +14,7 @@ const columns: Column<OrgRow>[] = [
     header: "Name",
     cell: (o) => (
       <div className="flex items-center gap-2.5 min-w-0">
-        <InitialTile org name={o.name} size={32} />
+        <InitialTile kind="org" name={o.name} size={32} />
         <div className="min-w-0">
           <p className="text-bk-heading font-bold truncate">{o.name}</p>
           {o.paused && <p className="text-bk-live text-[11px]">Paid events paused</p>}

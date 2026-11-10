@@ -62,7 +62,7 @@ export default async function OrganizationDetailPage({ params }: { params: Promi
       {/* Header */}
       <div className="bg-bk-surface border border-bk-border p-5">
         <div className="flex flex-wrap items-start gap-4">
-          <InitialTile org name={o.name} size={64} />
+          <InitialTile kind="org" name={o.name} size={64} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-sans font-bold text-[24px] text-bk-heading break-words">{o.name}</h1>

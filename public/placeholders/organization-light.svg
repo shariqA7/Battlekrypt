@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Default organizer logo">
+  <defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D9A520"/><stop offset="1" stop-color="#8A5E00"/></linearGradient>
+  <radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#FFFDF8"/><stop offset="1" stop-color="#F1EADB"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect x="12" y="12" width="488" height="488" fill="none" stroke="#D8CDB6" stroke-width="4"/>
+  <!-- low side wings (darker) -->
+  <g fill="url(#g)" opacity=".6">
+    <rect x="84" y="262" width="84" height="170"/>
+    <rect x="344" y="262" width="84" height="170"/>
+  </g>
+  <!-- main tower -->
+  <rect x="148" y="84" width="216" height="348" fill="url(#g)"/>
+  <rect x="148" y="84" width="216" height="348" fill="none" stroke="#FFFDF8" stroke-width="6"/>
+  <!-- tower windows (cut out in the background colour) -->
+  <g fill="#FFFDF8">
+    <rect x="182" y="120" width="34" height="34"/><rect x="239" y="120" width="34" height="34"/><rect x="296" y="120" width="34" height="34"/>
+    <rect x="182" y="178" width="34" height="34"/><rect x="239" y="178" width="34" height="34"/><rect x="296" y="178" width="34" height="34"/>
+    <rect x="182" y="236" width="34" height="34"/><rect x="239" y="236" width="34" height="34"/><rect x="296" y="236" width="34" height="34"/>
+    <rect x="182" y="294" width="34" height="34"/><rect x="296" y="294" width="34" height="34"/>
+    <!-- wing windows -->
+    <rect x="104" y="286" width="20" height="24"/><rect x="132" y="286" width="20" height="24"/>
+    <rect x="104" y="332" width="20" height="24"/><rect x="132" y="332" width="20" height="24"/>
+    <rect x="360" y="286" width="20" height="24"/><rect x="388" y="286" width="20" height="24"/>
+    <rect x="360" y="332" width="20" height="24"/><rect x="388" y="332" width="20" height="24"/>
+    <!-- door -->
+    <path d="M232 432V372C232 356 242 348 256 348S280 356 280 372V432Z"/>
+  </g>
+  <!-- ground line -->
+  <rect x="64" y="432" width="384" height="12" rx="3" fill="url(#g)"/>
+</svg>

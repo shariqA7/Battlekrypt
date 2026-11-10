@@ -15,6 +15,7 @@ export default async function SettingsBrandingPage() {
         defaultBannerUrl: b.defaultBannerUrl ?? "",
         defaultAvatarUrl: b.defaultAvatarUrl ?? "",
         defaultOrgLogoUrl: b.defaultOrgLogoUrl ?? "",
+        defaultClubLogoUrl: b.defaultClubLogoUrl ?? "",
       }}
       initialSlides={slides}
     />
