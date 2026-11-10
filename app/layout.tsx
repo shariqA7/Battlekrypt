@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { getBranding } from "@/lib/services/branding";
 import { BrandingProvider } from "@/components/layout/BrandingProvider";
+import SplashScreen from "@/components/layout/SplashScreen";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -58,7 +59,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full flex flex-col bg-bk-bg text-bk-heading">
-
+        <SplashScreen />
         <BrandingProvider branding={branding}>{children}</BrandingProvider>
       </body>
     </html>
