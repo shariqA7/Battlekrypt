@@ -242,3 +242,56 @@ p, h1, h2, h3, h4, li, td, th, label {
 .bk-logo-on-light { display: none; }
 :root[data-theme="light"] .bk-logo-on-dark { display: none; }
 :root[data-theme="light"] .bk-logo-on-light { display: block; }
+
+/* ---- Branded loading screen (components/layout/SplashScreen.tsx) ---- */
+#bk-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  background: var(--bk-bg);
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+#bk-splash.is-hiding { opacity: 0; pointer-events: none; }
+#bk-splash.is-done { display: none; }
+
+.bk-splash-mark { position: relative; width: min(46vw, 240px); aspect-ratio: 1 / 1; }
+.bk-splash-symbol {
+  position: absolute;
+  inset: 17% 0;
+  width: 100%;
+  height: 66%;
+  object-fit: contain;
+  animation: bk-splash-glow 2.2s ease-in-out infinite;
+}
+.bk-splash-orbits { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.bk-orbit { fill: none; stroke-linecap: round; }
+.bk-orbit-a { stroke: url(#bk-orbit-gold); stroke-width: 2.4; stroke-dasharray: 22 78; animation: bk-orbit-run 2.2s linear infinite; }
+.bk-orbit-b { stroke: var(--bk-text-muted); stroke-width: 1.6; stroke-dasharray: 16 84; animation: bk-orbit-run 3.1s linear infinite reverse; opacity: 0.85; }
+
+.bk-splash-bar { width: min(56vw, 250px); height: 4px; border-radius: 4px; background: var(--bk-border); overflow: hidden; }
+.bk-splash-bar span {
+  display: block;
+  width: 34%;
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #F4C842, #B8860B);
+  animation: bk-bar-slide 1.25s ease-in-out infinite;
+}
+
+@keyframes bk-orbit-run { to { stroke-dashoffset: -100; } }
+@keyframes bk-bar-slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(300%); } }
+@keyframes bk-splash-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(244, 200, 66, 0.18)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 20px rgba(244, 200, 66, 0.5)); transform: scale(1.025); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bk-orbit, .bk-splash-bar span, .bk-splash-symbol { animation: none; }
+  .bk-splash-bar span { width: 100%; opacity: 0.6; }
+  #bk-splash { transition: none; }
+}
