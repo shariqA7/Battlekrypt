@@ -22,7 +22,7 @@ export default async function OrganizerProfilePage({
   return (
     <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
       <div className="flex items-center gap-4 mb-5">
-        <InitialTile org name={organizer.orgName} size={64} />
+        <InitialTile kind="org" name={organizer.orgName} size={64} />
         <div className="min-w-0">
           <p className="font-sans font-bold text-[11px] uppercase tracking-[1.6px] text-bk-muted mb-1">Organizer</p>
           <h1 className="font-sans font-extrabold text-2xl sm:text-3xl text-bk-heading flex items-center gap-2 flex-wrap">

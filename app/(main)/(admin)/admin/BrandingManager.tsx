@@ -12,7 +12,7 @@ interface Slide {
   text: string | null;
 }
 
-type AssetKey = "logoUrl" | "logoLightUrl" | "shareImageUrl" | "defaultBannerUrl" | "defaultAvatarUrl" | "defaultOrgLogoUrl";
+type AssetKey = "logoUrl" | "logoLightUrl" | "shareImageUrl" | "defaultBannerUrl" | "defaultAvatarUrl" | "defaultOrgLogoUrl" | "defaultClubLogoUrl";
 export type BrandAssets = Record<AssetKey, string>;
 
 // One upload slot per brand asset. `wide` previews on a wide, short frame;
@@ -22,8 +22,9 @@ const SLOTS: { key: AssetKey; title: string; hint: string; preview: "logo-dark" 
   { key: "logoLightUrl", title: "Logo for light backgrounds", hint: "Same logo, made for the light theme. Leave empty to reuse the dark-background logo.", preview: "logo-light" },
   { key: "shareImageUrl", title: "Default share image (1200 × 630)", hint: "Shown when a link to the site is shared on WhatsApp, Discord, X and similar. Use exactly 1200 × 630 px.", preview: "wide" },
   { key: "defaultBannerUrl", title: "Default tournament banner", hint: "Shown on tournaments whose organizer did not upload a banner.", preview: "wide" },
-  { key: "defaultAvatarUrl", title: "Default player avatar", hint: "Shown for players without a photo. Square image; it is shown in a circle.", preview: "round" },
-  { key: "defaultOrgLogoUrl", title: "Default organizer / club logo", hint: "Shown for organizers and clubs without a logo. Square, 512 px.", preview: "square" },
+  { key: "defaultAvatarUrl", title: "Default player avatar", hint: "Shown for players without a photo. Square image; it is shown in a circle. Empty = built-in gold silhouette.", preview: "round" },
+  { key: "defaultOrgLogoUrl", title: "Default organizer logo", hint: "Shown for organizers without a logo. Square, 512 px. Empty = built-in gold building.", preview: "square" },
+  { key: "defaultClubLogoUrl", title: "Default club logo", hint: "Shown for clubs without a logo. Square, 512 px. Empty = built-in gold shield.", preview: "square" },
 ];
 
 function AssetSlot({

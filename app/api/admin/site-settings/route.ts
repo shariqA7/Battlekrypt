@@ -1,6 +1,6 @@
 // PATCH /api/admin/site-settings — admin uploads/changes/clears brand assets.
 // Body: any of logoUrl, logoLightUrl, shareImageUrl, defaultBannerUrl,
-// defaultAvatarUrl, defaultOrgLogoUrl (https URL, or null/"" to clear).
+// defaultAvatarUrl, defaultOrgLogoUrl, defaultClubLogoUrl (https URL, or null/"" to clear).
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-helpers";
 import { updateSiteSettings } from "@/lib/services/tournaments";

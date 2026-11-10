@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Default club logo">
+  <defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#D9A520"/><stop offset="1" stop-color="#8A5E00"/></linearGradient>
+  <radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#FFFDF8"/><stop offset="1" stop-color="#F1EADB"/></radialGradient>
+    <clipPath id="s"><path d="M256 64L416 112V248C416 344 352 410 256 448C160 410 96 344 96 248V112Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect x="12" y="12" width="488" height="488" fill="none" stroke="#D8CDB6" stroke-width="4"/>
+  <path d="M256 64L416 112V248C416 344 352 410 256 448C160 410 96 344 96 248V112Z" fill="#FFFDF8" stroke="url(#g)" stroke-width="14" stroke-linejoin="round"/>
+  <g clip-path="url(#s)">
+    <g fill="url(#g)" opacity=".6">
+      <circle cx="168" cy="244" r="26"/><path d="M116 470V370C116 324 140 304 168 304S220 324 220 370V470Z"/>
+      <circle cx="344" cy="244" r="26"/><path d="M292 470V370C292 324 316 304 344 304S396 324 396 370V470Z"/>
+    </g>
+    <g fill="url(#g)" stroke="#FFFDF8" stroke-width="6">
+      <circle cx="256" cy="204" r="40"/><path d="M176 470V384C176 320 212 292 256 292S336 320 336 384V470Z"/>
+    </g>
+  </g>
+</svg>

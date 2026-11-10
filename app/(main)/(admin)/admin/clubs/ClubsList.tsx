@@ -10,7 +10,7 @@ const columns: Column<ClubRow>[] = [
     header: "Club",
     cell: (c) => (
       <div className="flex items-center gap-2.5 min-w-0">
-        <InitialTile org name={c.name} size={32} src={c.logoUrl} />
+        <InitialTile kind="club" name={c.name} size={32} src={c.logoUrl} />
         <span className="text-bk-heading truncate">{c.name}</span>
       </div>
     ),

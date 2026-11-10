@@ -21,7 +21,7 @@ export default async function OrganizersPage() {
               href={`/organizers/${o.id}`}
               className="group flex items-center gap-3 bg-bk-surface border border-bk-border p-4 transition-colors hover:border-bk-gold-from hover:bg-bk-surface-hover"
             >
-              <InitialTile org name={o.orgName} />
+              <InitialTile kind="org" name={o.orgName} />
               <div className="min-w-0">
                 <p className="font-sans font-bold text-bk-heading text-sm flex items-center gap-1.5 group-hover:text-bk-gold-light">
                   <span className="break-words min-w-0">{o.orgName}</span>

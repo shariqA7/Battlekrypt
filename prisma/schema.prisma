@@ -1390,7 +1390,7 @@ model SiteSettings {
   shareImageUrl           String?  // default 1200x630 link-preview image
   defaultBannerUrl        String?  // tournament without a banner
   defaultAvatarUrl        String?  // player without a photo
-  defaultOrgLogoUrl       String?  // organizer / club without a logo
+  defaultOrgLogoUrl       String?  // organizer without a logo
   defaultClubLogoUrl      String?
   // Shown on the club registration form: amount + where to send the fee.
   clubPaymentInstructions String?
