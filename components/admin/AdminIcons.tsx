@@ -68,3 +68,10 @@ export const CloseIcon = ({ size = 20 }: { size?: number }) => (
 export const HomeIcon = ({ size = 15 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path {...s} d="M4 11l8-7 8 7v8.5a1.5 1.5 0 01-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 014 19.5V11z" /></svg>
 );
+
+export const ChevronLeft = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path {...s} d="M15 5l-7 7 7 7" /></svg>
+);
+export const SearchIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle {...s} cx="11" cy="11" r="6.5" /><path {...s} d="M16 16l4 4" /></svg>
+);

@@ -1,9 +1,9 @@
-import { redirect } from "next/navigation";
-import { requireAdminPage } from "@/lib/admin-page";
-import { ADMIN_SUBTABS } from "@/components/admin/adminNav";
+import { requireStaffPage } from "@/lib/admin-page";
+import { settingsGroupsFor } from "@/lib/settings-groups";
+import SettingsHub from "@/components/admin/SettingsHub";
 
-// /admin/settings opens its first sub tab.
+// /admin/settings: every setting as a card, grouped.
 export default async function SettingsIndex() {
-  await requireAdminPage("settings");
-  redirect(ADMIN_SUBTABS["/admin/settings"][0].href);
+  const staff = await requireStaffPage("settings");
+  return <SettingsHub groups={settingsGroupsFor(staff)} />;
 }

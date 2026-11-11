@@ -295,3 +295,8 @@ p, h1, h2, h3, h4, li, td, th, label {
   .bk-splash-bar span { width: 100%; opacity: 0.6; }
   #bk-splash { transition: none; }
 }
+
+/* Admin settings pages: softer, rounder fields to match the settings cards. */
+.bk-settings-body input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+.bk-settings-body select,
+.bk-settings-body textarea { border-radius: 0.625rem; }
