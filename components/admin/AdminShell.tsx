@@ -48,12 +48,12 @@ function SidebarLinks({ collapsed, counts, allowed, onNavigate }: { collapsed: b
                     title={collapsed ? item.label : undefined}
                     aria-label={collapsed ? (count > 0 ? `${item.label}, ${count} pending` : item.label) : undefined}
                     aria-current={active ? "page" : undefined}
-                    className={`relative flex items-center min-h-[44px] md:min-h-[40px] border-l-2 font-sans text-[13px] transition-colors ${
+                    className={`relative flex items-center min-h-[44px] md:min-h-[40px] mx-2 rounded-lg font-sans text-[13px] transition-colors ${
                       collapsed ? "justify-center px-0" : "gap-3 px-3"
                     } ${
                       active
-                        ? "bg-bk-surface text-bk-gold-light font-bold border-bk-gold-light"
-                        : "text-bk-muted hover:text-bk-heading hover:bg-bk-surface-hover border-transparent"
+                        ? "bg-bk-gold-light/12 text-bk-gold-light font-bold"
+                        : "text-bk-muted hover:text-bk-heading hover:bg-bk-surface-hover"
                     }`}
                   >
                     <AdminIcon name={item.icon} className="shrink-0" />
