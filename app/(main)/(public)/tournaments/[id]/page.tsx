@@ -25,6 +25,7 @@ import { Eyebrow, SectionHeading } from "@/components/ui/Panel";
 import { CalendarIcon, CoinIcon } from "@/components/ui/icons";
 import { notFound } from "next/navigation";
 import { getBranding } from "@/lib/services/branding";
+import { BrandLogo } from "@/components/ui/BannerImage";
 
 const label = (v: string) => v.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
@@ -67,6 +68,11 @@ export default async function TournamentDetailPage({
       <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
         {/* ---------------- hero ---------------- */}
         <header className="relative pt-10 sm:pt-14 pb-10 sm:pb-12 border-b border-bk-border">
+          {!bannerUrl && (
+            <div aria-hidden className="absolute inset-y-0 right-0 -z-10 hidden sm:flex items-center pr-10 lg:pr-16 opacity-25">
+              <BrandLogo symbolOnly className="h-40 w-auto" />
+            </div>
+          )}
           {bannerUrl && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}

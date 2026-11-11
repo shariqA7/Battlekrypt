@@ -26,7 +26,7 @@ export default async function Footer() {
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 py-10 flex flex-col gap-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <Link href="/" className="shrink-0 flex items-center" aria-label="BattleKrypt home">
-            <SiteLogo heightClass="h-8" className="font-sans font-extrabold text-2xl text-bk-gold-light" />
+            <SiteLogo heightClass="h-14 sm:h-16" className="font-sans font-extrabold text-2xl text-bk-gold-light" />
           </Link>
           <nav aria-label="Footer" className="flex flex-wrap gap-x-7 gap-y-3 lg:justify-end">
             {LINKS.filter((l) => (l.href !== "/challenges" || flags.challenges) && (l.href !== "/giveaways" || flags.giveaways) && (l.href !== "/donate" || flags.donations)).map((l) => (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BannerImage from "@/components/ui/BannerImage";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -75,6 +76,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
         </p>
       )}
 
+      <BannerImage className="w-full h-32 mt-4 border border-bk-border-soft" />
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mt-4 mb-1">{c.title}</h1>
       <p className="font-sans text-[13px] text-bk-muted mb-5">
         {c.game.name} · {POSTER_LABEL[c.posterType]}: {c.posterName}
