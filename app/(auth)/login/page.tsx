@@ -21,7 +21,7 @@ export default async function LoginPage() {
     <main className="flex-1 flex min-h-0 gap-6 p-6">
       <div className="flex-1 flex flex-col md:px-8">
         <Link href="/" className="inline-block w-fit">
-          <SiteLogo heightClass="h-7" className="text-bk-gold-light font-sans font-extrabold text-base tracking-wide" fallbackText="BATTLEKRYPT" />
+          <SiteLogo heightClass="h-10" className="text-bk-gold-light font-sans font-extrabold text-base tracking-wide" fallbackText="BATTLEKRYPT" />
         </Link>
 
         <div className="flex-1 flex flex-col items-center justify-center">

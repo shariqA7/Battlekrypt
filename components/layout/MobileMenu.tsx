@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SearchBox from "@/components/layout/SearchBox";
+import { BrandLogo } from "@/components/ui/BannerImage";
 
 interface NavLink {
   label: string;
@@ -84,7 +85,7 @@ export default function MobileMenu({
             aria-label="Menu"
           >
             <div className="flex items-center justify-between px-5 h-14 border-b border-bk-border-nav shrink-0">
-              <span className="text-bk-gold-light font-sans font-extrabold text-lg">BattleKrypt</span>
+              <BrandLogo className="h-9 w-auto max-w-[200px]" textFallback="BattleKrypt" />
               <button
                 type="button"
                 aria-label="Close menu"

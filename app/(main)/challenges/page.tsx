@@ -3,6 +3,7 @@ import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { gameVisibilityWhere } from "@/lib/game-region";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import Link from "next/link";
+import BannerImage from "@/components/ui/BannerImage";
 import { prisma } from "@/lib/prisma";
 import { listOpenChallenges } from "@/lib/services/challenges";
 import { prizeLabel, POSTER_LABEL, ENTRANT_LABEL } from "@/lib/challenge-format";
@@ -66,7 +67,9 @@ export default async function ChallengesPage({
         <ul className="space-y-3">
           {challenges.map((c) => (
             <li key={c.id}>
-              <Link href={`/challenges/${c.id}`} className="block bg-bk-surface border border-bk-border p-4 hover:border-bk-gold-light/60">
+              <Link href={`/challenges/${c.id}`} className="flex gap-4 bg-bk-surface border border-bk-border p-4 hover:border-bk-gold-light/60">
+                <BannerImage tile className="h-16 w-16 shrink-0 border border-bk-border-soft" />
+                <div className="min-w-0 flex-1">
                 <div className="flex justify-between gap-4">
                   <p className="font-sans font-bold text-bk-heading">{c.title}</p>
                   <p className="font-sans font-bold text-bk-gold-light shrink-0">{prizeLabel(c)}</p>
@@ -82,6 +85,7 @@ export default async function ChallengesPage({
                   {" · "}{c._count.applications}/{c.maxApplicants} applied
                   {" · "}closes {c.applicationsCloseAt.toLocaleDateString()}
                 </p>
+                </div>
               </Link>
             </li>
           ))}

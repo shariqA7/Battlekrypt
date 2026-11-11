@@ -14,7 +14,7 @@ export default async function SiteLogo({
   fallbackText?: string;
 }) {
   const { logoUrl, logoLightUrl } = await getBranding();
-  const img = `${heightClass} w-auto max-w-[220px] object-contain`;
+  const img = `${heightClass} w-auto max-w-[240px] object-contain`;
 
   if (!logoUrl && !logoLightUrl) return <span className={className}>{fallbackText}</span>;
 

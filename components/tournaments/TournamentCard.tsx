@@ -3,6 +3,7 @@ import { formatMoney } from "@/lib/money";
 import { countryName } from "@/lib/geo-data";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import LocalDate from "@/components/ui/LocalDate";
+import BannerImage from "@/components/ui/BannerImage";
 
 // One tournament card, shared by the home page and browse. Colour roles follow
 // the spec: teal = live/open, amber = waiting, gold/mono = prize money.
@@ -10,6 +11,7 @@ import LocalDate from "@/components/ui/LocalDate";
 type CardTournament = {
   slug: string;
   name: string;
+  bannerUrl?: string | null;
   type: string;
   mode: string;
   status: string;
@@ -55,6 +57,9 @@ export default function TournamentCard({ t }: { t: CardTournament }) {
       href={`/tournaments/${t.slug}`}
       className="group flex h-full flex-col bg-bk-surface border border-bk-border p-4 transition-colors hover:border-bk-gold-from hover:bg-bk-surface-hover"
     >
+      <div className="-mx-4 -mt-4 mb-3 h-28 overflow-hidden border-b border-bk-border-soft">
+        <BannerImage src={t.bannerUrl} className="w-full h-full" />
+      </div>
       <div className="flex flex-wrap items-center gap-2 mb-3 min-h-[24px]">
         {t.competitiveTier && <TierBadge tier={t.competitiveTier} />}
         {status && (

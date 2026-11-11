@@ -68,7 +68,7 @@ export default async function Nav() {
       <NavFrame>
         <div className="flex items-center gap-8 min-w-0">
           <Link href="/" className="shrink-0 flex items-center" aria-label="BattleKrypt home">
-            <SiteLogo heightClass="h-7 sm:h-8" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight" />
+            <SiteLogo heightClass="h-10 sm:h-12" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight" />
           </Link>
           <SearchBox className="hidden xl:block w-64" />
         </div>
