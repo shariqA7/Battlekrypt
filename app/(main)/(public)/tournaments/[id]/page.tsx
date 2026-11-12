@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { previewMetadata, blurb } from "@/lib/link-preview";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
@@ -28,6 +30,18 @@ import { getBranding } from "@/lib/services/branding";
 import { BrandLogo } from "@/components/ui/BannerImage";
 
 const label = (v: string) => v.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
+// Link preview: the event's own banner when it has one, otherwise the platform picture.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const t = await getTournamentById(id);
+    if (!t) return {};
+    return await previewMetadata({ title: t.name, description: blurb(t.description, "Join this event on BattleKrypt."), image: t.bannerUrl });
+  } catch {
+    return {};
+  }
+}
 
 export default async function TournamentDetailPage({
   params,

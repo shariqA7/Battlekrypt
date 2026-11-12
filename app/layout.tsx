@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { getBranding } from "@/lib/services/branding";
+import { previewMetadata } from "@/lib/link-preview";
 import { BrandingProvider } from "@/components/layout/BrandingProvider";
 import SplashScreen from "@/components/layout/SplashScreen";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
@@ -22,17 +23,11 @@ const jetbrainsMono = JetBrains_Mono({
 const TITLE = "BattleKrypt";
 const DESCRIPTION = "Tournaments, leagues, and daily scrims for competitive gaming.";
 
-// The default link-preview image (1200x630) is uploaded in Admin > Settings >
-// Branding. A page that sets its own openGraph images overrides it.
+// Link preview for the platform itself: the share image from Admin > Settings > Branding, or the
+// platform logo when no share image is uploaded. Pages with their own picture (tournaments,
+// giveaways) override it; see lib/link-preview.ts.
 export async function generateMetadata(): Promise<Metadata> {
-  const { shareImageUrl } = await getBranding();
-  const images = shareImageUrl ? [{ url: shareImageUrl, width: 1200, height: 630 }] : undefined;
-  return {
-    title: TITLE,
-    description: DESCRIPTION,
-    openGraph: { title: TITLE, description: DESCRIPTION, siteName: TITLE, type: "website", images },
-    twitter: { card: images ? "summary_large_image" : "summary", title: TITLE, description: DESCRIPTION, images: shareImageUrl ? [shareImageUrl] : undefined },
-  };
+  return previewMetadata({ title: TITLE, description: DESCRIPTION });
 }
 
 // viewport-fit=cover lets the page paint under the notch / home indicator so

@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { previewMetadata, blurb } from "@/lib/link-preview";
 import BannerImage from "@/components/ui/BannerImage";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -25,6 +27,19 @@ const STATUS_NOTE: Record<string, { text: string; tone: "gold" | "live" | "muted
   expired: { text: "Applications closed before anyone was chosen.", tone: "muted" },
   completed: { text: "This challenge has been completed.", tone: "muted" },
 };
+
+// Link preview: challenges have no picture of their own, so the platform picture is used.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const found = await getChallengeForViewer(id, null);
+    if (!found) return {};
+    const c = found.challenge;
+    return await previewMetadata({ title: `Challenge: ${c.title}`, description: blurb(c.description, "Take on this challenge on BattleKrypt.") });
+  } catch {
+    return {};
+  }
+}
 
 export default async function ChallengePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
