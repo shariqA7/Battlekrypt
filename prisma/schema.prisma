@@ -3172,3 +3172,40 @@ model GiveawayWinner {
   @@index([userId, status])
   @@index([giveawayId, status])
 }
+
+// ------------------------------------------------------------
+// SITE FEEDBACK: "suggest a feature" / "report a problem" from anyone (a visitor or a signed-in
+// user). Read by admins with the Feedback permission. The sender's account is not linked by a
+// relation: when an account is erased userId and contactEmail are cleared and the message stays.
+// ------------------------------------------------------------
+enum FeedbackKind {
+  feature
+  issue
+  other
+}
+
+enum FeedbackStatus {
+  open
+  reviewing
+  planned
+  done
+  declined
+}
+
+model Feedback {
+  id           String         @id @default(uuid())
+  kind         FeedbackKind
+  message      String
+  pageUrl      String? // the page they were on: path only, never the query string
+  userId       String? // null for a visitor, and after the account is erased
+  contactEmail String? // only when the sender typed one to be answered
+  status       FeedbackStatus @default(open)
+  adminNote    String?
+  handledById  String?
+  handledAt    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
+}

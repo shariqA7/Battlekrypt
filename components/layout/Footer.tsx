@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SiteLogo from "@/components/layout/SiteLogo";
+import FeedbackLink from "@/components/layout/FeedbackLink";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 
 // Site footer, from the design mockup: logo on the left, links in the middle,
@@ -34,6 +35,7 @@ export default async function Footer() {
                 {l.label}
               </Link>
             ))}
+            <FeedbackLink className={linkClass}>Send feedback</FeedbackLink>
             {support && (
               <a href={`mailto:${support}`} className={linkClass}>
                 Support

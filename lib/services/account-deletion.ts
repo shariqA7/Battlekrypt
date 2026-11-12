@@ -262,6 +262,8 @@ export async function eraseUser(userId: string, deps: ErasureDeps = storageDeps(
     // haven't been drawn go, so a deleted account can't win.
     await tx.giveawayWinner.updateMany({ where: { userId }, data: { deliveryName: null, deliveryPhone: null, deliveryAddress: null, deliveryNote: null, disputeNote: null } });
     await tx.giveawayEntry.deleteMany({ where: { userId, giveaway: { status: { in: ["draft", "pending_review", "active"] } } } });
+    // Feedback they sent: the message stays (it is product feedback), but it is no longer tied to them.
+    await tx.feedback.updateMany({ where: { userId }, data: { userId: null, contactEmail: null } });
     // Ratings an organizer received keep their stars; the written comment of a deleted person goes.
     await tx.organizerRating.updateMany({ where: { raterUserId: userId }, data: { comment: null } });
 
