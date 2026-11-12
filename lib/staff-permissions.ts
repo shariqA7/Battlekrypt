@@ -26,6 +26,7 @@ export const STAFF_PERMISSIONS = [
   { key: "featured", label: "Featured", group: "Platform", hint: "Featured tournaments" },
   { key: "games", label: "Games", group: "Platform", hint: "Add and edit games: description, pictures, platforms, show or hide. Deleting a game is super admin only" },
   { key: "giveaways", label: "Giveaways", group: "Platform", hint: "Run giveaways, approve organizers' giveaways, draw winners and follow prize delivery" },
+  { key: "ads", label: "Ads", group: "Platform", hint: "Sponsor banners, their stats, and the Google AdSense settings" },
   { key: "feedback", label: "Feedback", group: "Platform", hint: "Feature ideas and problem reports sent by visitors and users" },
   { key: "traffic", label: "Traffic", group: "Platform", hint: "Visits and sessions" },
   { key: "settings", label: "Settings", group: "Platform", hint: "Branding, login options, tiers, features and other platform settings" },
@@ -55,7 +56,7 @@ export const ROLE_TEMPLATES: Record<"admin" | "manager", StaffGrants> = {
   admin: {
     approvals: "edit", change_requests: "edit", reports: "edit", institutions: "edit", organizer_trust: "edit",
     users: "edit", organizations: "edit", clubs: "edit", plans: "edit", payments: "edit", deposits: "edit",
-    currencies: "edit", donations: "edit", featured: "edit", games: "edit", giveaways: "edit", feedback: "edit", traffic: "edit", settings: "edit",
+    currencies: "edit", donations: "edit", featured: "edit", games: "edit", giveaways: "edit", ads: "edit", feedback: "edit", traffic: "edit", settings: "edit",
     // ledger deliberately left out: switch it on per person.
   },
   manager: {
@@ -107,6 +108,7 @@ const PATH_AREAS: [string, StaffPermissionKey | "staff" | null][] = [
   ["/admin/games", "games"],
   ["/admin/giveaways", "giveaways"],
   ["/admin/feedback", "feedback"],
+  ["/admin/ads", "ads"],
   ["/admin/traffic", "traffic"],
   ["/admin/settings", "settings"],
   ["/admin/staff", "staff"],
@@ -148,6 +150,7 @@ export const API_FOLDER_AREAS: Record<string, AdminArea | null> = {
   games: "games",
   giveaways: "giveaways",
   feedback: "feedback",
+  ads: "ads", "ad-settings": "ads",
   "site-settings": "settings", "login-options": "settings", "challenge-settings": "settings", "tier-settings": "settings",
   features: "settings", "club-settings": "settings", "plan-settings": "settings", "carousel-slides": "settings",
 };
