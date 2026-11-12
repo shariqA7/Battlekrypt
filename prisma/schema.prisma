@@ -1398,6 +1398,15 @@ model SiteSettings {
   planPaymentInstructions String?
   // Ads stay off until an ad network is wired into components/ui/AdSlot.
   adsEnabled              Boolean  @default(false)
+  // Google AdSense, shown only where no sponsor campaign fits and never in the EU/UK/Switzerland
+  // (no consent banner yet). Empty publisher id = AdSense off. See lib/ad-rules.ts.
+  adsenseClientId         String?  // ca-pub-XXXXXXXXXXXXXXXX
+  adsenseSlotBrowse       String?
+  adsenseSlotTournament   String?
+  adsenseSlotDashboard    String?
+  // Set once a consent message for the EU/UK/Switzerland is live (Google's CMP in AdSense > Privacy &
+  // messaging, or another certified CMP). Until then AdSense is not shown to those visitors.
+  adsenseEuConsentReady   Boolean  @default(false)
   // A challenge whose cash prize (in USD) is above this waits for admin
   // approval before it goes live. Plan caps (Plan.limits) apply first.
   challengeReviewUsd      Decimal  @default(10000) @db.Decimal(14, 2)
@@ -3208,4 +3217,42 @@ model Feedback {
 
   @@index([status, createdAt])
   @@index([userId])
+}
+
+// ------------------------------------------------------------
+// SPONSOR ADS: banners an admin sells directly to advertisers. Shown to free-plan accounts and
+// visitors on the placements chosen (browse, tournament page, dashboard). No personal data: only
+// per-day counts of views and clicks. See lib/services/ads.ts.
+// ------------------------------------------------------------
+model AdCampaign {
+  id           String   @id @default(uuid())
+  name         String // internal label
+  advertiser   String // who is paying
+  imageUrl     String // public https banner
+  linkUrl      String // https page the banner opens
+  altText      String
+  placements   String[] // browse | tournament_detail | dashboard
+  audience     String   @default("all") // all | player | organizer
+  startsAt     DateTime @default(now())
+  endsAt       DateTime?
+  active       Boolean  @default(true)
+  weight       Int      @default(1) // 1-10: a campaign with weight 3 is shown 3x as often as weight 1
+  paidAmount   Decimal? @db.Decimal(14, 2) // what the advertiser paid (for your records)
+  paidCurrency String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  stats        AdDailyStat[]
+
+  @@index([active, startsAt])
+}
+
+model AdDailyStat {
+  campaignId  String
+  day         DateTime   @db.Date
+  impressions Int        @default(0)
+  clicks      Int        @default(0)
+  campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, day])
 }

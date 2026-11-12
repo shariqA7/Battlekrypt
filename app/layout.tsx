@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { getBranding } from "@/lib/services/branding";
 import { previewMetadata } from "@/lib/link-preview";
+import { getAdsenseSettings } from "@/lib/services/ads";
 import { BrandingProvider } from "@/components/layout/BrandingProvider";
 import SplashScreen from "@/components/layout/SplashScreen";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
@@ -27,7 +28,12 @@ const DESCRIPTION = "Tournaments, leagues, and daily scrims for competitive gami
 // platform logo when no share image is uploaded. Pages with their own picture (tournaments,
 // giveaways) override it; see lib/link-preview.ts.
 export async function generateMetadata(): Promise<Metadata> {
-  return previewMetadata({ title: TITLE, description: DESCRIPTION });
+  const [meta, ads] = await Promise.all([
+    previewMetadata({ title: TITLE, description: DESCRIPTION }),
+    getAdsenseSettings().catch(() => null),
+  ]);
+  // Lets Google AdSense confirm the site is yours (a meta tag only: it loads nothing and sets no cookies).
+  return ads?.adsenseClientId ? { ...meta, other: { "google-adsense-account": ads.adsenseClientId } } : meta;
 }
 
 // viewport-fit=cover lets the page paint under the notch / home indicator so

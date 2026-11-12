@@ -19,6 +19,7 @@ const PATHS: Record<AdminIconName, ReactElement> = {
   payments: <><rect {...s} x="3" y="5.5" width="18" height="13" rx="1.8" /><path {...s} d="M3 10h18M7 15h3.5" /></>,
   donations: <path {...s} d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0112 7.6a4.3 4.3 0 017.5 2.2C19.5 15.4 12 20 12 20z" />,
   giveaways: <><rect {...s} x="4" y="9" width="16" height="11" rx="1" /><path {...s} d="M12 9v11M3 6h18v3H3zM12 6c-1-3-5-3-5-1s3 1 5 1zm0 0c1-3 5-3 5-1s-3 1-5 1z" /></>,
+  ads: <><rect {...s} x="3" y="6" width="18" height="12" rx="1" /><path {...s} d="M7 10.5h6M7 13.5h4M16 10v4" /></>,
   feedback: <><path {...s} d="M4 5.5h16v10.5H9.5L5.5 20v-4H4z" /><path {...s} d="M8 9.5h8M8 12.5h5" /></>,
   deposits: <><rect {...s} x="3.5" y="10.5" width="17" height="10" rx="1.6" /><path {...s} d="M7.5 10.5V8a4.5 4.5 0 019 0v2.5M12 14.5v2.5" /></>,
   currencies: <><circle {...s} cx="12" cy="12" r="9.2" /><path {...s} d="M14.8 9.2c-.5-1-1.5-1.5-2.8-1.5-1.6 0-2.7.8-2.7 2s1 1.7 2.7 2.1c1.8.4 2.9 1 2.9 2.3 0 1.3-1.2 2.1-2.9 2.1-1.4 0-2.5-.6-3-1.7M12 6v1.7M12 16.3V18" /></>,
