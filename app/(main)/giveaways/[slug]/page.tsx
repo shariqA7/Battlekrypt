@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { previewMetadata, blurb } from "@/lib/link-preview";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +12,22 @@ import EnterPanel from "./EnterPanel";
 import WinnerPanel from "./WinnerPanel";
 
 const KIND: Record<string, string> = { physical: "Physical prize, delivered to you", code: "Digital code or gift card", cash: "Cash prize (18+)" };
+
+// Link preview: the prize photo when there is one, otherwise the platform picture.
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const g = await getGiveawayPage(slug, null);
+    if (!g) return {};
+    return await previewMetadata({
+      title: `Giveaway: ${g.prizeTitle}`,
+      description: blurb(g.description, "Enter this giveaway on BattleKrypt."),
+      image: g.prizeImageUrl,
+    });
+  } catch {
+    return {};
+  }
+}
 
 export default async function GiveawayPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
