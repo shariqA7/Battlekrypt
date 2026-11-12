@@ -75,6 +75,7 @@ export default function ClubRegisterForm() {
         <FileUpload
           bucket="tournament-assets"
           pathPrefix="club-logos"
+          preset="logo"
           label="Upload logo"
           onUploaded={setLogoUrl}
         />

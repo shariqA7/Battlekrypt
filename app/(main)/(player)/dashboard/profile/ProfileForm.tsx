@@ -133,6 +133,7 @@ export default function ProfileForm({
       <FileUpload
         bucket="tournament-assets"
         pathPrefix="avatars"
+        preset="avatar"
         label="Upload a photo"
         onUploaded={setAvatarUrl}
       />

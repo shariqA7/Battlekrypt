@@ -81,7 +81,7 @@ function AssetSlot({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <FileUpload bucket="tournament-assets" pathPrefix="branding" label={draft ? "Replace" : "Upload"} onUploaded={setDraft} />
+          <FileUpload bucket="tournament-assets" pathPrefix="branding" preset="logo" label={draft ? "Replace" : "Upload"} onUploaded={setDraft} />
           <button disabled={!dirty || state === "saving"} onClick={() => save(draft)} className={buttonClass("primary", "sm", "")}>
             {state === "saving" ? "Saving…" : state === "saved" ? "Saved!" : "Save"}
           </button>

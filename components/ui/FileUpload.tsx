@@ -3,8 +3,16 @@
 // Uploads a file directly to Supabase Storage from the browser and returns
 // its public URL (or, for a private bucket, its storage path). Requires a Storage bucket to exist (see SETUP.md for the
 // bucket + RLS policy this needs) — this component doesn't create the bucket.
+//
+// Pictures are shrunk in the browser first (lib/image-compress.ts), so storage and bandwidth stay
+// small, and anything still over the size limit is refused with a clear message.
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { PRESETS, compressImage, presetForBucket, safeFileName, type ImagePreset } from "@/lib/image-compress";
+
+const MAX_BYTES = 10 * 1024 * 1024; // pictures and documents, after shrinking
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const mb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
 
 interface FileUploadProps {
   bucket: string;
@@ -19,6 +27,10 @@ interface FileUploadProps {
   // With a private bucket: put the file in the signed-in user's own folder
   // (`<user id>/<pathPrefix>/<random>.<ext>`), which is what the bucket's upload policy requires.
   ownerFolder?: boolean;
+  // How hard pictures are shrunk. Defaults by bucket: payment proofs and ID documents get their
+  // own gentler presets, everything else is "photo". Use "avatar" for profile photos and "logo"
+  // for logos / game art (crisper, keeps transparency).
+  preset?: ImagePreset;
 }
 
 export default function FileUpload({
@@ -29,6 +41,7 @@ export default function FileUpload({
   accept = "image/*",
   isPrivate = false,
   ownerFolder = false,
+  preset,
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,16 +49,27 @@ export default function FileUpload({
   const supabase = createClient();
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files?.[0];
+    e.target.value = ""; // lets the same file be chosen again after an error
+    if (!picked) return;
 
     setUploading(true);
     setError(null);
-    setFileName(file.name);
+    setFileName(picked.name);
+
+    const file = picked.type.startsWith("image/")
+      ? await compressImage(picked, PRESETS[preset ?? presetForBucket(bucket)])
+      : picked;
+    const limit = file.type.startsWith("video/") ? MAX_VIDEO_BYTES : MAX_BYTES;
+    if (file.size > limit) {
+      setError(`That file is too large (${mb(file.size)} MB). The limit is ${mb(limit)} MB.`);
+      setUploading(false);
+      return;
+    }
 
     // Private uploads keep only a safe extension — the original file name
     // (which may contain a person's name) never lands in storage.
-    const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "").slice(0, 5) || "jpg";
+    const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "").toLowerCase().slice(0, 5) || "jpg";
     let folder = pathPrefix;
     if (isPrivate && ownerFolder) {
       const { data: auth } = await supabase.auth.getUser();
@@ -58,11 +82,13 @@ export default function FileUpload({
     }
     const path = isPrivate
       ? `${folder}/${crypto.randomUUID()}.${ext}`
-      : `${pathPrefix}/${crypto.randomUUID()}-${file.name}`;
+      : `${pathPrefix}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
 
+    // Public files get a random name and never change, so browsers and the CDN may keep them for a
+    // year (far less repeat bandwidth). Private files are checked on every view and cached briefly.
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(path, file);
+      .upload(path, file, { cacheControl: isPrivate ? "3600" : "31536000", contentType: file.type || undefined });
 
     if (uploadError) {
       setError(uploadError.message);
