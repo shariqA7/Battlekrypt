@@ -165,7 +165,7 @@ export default function GiveawayForm({
                 <label htmlFor="g-sponsor-url" className={label}>Brand link</label>
                 <input id="g-sponsor-url" value={f.sponsorUrl} onChange={(e) => set({ sponsorUrl: e.target.value })} placeholder="https://" className={input} />
                 <div className="mt-3">
-                  <FileUpload bucket="tournament-assets" pathPrefix="giveaway-sponsors" label="Brand logo (optional)" onUploaded={(u) => set({ sponsorLogoUrl: u })} />
+                  <FileUpload bucket="tournament-assets" pathPrefix="giveaway-sponsors" preset="logo" label="Brand logo (optional)" onUploaded={(u) => set({ sponsorLogoUrl: u })} />
                   {f.sponsorLogoUrl && <p className="font-sans text-[11px] text-bk-teal mt-1">✓ logo uploaded</p>}
                 </div>
 

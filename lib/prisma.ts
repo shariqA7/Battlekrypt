@@ -6,7 +6,15 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+// Every serverless instance keeps its OWN pool, and many instances run at once during a spike, so
+// each pool must stay small or the database runs out of connections. Set DATABASE_POOL_MAX to tune
+// it (see SETUP.md, "Going live"). Locally a bigger pool is fine.
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.DATABASE_POOL_MAX) || (process.env.NODE_ENV === "production" ? 5 : 10),
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 10_000,
+});
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({ adapter });
 

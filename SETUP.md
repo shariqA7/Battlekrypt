@@ -1040,3 +1040,33 @@ Every session is logged with an IP address, city, browser string and (when signe
 ```
 curl -H "Authorization: Bearer $CRON_SECRET" https://YOUR-SITE/api/cron/visit-retention
 ```
+
+
+## Going live: region, database connections and image size
+
+These three settings decide how smoothly the site copes with many people at once.
+
+### 1. Server region (`vercel.json`)
+`"regions": ["sin1"]` runs the server code in Singapore, next to the Supabase database
+(`ap-southeast-1`). Without it Vercel's default region is far from the database and every page pays
+for several round trips across the world. If you ever move the database, move this too.
+A region set in the Vercel dashboard is overridden by `vercel.json`.
+
+### 2. Database connections (`DATABASE_URL`, `DATABASE_POOL_MAX`)
+- On Vercel, set `DATABASE_URL` to Supabase's **transaction pooler** address (port **6543**, host
+  `...pooler.supabase.com`), not the session pooler (5432) or the direct connection. Test the app
+  after the change: log in, register for a tournament, upload a proof.
+- Keep the direct/session address (5432) only for migrations (`prisma migrate deploy`), which
+  `prisma.config.ts` uses.
+- Each serverless instance keeps its own pool. `lib/prisma.ts` allows 5 connections per instance in
+  production (10 locally). Override with `DATABASE_POOL_MAX` in the Vercel environment variables.
+  Lower it if Supabase reports "too many connections" under load.
+
+### 3. Pictures are shrunk before upload (`lib/image-compress.ts`)
+- `FileUpload` re-encodes JPEG/PNG/WebP pictures in the browser (WebP, or JPEG on older Safari).
+  Presets: `photo` 1600 px, `avatar` 512 px, `logo` 2400 px with transparency kept, `proof` (payment
+  screenshots), `id` (ID documents). Re-encoding also removes GPS data hidden in photos.
+- Payment proofs under 1.5 MB are uploaded untouched, because duplicate-screenshot detection
+  compares the exact file. Only larger screenshots are re-encoded.
+- Anything still over 10 MB (50 MB for video) after shrinking is refused with a clear message.
+- Public files are uploaded with a one-year cache header (their names are random and never reused).
