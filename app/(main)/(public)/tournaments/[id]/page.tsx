@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { previewMetadata, blurb } from "@/lib/link-preview";
+import ShareLinks from "@/components/ui/ShareLinks";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
@@ -173,6 +174,7 @@ export default async function TournamentDetailPage({
                   </p>
                 )}
               </div>
+              <ShareLinks path={`/tournaments/${tournament.slug}`} title={tournament.name} className="mt-4" />
             </div>
           </div>
         </header>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { registerForTournament } from "@/lib/services/tournaments";
 import { ensureUserRecord } from "@/lib/ensure-user";
 import { banGuard } from "@/lib/services/bans";
+import { requiresClubTeam } from "@/lib/team-entry";
 
 export async function POST(
   request: Request,
@@ -41,6 +42,15 @@ export async function POST(
     playerProfile = await prisma.playerProfile.create({
       data: { userId: user.id },
     });
+  }
+
+  // Duo and squad games are entered through a club team (see lib/team-entry.ts), never by one person.
+  const target = await prisma.tournament.findFirst({ where: { OR: [{ id }, { slug: id }] }, select: { mode: true } });
+  if (target && requiresClubTeam(target.mode)) {
+    return NextResponse.json(
+      { error: { code: "club_required", message: "Team games are entered through a club team. Create or join a club, then enter your team." } },
+      { status: 403 }
+    );
   }
 
   const body = await request.json();

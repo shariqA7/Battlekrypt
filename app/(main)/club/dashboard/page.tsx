@@ -20,7 +20,9 @@ import RosterManager from "./RosterManager";
 
 import AdSlot from "@/components/ui/AdSlot";
 import DashboardTop from "@/components/dashboard/DashboardTop";
-export default async function ClubDashboardPage() {
+import { safeRedirect } from "@/lib/safe-redirect";
+export default async function ClubDashboardPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  const back = safeRedirect((await searchParams).next, "");
   const supabase = await createClient();
   const {
     data: { user },
@@ -57,6 +59,12 @@ export default async function ClubDashboardPage() {
         <DashboardTop />
       </div>
     <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+      {back && (
+        <div className="border border-bk-gold-light/40 bg-bk-bg px-4 py-3 mb-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-sans text-[13px] text-bk-heading">Add a team for the game you came to play, then go back to enter it.</p>
+          <Link href={back} className="font-sans text-[12px] font-bold uppercase tracking-[0.8px] text-bk-gold-light underline">Back to the event</Link>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <InitialTile kind="club" name={club.clubName} size={56} src={club.logoUrl} />
         <div className="min-w-0">

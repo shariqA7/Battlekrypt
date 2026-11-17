@@ -6,6 +6,7 @@
 // locks, adjust who from the roster is playing.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import FileUpload from "@/components/ui/FileUpload";
 
 interface Member {
   id: string;
@@ -24,16 +25,48 @@ interface Options {
   soloEntry: { playerId: string; alreadyRegistered: boolean } | null;
 }
 
+interface EntryTerms {
+  entryType: string;
+  paymentInstructions: string | null;
+  customFields: unknown;
+}
+interface Field { key: string; label: string; type?: string; required?: boolean; url?: string }
+
+const inputClass = "w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 h-[38px]";
+const labelClass = "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5 mt-4";
+
 const primaryBtn =
   "bg-bk-primary text-bk-on-primary font-sans font-bold text-[12px] tracking-[0.8px] uppercase py-2 px-4 disabled:opacity-50";
 
-export default function ClubEntryPanel({ tournamentId }: { tournamentId: string }) {
+export default function ClubEntryPanel({ tournamentId, tournament }: { tournamentId: string; tournament?: EntryTerms }) {
   const router = useRouter();
   const [options, setOptions] = useState<Options | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Draft member selection per team, keyed by team id.
   const [selection, setSelection] = useState<Record<string, string[]>>({});
+  // What a NEW entry also needs: entry conditions, the organizer's extra fields, and (paid) proof of payment.
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [proofUrl, setProofUrl] = useState("");
+  const [reference, setReference] = useState("");
+  const fields: Field[] = Array.isArray(tournament?.customFields) ? (tournament!.customFields as Field[]) : [];
+  const conditions = fields.filter((f) => f.type === "condition");
+  const extras = fields.filter((f) => f.type !== "condition");
+  const paid = tournament?.entryType === "paid";
+
+  // Returns a message when a new entry can't be sent yet.
+  function newEntryProblem(): string | null {
+    if (conditions.some((c) => fieldValues[c.key] !== "yes")) return "Tick every entry condition first.";
+    if (extras.some((f) => f.required && !(fieldValues[f.key] ?? "").trim())) return "Fill in every required field.";
+    if (paid && !reference.trim()) return "Enter the transaction ID shown on your payment receipt.";
+    if (paid && !proofUrl) return "Upload proof of payment before submitting.";
+    return null;
+  }
+  const extrasBody = () => ({
+    customFieldResponses: fieldValues,
+    paymentProofUrl: proofUrl || undefined,
+    paymentReference: reference.trim() || undefined,
+  });
 
   useEffect(() => {
     fetch(`/api/tournaments/${tournamentId}/club-entries/options`)
@@ -60,6 +93,10 @@ export default function ClubEntryPanel({ tournamentId }: { tournamentId: string 
   }
 
   async function submitTeam(team: TeamOption) {
+    if (!team.entry) {
+      const problem = newEntryProblem();
+      if (problem) return setError(problem);
+    }
     setBusy(true);
     setError(null);
     const memberPlayerIds = selection[team.id] ?? [];
@@ -70,7 +107,7 @@ export default function ClubEntryPanel({ tournamentId }: { tournamentId: string 
       method: team.entry ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        team.entry ? { memberPlayerIds } : { teamId: team.id, memberPlayerIds }
+        team.entry ? { memberPlayerIds } : { teamId: team.id, memberPlayerIds, ...extrasBody() }
       ),
     });
     if (!res.ok) {
@@ -84,12 +121,14 @@ export default function ClubEntryPanel({ tournamentId }: { tournamentId: string 
   }
 
   async function submitSolo(playerId: string) {
+    const problem = newEntryProblem();
+    if (problem) return setError(problem);
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/tournaments/${tournamentId}/club-entries`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerId }),
+      body: JSON.stringify({ playerId, ...extrasBody() }),
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
@@ -104,7 +143,7 @@ export default function ClubEntryPanel({ tournamentId }: { tournamentId: string 
   return (
     <div className="bg-bk-surface border border-bk-border p-4 mb-6">
       <p className="font-sans font-medium text-bk-heading text-sm mb-1">
-        Register your club
+        {options.teams.length > 0 || !options.soloEntry ? "Enter with your team" : "Register your club"}
       </p>
       {!options.editable && (
         <p className="font-sans text-bk-muted text-xs mb-3">
@@ -112,7 +151,48 @@ export default function ClubEntryPanel({ tournamentId }: { tournamentId: string 
           change your entry.
         </p>
       )}
-      {error && <p className="text-bk-live text-[12px] font-sans mb-2">{error}</p>}
+      {error && <p className="text-bk-live text-[12px] font-sans mb-2" role="alert">{error}</p>}
+
+      {options.editable && (options.soloEntry ? !options.soloEntry.alreadyRegistered : options.teams.some((t) => !t.entry)) && (
+        <div className="mb-4">
+          {conditions.length > 0 && (
+            <div className="mt-2 border border-bk-border px-3 py-2.5">
+              <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-gold-light mb-2">Entry conditions</p>
+              {conditions.map((c) => (
+                <label key={c.key} className="flex items-start gap-2 font-sans text-[13px] text-bk-heading mb-1.5">
+                  <input type="checkbox" className="mt-1" checked={fieldValues[c.key] === "yes"}
+                    onChange={(e) => setFieldValues((v) => ({ ...v, [c.key]: e.target.checked ? "yes" : "" }))} />
+                  <span>
+                    {c.label}
+                    {c.url && <> <a href={c.url} target="_blank" rel="noopener noreferrer" className="text-bk-gold-light underline">open link</a></>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          {extras.map((f) => (
+            <div key={f.key}>
+              <label className={labelClass}>{f.label}</label>
+              <input className={inputClass} value={fieldValues[f.key] ?? ""} required={f.required}
+                onChange={(e) => setFieldValues((v) => ({ ...v, [f.key]: e.target.value }))} />
+            </div>
+          ))}
+          {paid && (
+            <>
+              {tournament?.paymentInstructions && (
+                <div className="bg-bk-bg border border-bk-gold-light/40 px-3 py-2.5 mt-4">
+                  <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-gold-light mb-1">How to pay</p>
+                  <p className="font-sans text-[13px] text-bk-heading whitespace-pre-wrap">{tournament.paymentInstructions}</p>
+                </div>
+              )}
+              <label className={labelClass}>Proof of payment</label>
+              <FileUpload bucket="payment-proofs" isPrivate ownerFolder pathPrefix="payment-proofs" label="Upload payment screenshot" onUploaded={setProofUrl} />
+              <label className={labelClass}>Transaction ID</label>
+              <input className={inputClass} value={reference} maxLength={120} autoComplete="off" placeholder="From your payment receipt" onChange={(e) => setReference(e.target.value)} />
+            </>
+          )}
+        </div>
+      )}
 
       {options.soloEntry && (
         <button
