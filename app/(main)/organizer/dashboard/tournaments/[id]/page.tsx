@@ -17,6 +17,7 @@ import HybridStageManager from "./HybridStageManager";
 import { listStageEntries } from "@/lib/services/stages";
 import RulesManager from "./RulesManager";
 import PublishButton from "./PublishButton";
+import ShareLinks from "@/components/ui/ShareLinks";
 import CancelButton from "./CancelButton";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
@@ -129,6 +130,7 @@ export default async function ManageTournamentPage({
           />
         </div>
         <p className="font-sans text-bk-body text-sm mb-5 pl-[19px]">Manage registrations and match rooms</p>
+        {tournament.status !== "draft" && <ShareLinks path={`/tournaments/${tournament.slug}`} title={tournament.name} className="mb-5 pl-[19px]" />}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
           <Stat gold value={registrations.length} label="Registrations" />

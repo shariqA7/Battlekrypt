@@ -8,6 +8,8 @@ import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { consentNeeded } from "@/lib/consent";
 import { getConsentStateForPlayer } from "@/lib/services/parental-consent";
 import ClubEntryPanel from "./ClubEntryPanel";
+import TeamEntryGate from "./TeamEntryGate";
+import { getTeamEntryStatus } from "@/lib/services/team-entry";
 import { prisma } from "@/lib/prisma";
 import { checkInstitutionGate } from "@/lib/services/institutions";
 import { toPublicTournament } from "@/lib/services/venue";
@@ -42,6 +44,9 @@ export default async function JoinTournamentPage({
     const me = await prisma.playerProfile.findUnique({ where: { userId: user.id }, select: { id: true, birthDate: true } });
     if (me && consentNeeded(full, me.birthDate, true)) consent = await getConsentStateForPlayer(me.id);
   }
+
+  // Duo / squad games are entered through a club team, never by one person.
+  const teamStatus = await getTeamEntryStatus(user.id, full.id);
 
   let needsVerification = false;
   if (tournament.audienceScope === "institution") {
@@ -88,7 +93,15 @@ export default async function JoinTournamentPage({
             />
           </div>
         )}
-        <ClubEntryPanel tournamentId={tournament.id} />
+        {teamStatus?.required ? (
+          teamStatus.state === "ready" ? (
+            <ClubEntryPanel tournamentId={tournament.id} tournament={{ entryType: tournament.entryType, paymentInstructions: tournament.paymentInstructions, customFields: tournament.customFields }} />
+          ) : (
+            <TeamEntryGate state={teamStatus.state} gameName={teamStatus.gameName} clubName={teamStatus.clubName} ownsClub={teamStatus.ownsClub} next={`/tournaments/${tournament.slug}/join`} />
+          )
+        ) : (
+          <>
+        <ClubEntryPanel tournamentId={tournament.id} tournament={{ entryType: tournament.entryType, paymentInstructions: tournament.paymentInstructions, customFields: tournament.customFields }} />
         {needsVerification ? (
           <div className="border border-bk-gold-light/40 bg-bk-bg px-4 py-4 mt-4">
             <p className="font-sans text-[13px] text-bk-heading font-bold mb-1">
@@ -133,6 +146,8 @@ export default async function JoinTournamentPage({
               </p>
             )}
             <JoinForm tournamentId={tournament.id} tournament={tournament} />
+          </>
+        )}
           </>
         )}
       </main>

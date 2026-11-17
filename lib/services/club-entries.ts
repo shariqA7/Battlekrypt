@@ -1,7 +1,7 @@
 // Club tournament entries (Phase 2 roster-lock rule).
 //
 // A club team or solo roster player is entered into a tournament by the
-// club owner or that team's captain. This reuses registerForTournament's
+// member of the club. This reuses registerForTournament's
 // existing rules (open-registration check, duplicate check, entry fee /
 // payment-proof handling) rather than duplicating them — it just resolves
 // which PlayerProfiles to send and tags the resulting TeamEntry with the
@@ -17,6 +17,7 @@
 
 import { checkAgeGate } from "@/lib/services/age-gate";
 import { prisma } from "@/lib/prisma";
+import { notify } from "@/lib/services/notifications";
 import { registerForTournament, bumpRegistrationCount } from "@/lib/services/tournaments";
 import { checkTierEntryGate } from "@/lib/services/competitive-tiers";
 import {
@@ -32,7 +33,7 @@ export const CLUB_ENTRY_ERRORS = {
   player_not_found: { status: 404, message: "Player not found." },
   not_authorized: {
     status: 403,
-    message: "Only the club owner or that team's captain can do this.",
+    message: "Only a member of this club can do this.",
   },
   game_mismatch: { status: 400, message: "That team doesn't play this tournament's game." },
   mode_mismatch: { status: 400, message: "Solo players can't enter a team-mode tournament." },
@@ -49,6 +50,8 @@ export const CLUB_ENTRY_ERRORS = {
   },
   full: { status: 409, message: "This tournament is full." },
   already_registered: { status: 409, message: "This team or player is already registered." },
+  conditions_not_met: { status: 400, message: "Tick every entry condition first." },
+  organizer_paused: { status: 409, message: "This organizer's paid registrations are paused while an admin reviews player reports." },
   payment_proof_required: { status: 400, message: "Proof of payment is required." },
   invalid_payment_proof: { status: 400, message: "That payment proof isn't valid. Upload the screenshot again." },
   payment_reference_required: { status: 400, message: "Enter the transaction ID shown on the payment receipt." },
@@ -91,11 +94,12 @@ const ENTRY_EDITABLE_STATUSES = ["published", "registration_open"];
 
 interface ActingClub {
   id: string;
+  userId: string; // the club owner's account
 }
 
-// Who may act for a given ClubTeam: its club's owner, or the team's
-// designated captain. Returns the club (for registerForTournament's clubId)
-// or a failure.
+// Who may act for a given ClubTeam: anyone in its club: the owner, or any player on the club's
+// roster (not only the team's own members or its captain). Returns the club (for
+// registerForTournament's clubId) or a failure.
 export async function resolveTeamActor(
   userId: string,
   teamId: string
@@ -109,10 +113,11 @@ export async function resolveTeamActor(
 
   if (team.club.userId === userId) return { club: team.club };
 
-  const captain = await prisma.clubRoster.findFirst({
-    where: { teamId, isCaptain: true, player: { userId } },
+  const member = await prisma.clubRoster.findFirst({
+    where: { clubId: team.club.id, player: { userId } },
+    select: { id: true },
   });
-  if (captain) return { club: team.club };
+  if (member) return { club: team.club };
 
   return fail("not_authorized");
 }
@@ -186,6 +191,18 @@ export async function submitClubTeamEntry(
     where: { id: result.data.teamEntryId! },
     data: { clubId: actor.club.id, clubTeamId: teamId },
   });
+
+  // Any club member can enter a team, so tell the owner when it wasn't the owner who did.
+  if (actor.club.userId !== userId) {
+    const who = await prisma.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+    const name = who && !who.displayName.includes("@") ? who.displayName : "A club member";
+    await notify(actor.club.userId, {
+      type: "club",
+      title: "A club member entered a team",
+      body: `${name} entered ${team.name} in ${tournament.name}.`,
+      href: "/club/dashboard",
+    }).catch(() => undefined);
+  }
 
   return { data: result.data };
 }
@@ -293,16 +310,12 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
 
   const club = await prisma.clubProfile.findUnique({ where: { userId } });
 
-  const captainTeamIds = (
-    await prisma.clubRoster.findMany({
-      where: { isCaptain: true, player: { userId } },
-      select: { teamId: true },
-    })
-  )
-    .map((r) => r.teamId)
-    .filter((id): id is string => !!id);
+  // Clubs this person is in: the one they own, and the one whose roster they are on.
+  const memberClubIds = (
+    await prisma.clubRoster.findMany({ where: { player: { userId } }, select: { clubId: true } })
+  ).map((r) => r.clubId);
 
-  if (!club && captainTeamIds.length === 0) return null;
+  if (!club && memberClubIds.length === 0) return null;
 
   const editable = ENTRY_EDITABLE_STATUSES.includes(tournament.status);
 
@@ -325,15 +338,21 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
     };
   }
 
-  const teamIds = new Set(captainTeamIds);
-  if (club?.status === "approved") {
+  // Any team of the game in any approved club they own or belong to: every club member can enter it.
+  const approvedClubIds = (
+    await prisma.clubProfile.findMany({
+      where: { status: "approved", OR: [{ userId }, { id: { in: memberClubIds } }] },
+      select: { id: true },
+    })
+  ).map((c) => c.id);
+  const teamIds = new Set(
     (
       await prisma.clubTeam.findMany({
-        where: { clubId: club.id, gameId: tournament.gameId },
+        where: { clubId: { in: approvedClubIds }, gameId: tournament.gameId },
         select: { id: true },
       })
-    ).forEach((t) => teamIds.add(t.id));
-  }
+    ).map((t) => t.id)
+  );
 
   const teams = await prisma.clubTeam.findMany({
     where: { id: { in: [...teamIds] }, gameId: tournament.gameId },

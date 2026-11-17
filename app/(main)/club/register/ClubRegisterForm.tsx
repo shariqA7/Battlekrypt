@@ -9,7 +9,7 @@ import { buttonClass } from "@/components/ui/Button";
 const labelClass =
   "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted mb-1.5";
 
-export default function ClubRegisterForm() {
+export default function ClubRegisterForm({ next = "" }: { next?: string }) {
   const router = useRouter();
   const [clubName, setClubName] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
@@ -43,7 +43,7 @@ export default function ClubRegisterForm() {
       return;
     }
 
-    router.push("/club/dashboard");
+    router.push(next ? `/club/dashboard?next=${encodeURIComponent(next)}` : "/club/dashboard");
     router.refresh();
   }
 
