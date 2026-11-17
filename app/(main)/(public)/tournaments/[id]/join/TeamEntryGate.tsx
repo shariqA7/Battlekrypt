@@ -23,14 +23,9 @@ export default function TeamEntryGate({
         }
       : {
           title: `${clubName ?? "Your club"} has no ${gameName} team`,
-          body: `Ask your club owner to add a ${gameName} team with you on it. The owner or the team captain enters the team here.`,
+          body: `Ask your club owner to add a ${gameName} team. Once it exists, anyone in the club can enter it here.`,
           action: null,
         },
-    not_captain: {
-      title: "Ask your captain to enter the team",
-      body: `You are on a ${gameName} team. Only your club owner or your team captain can enter it, and they pay the entry once for the whole team.`,
-      action: null,
-    },
     club_pending: {
       title: "Your club isn't active yet",
       body: "Your club is waiting for approval. Once it is active you can add a team and enter.",
