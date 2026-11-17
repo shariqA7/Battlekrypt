@@ -25,7 +25,11 @@ export default function GamePicker({
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
   const shown = q ? games.filter((g) => g.name.toLowerCase().includes(q) || (g.genre ?? "").toLowerCase().includes(q)) : games;
-  const full = selected.length >= max;
+  // Only picks that are really in the list count. A saved name that is no longer offered
+  // (game removed, or hidden for the player's country) must not show as "1 picked".
+  const names = new Set(games.map((g) => g.name));
+  const picked = selected.filter((n) => names.has(n)).length;
+  const full = picked >= max;
 
   function toggle(name: string) {
     if (selected.includes(name)) onChange(selected.filter((n) => n !== name));
@@ -43,7 +47,7 @@ export default function GamePicker({
         className={`${fieldClass} mb-3`}
       />
       <p className="font-sans text-[12px] text-bk-muted mb-3" aria-live="polite">
-        {selected.length} of {max} picked
+        {picked === 0 ? `Pick up to ${max} games` : `${picked} of ${max} picked`}
       </p>
       <div className="grid grid-cols-2 gap-2 max-h-[340px] overflow-y-auto pr-1" role="group" aria-label="Games">
         {shown.map((g) => {

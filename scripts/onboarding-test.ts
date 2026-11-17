@@ -1,5 +1,5 @@
 // Pure checks for the onboarding rules (no database). Run: npx tsx scripts/onboarding-test.ts
-import { aboutChecks, gamesChecks, missingAbout, needsAboutStep, styleChecks, MAX_FAVORITE_GAMES } from "../lib/onboarding-rules";
+import { aboutChecks, gamesChecks, missingAbout, needsAboutStep, styleChecks, MAX_FAVORITE_GAMES, MAX_HOBBY_TAGS, MAX_HOBBY_LENGTH, parseHobbies, joinHobbies } from "../lib/onboarding-rules";
 
 let fails = 0;
 const ok = (n: string, c: boolean) => { console.log(`${c ? "PASS" : "FAIL"}  ${n}`); if (!c) fails++; };
@@ -42,8 +42,8 @@ ok("an unknown game fails and is dropped from the value", failed(gamesChecks(["V
 ok("duplicates collapse", gamesChecks(["Chess", "Chess", " Chess "], catalog).value.length === 1);
 ok("more than the maximum fails", failed(gamesChecks(Array.from({ length: MAX_FAVORITE_GAMES + 1 }, (_, i) => `G${i}`), Array.from({ length: 20 }, (_, i) => `G${i}`)).checks) === "games_count");
 ok("exactly the maximum passes", failed(gamesChecks(Array.from({ length: MAX_FAVORITE_GAMES }, (_, i) => `G${i}`), Array.from({ length: 20 }, (_, i) => `G${i}`)).checks) === "");
-ok("non-array input is treated as none", gamesChecks("Valorant", catalog).value.length === 0 && failed(gamesChecks(null, catalog).checks) === "");
-ok("an empty pick is fine (skippable)", failed(gamesChecks([], catalog).checks) === "");
+ok("non-array input is treated as none", gamesChecks("Valorant", catalog).value.length === 0 && failed(gamesChecks(null, catalog).checks) === "games_min");
+ok("an empty pick is refused (the player can skip the step instead)", failed(gamesChecks([], catalog).checks) === "games_min");
 
 // ---- play style, gender, hobbies
 ok("all three answers pass", failed(styleChecks({ playStyle: "competitive", gender: "female", hobbies: "chess" }).checks) === "");
@@ -52,6 +52,16 @@ ok("an unknown play style fails", failed(styleChecks({ playStyle: "tryhard" }).c
 ok("an unknown gender fails", failed(styleChecks({ gender: "xyz" }).checks) === "gender");
 ok("hobbies over 200 characters fail", failed(styleChecks({ hobbies: "a".repeat(201) }).checks) === "hobbies");
 ok("hobbies are trimmed and control characters stripped", styleChecks({ hobbies: "  chess\u0000 \u0007music  " }).value.hobbies === "chess music");
+
+// ---- hobbies as tags
+ok("hobbies split on commas and are trimmed", parseHobbies(" reading ,chess,, ").join("|") === "reading|chess");
+ok("duplicate hobbies collapse, ignoring case", parseHobbies("Chess, chess, CHESS").length === 1);
+ok("an old free-text value loads as one tag", parseHobbies("non").join("|") === "non");
+ok("at most MAX_HOBBY_TAGS tags", parseHobbies(Array.from({ length: 20 }, (_, i) => `h${i}`).join(",")).length === MAX_HOBBY_TAGS);
+ok("a tag is cut to MAX_HOBBY_LENGTH", parseHobbies("x".repeat(100))[0].length === MAX_HOBBY_LENGTH);
+ok("empty / null input gives no tags", parseHobbies("").length === 0 && parseHobbies(null).length === 0);
+ok("the longest possible value fits the 200 character limit", joinHobbies(parseHobbies(Array.from({ length: 20 }, (_, i) => `${i}`.padEnd(MAX_HOBBY_LENGTH, "x")).join(","))).length <= 200);
+ok("round trip", parseHobbies(joinHobbies(["reading", "chess"])).join("|") === "reading|chess");
 
 console.log(fails ? `\n${fails} FAILED` : "\nAll passed");
 process.exit(fails ? 1 : 0);

@@ -9,7 +9,8 @@ import DobField from "@/components/auth/DobField";
 import { COUNTRY_LIST } from "@/components/auth/country-list";
 import { SelectField, TextField, Label } from "@/components/auth/fields";
 import GamePicker, { type PickerGame } from "@/components/onboarding/GamePicker";
-import { MAX_FAVORITE_GAMES } from "@/lib/onboarding-rules";
+import TagInput from "@/components/ui/TagInput";
+import { MAX_FAVORITE_GAMES, MAX_HOBBY_LENGTH, MAX_HOBBY_TAGS, joinHobbies, parseHobbies } from "@/lib/onboarding-rules";
 import { birthInfo } from "@/lib/validation/auth";
 
 export interface OnboardingProps {
@@ -61,10 +62,15 @@ export default function OnboardingFlow(p: OnboardingProps) {
   const [country, setCountry] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
   // games / style
-  const [games, setGames] = useState(p.initialGames);
+  // Start from the saved picks that are still in the catalog; a stale name would count as a
+  // pick the player can't see, and the server would reject it on Continue.
+  const [games, setGames] = useState(() => {
+    const offered = new Set(p.games.map((g) => g.name));
+    return p.initialGames.filter((n) => offered.has(n));
+  });
   const [playStyle, setPlayStyle] = useState(p.initialPlayStyle);
   const [gender, setGender] = useState(p.initialGender);
-  const [hobbies, setHobbies] = useState(p.initialHobbies);
+  const [hobbies, setHobbies] = useState<string[]>(() => parseHobbies(p.initialHobbies));
 
   const typedAge = p.missing.birthDate ? birthInfo(birthDate)?.age ?? null : null;
   const minor = p.missing.birthDate ? typedAge !== null && typedAge >= 13 && typedAge < 18 : p.isMinor;
@@ -93,6 +99,12 @@ export default function OnboardingFlow(p: OnboardingProps) {
   }
 
   async function submitGames() {
+    // Continue needs at least one game; anyone who doesn't want to pick uses "Skip for now".
+    if (games.length === 0) {
+      setChecks([{ id: "games_min", ok: false, message: "Pick at least 1 game to continue, or choose Skip for now." }]);
+      window.scrollTo({ top: 0 });
+      return;
+    }
     setBusy(true);
     setChecks(null);
     const r = await save({ step: "games", games });
@@ -104,7 +116,7 @@ export default function OnboardingFlow(p: OnboardingProps) {
   async function submitStyle() {
     setBusy(true);
     setChecks(null);
-    const r = await save({ step: "style", playStyle, gender, hobbies });
+    const r = await save({ step: "style", playStyle, gender, hobbies: joinHobbies(hobbies) });
     setBusy(false);
     if (!r.ok) { setChecks(r.checks); return; }
     if (await finish()) next();
@@ -174,9 +186,9 @@ export default function OnboardingFlow(p: OnboardingProps) {
         <div className="space-y-4">
           <h1 className="font-sans font-extrabold text-[26px] leading-tight text-bk-heading">What do you play?</h1>
           <p className="font-sans text-[14px] text-bk-body !mt-1">Pick your favourites. We&apos;ll show you matching tournaments first.</p>
-          <GamePicker games={p.games} selected={games} onChange={setGames} max={MAX_FAVORITE_GAMES} />
+          <GamePicker games={p.games} selected={games} onChange={(g) => { setGames(g); if (g.length) setChecks(null); }} max={MAX_FAVORITE_GAMES} />
           <button type="button" onClick={submitGames} disabled={busy} className={buttonClass("primary", "lg", "w-full rounded-xl")}>
-            {busy ? "Saving..." : games.length ? "Continue" : "Continue without picking"}
+            {busy ? "Saving..." : "Continue"}
           </button>
           <div className="text-center"><button type="button" onClick={next} className={skip}>Skip for now</button></div>
         </div>
@@ -212,16 +224,17 @@ export default function OnboardingFlow(p: OnboardingProps) {
             <option value="female">Female</option>
             <option value="other">Other</option>
           </SelectField>
-          <label className="block">
+          <div>
             <Label optional>Hobbies and interests</Label>
-            <textarea
+            <TagInput
               value={hobbies}
-              onChange={(e) => setHobbies(e.target.value)}
-              rows={2}
-              maxLength={200}
-              className="w-full bg-bk-surface border border-bk-border text-bk-heading placeholder:text-bk-muted text-[14px] font-sans px-4 py-3 rounded-xl outline-none focus:border-bk-gold-light"
+              onChange={setHobbies}
+              max={MAX_HOBBY_TAGS}
+              maxLength={MAX_HOBBY_LENGTH}
+              placeholder="Write here..."
+              ariaLabel="Hobbies and interests"
             />
-          </label>
+          </div>
           <button type="button" onClick={submitStyle} disabled={busy} className={buttonClass("primary", "lg", "w-full rounded-xl")}>{busy ? "Saving..." : "Finish"}</button>
           <div className="text-center"><button type="button" onClick={skipStyle} disabled={busy} className={skip}>Skip for now</button></div>
         </div>
