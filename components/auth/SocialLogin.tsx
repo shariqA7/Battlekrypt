@@ -40,11 +40,13 @@ export default function SocialLogin({
 
   return (
     <div className="flex items-center justify-center gap-3" role="group" aria-label="Sign in with">
-      <button type="button" className={btn} onClick={() => start("google")} disabled={busy !== null} aria-label="Continue with Google">
-        <span className="bg-white rounded-md p-1 flex"><GoogleIcon size={22} /></span>
+      {/* Google: white tile (its own brand background) with the logo filling it, no inner box. */}
+      <button type="button" className={`${btn} !bg-white`} onClick={() => start("google")} disabled={busy !== null} aria-label="Continue with Google">
+        <GoogleIcon size={36} />
       </button>
-      <button type="button" className={btn} onClick={() => start("discord")} disabled={busy !== null} aria-label="Continue with Discord">
-        <DiscordIcon size={24} />
+      {/* Discord: the logo in Discord's own purple (blurple, #5865F2). */}
+      <button type="button" className={`${btn} !text-[#5865F2]`} onClick={() => start("discord")} disabled={busy !== null} aria-label="Continue with Discord">
+        <DiscordIcon size={32} />
       </button>
       {twitchEnabled && (
         <button type="button" className={btn} onClick={() => start("twitch")} disabled={busy !== null} aria-label="Continue with Twitch">
