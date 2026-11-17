@@ -12,19 +12,22 @@ interface Slide {
   text: string | null;
 }
 
-type AssetKey = "logoUrl" | "logoLightUrl" | "shareImageUrl" | "defaultBannerUrl" | "defaultAvatarUrl" | "defaultOrgLogoUrl" | "defaultClubLogoUrl";
+type AssetKey = "logoUrl" | "logoLightUrl" | "shareImageUrl" | "defaultBannerUrl" | "defaultAvatarUrl" | "defaultOrgLogoUrl" | "defaultClubLogoUrl" | "defaultAvatarLightUrl" | "defaultOrgLogoLightUrl" | "defaultClubLogoLightUrl";
 export type BrandAssets = Record<AssetKey, string>;
 
 // One upload slot per brand asset. `wide` previews on a wide, short frame;
 // `bg` is the surface the asset is meant to sit on, so it previews correctly.
-const SLOTS: { key: AssetKey; title: string; hint: string; preview: "logo-dark" | "logo-light" | "wide" | "square" | "round" }[] = [
+const SLOTS: { key: AssetKey; title: string; hint: string; preview: "logo-dark" | "logo-light" | "wide" | "square" | "round" | "round-light" | "square-light" }[] = [
   { key: "logoUrl", title: "Logo for dark backgrounds", hint: "Horizontal logo (mark + wordmark). Used in the header, footer and sign-in pages on the dark theme. If it is the only logo uploaded, it is used on the light theme too.", preview: "logo-dark" },
   { key: "logoLightUrl", title: "Logo for light backgrounds", hint: "Same logo, made for the light theme. Leave empty to reuse the dark-background logo.", preview: "logo-light" },
   { key: "shareImageUrl", title: "Default share image (1200 × 630)", hint: "Shown when a link to the site is shared on WhatsApp, Discord, X and similar. Use exactly 1200 × 630 px.", preview: "wide" },
   { key: "defaultBannerUrl", title: "Default tournament banner", hint: "Shown on tournaments whose organizer did not upload a banner.", preview: "wide" },
-  { key: "defaultAvatarUrl", title: "Default player avatar", hint: "Shown for players without a photo. Square image; it is shown in a circle. Empty = built-in gold silhouette.", preview: "round" },
-  { key: "defaultOrgLogoUrl", title: "Default organizer logo", hint: "Shown for organizers without a logo. Square, 512 px. Empty = built-in gold building.", preview: "square" },
-  { key: "defaultClubLogoUrl", title: "Default club logo", hint: "Shown for clubs without a logo. Square, 512 px. Empty = built-in gold shield.", preview: "square" },
+  { key: "defaultAvatarUrl", title: "Default player avatar (dark theme)", hint: "Shown for players without a photo. Square image; it is shown in a circle. If it is the only avatar uploaded, it is used on the light theme too. Empty = built-in gold silhouette.", preview: "round" },
+  { key: "defaultAvatarLightUrl", title: "Default player avatar (light theme)", hint: "Same avatar, made for the light theme. Leave empty to reuse the dark-theme avatar.", preview: "round-light" },
+  { key: "defaultOrgLogoUrl", title: "Default organizer logo (dark theme)", hint: "Shown for organizers without a logo. Square, 512 px. If it is the only one uploaded, it is used on the light theme too. Empty = built-in gold building.", preview: "square" },
+  { key: "defaultOrgLogoLightUrl", title: "Default organizer logo (light theme)", hint: "Same logo, made for the light theme. Leave empty to reuse the dark-theme one.", preview: "square-light" },
+  { key: "defaultClubLogoUrl", title: "Default club logo (dark theme)", hint: "Shown for clubs without a logo. Square, 512 px. If it is the only one uploaded, it is used on the light theme too. Empty = built-in gold shield.", preview: "square" },
+  { key: "defaultClubLogoLightUrl", title: "Default club logo (light theme)", hint: "Same logo, made for the light theme. Leave empty to reuse the dark-theme one.", preview: "square-light" },
 ];
 
 function AssetSlot({
@@ -61,8 +64,10 @@ function AssetSlot({
     slot.preview === "logo-dark" ? "bg-[#16130B] h-16 w-56 p-2"
     : slot.preview === "logo-light" ? "bg-[#F6F1E7] h-16 w-56 p-2"
     : slot.preview === "wide" ? "bg-bk-bg h-24 w-44"
-    : slot.preview === "round" ? "bg-bk-bg h-20 w-20 rounded-full"
-    : "bg-bk-bg h-20 w-20";
+    : slot.preview === "round" ? "bg-[#16130B] h-20 w-20 rounded-full"
+    : slot.preview === "round-light" ? "bg-[#F6F1E7] h-20 w-20 rounded-full"
+    : slot.preview === "square-light" ? "bg-[#F6F1E7] h-20 w-20"
+    : "bg-[#16130B] h-20 w-20";
   const fit = slot.preview.startsWith("logo") ? "object-contain" : "object-cover";
 
   return (

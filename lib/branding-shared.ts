@@ -7,6 +7,9 @@ export const BRANDING_KEYS = [
     "defaultAvatarUrl",
     "defaultOrgLogoUrl",
     "defaultClubLogoUrl",
+    "defaultAvatarLightUrl",
+    "defaultOrgLogoLightUrl",
+    "defaultClubLogoLightUrl",
 ] as const;
 
 export type BrandingKey = (typeof BRANDING_KEYS)[number];
@@ -20,4 +23,7 @@ export const EMPTY_BRANDING: Branding = {
     defaultAvatarUrl: null,
     defaultOrgLogoUrl: null,
     defaultClubLogoUrl: null,
+    defaultAvatarLightUrl: null,
+    defaultOrgLogoLightUrl: null,
+    defaultClubLogoLightUrl: null,
 };

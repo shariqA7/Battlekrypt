@@ -1898,6 +1898,9 @@ export async function updateSiteSettings(
     defaultAvatarUrl: string | null;
     defaultOrgLogoUrl: string | null;
     defaultClubLogoUrl: string | null;
+    defaultAvatarLightUrl: string | null;
+    defaultOrgLogoLightUrl: string | null;
+    defaultClubLogoLightUrl: string | null;
   }>
 ) {
   return prisma.siteSettings.upsert({
