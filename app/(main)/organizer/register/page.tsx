@@ -22,7 +22,7 @@ export default async function RegisterOrganizationPage() {
   const plans = await listPlans({ audience: "organizer", activeOnly: true });
 
   return (
-    <main className="flex-1 px-6 py-12 max-w-xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12 max-w-xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-2">
         Register as an organization
       </h1>

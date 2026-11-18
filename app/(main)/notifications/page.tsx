@@ -15,7 +15,7 @@ export default async function NotificationsPage() {
   const hasUnread = items.some((n) => !n.readAt);
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-6">Notifications</h1>
       {hasUnread && <MarkRead />}
       {items.length === 0 ? (

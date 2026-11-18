@@ -36,7 +36,7 @@ export default async function EditTournamentPage({
   }
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <SectionHeading className="mb-6">Edit tournament</SectionHeading>
       <Panel className="p-5 sm:p-6">
       <EditForm

@@ -40,7 +40,7 @@ export default async function GiveawayPage({ params }: { params: Promise<{ slug:
   if (!g) notFound();
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <Link href="/giveaways" className="font-sans text-[12px] text-bk-gold-light hover:underline">← All giveaways</Link>
 
       {g.prizeImageUrl && (

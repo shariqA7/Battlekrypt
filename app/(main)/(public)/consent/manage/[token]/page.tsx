@@ -16,7 +16,7 @@ export default async function ManageConsentPage({ params }: { params: Promise<{ 
 
   if (!info.ok) {
     return (
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-xl mx-auto w-full">
         <SectionHeading className="mb-3">This link isn&apos;t valid</SectionHeading>
         <p className="font-sans text-bk-body text-sm pl-[19px]">Check that you opened the whole link from the approval email.</p>
       </main>
@@ -26,7 +26,7 @@ export default async function ManageConsentPage({ params }: { params: Promise<{ 
   const payout = await getPayoutSummary(info.playerId);
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-xl mx-auto w-full space-y-6">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-xl mx-auto w-full space-y-6">
       <div>
         <SectionHeading className="mb-2">Permission for {info.childName}</SectionHeading>
         <p className="font-sans text-bk-body text-sm pl-[19px]">

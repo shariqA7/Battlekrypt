@@ -29,7 +29,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
           className="pointer-events-none absolute inset-x-0 -top-24 h-72 opacity-60"
           style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(244,200,66,0.18), transparent 70%)" }}
         />
-        <div className="relative px-5 sm:px-6 py-16 sm:py-24 max-w-3xl mx-auto text-center">
+        <div className="relative px-4 sm:px-6 py-16 sm:py-24 max-w-3xl mx-auto text-center">
           <p className="text-bk-gold-light font-sans font-bold text-[11px] tracking-[1.6px] uppercase mb-4">
             Tournaments · Leagues · Daily Scrims
           </p>
@@ -52,7 +52,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
       </section>
 
       {live.length > 0 && (
-        <section className="px-5 sm:px-6 pt-12 max-w-6xl mx-auto w-full">
+        <section className="px-4 sm:px-6 pt-12 max-w-[1280px] mx-auto w-full">
           <div className="flex items-center justify-between gap-3 mb-5">
             <SectionHeading className="!text-[20px] sm:!text-[22px]">
               <span className="inline-flex items-center gap-2">
@@ -72,7 +72,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
         </section>
       )}
 
-      <section className="px-5 sm:px-6 py-12 max-w-6xl mx-auto w-full">
+      <section className="px-4 sm:px-6 py-12 max-w-[1280px] mx-auto w-full">
         <div className="flex items-center justify-between gap-3 mb-5">
           <SectionHeading className="!text-[20px] sm:!text-[22px]">Upcoming events</SectionHeading>
           <Link href="/tournaments" className="shrink-0 text-bk-gold-light font-sans font-bold text-[12px] uppercase tracking-[0.8px]">

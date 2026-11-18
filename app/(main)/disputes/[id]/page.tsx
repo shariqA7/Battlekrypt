@@ -34,7 +34,7 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
   const amount = d.refundAmount ? `${d.refundAmount.toString()} ${d.refundCurrency ?? ""}`.trim() : "the full entry fee";
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full space-y-6">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full space-y-6">
       <div>
         <div className="flex items-center gap-2 mb-1">
           <p className="font-sans text-[11px] uppercase tracking-[1px] text-bk-muted">{role === "payer" ? "You paid" : "You're the organizer"}</p>

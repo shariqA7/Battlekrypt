@@ -55,10 +55,10 @@ export default async function ClubDashboardPage({ searchParams }: { searchParams
 
   return (
     <>
-      <div className="w-full max-w-5xl mx-auto px-5 sm:px-6 pt-8">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8">
         <DashboardTop />
       </div>
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       {back && (
         <div className="border border-bk-gold-light/40 bg-bk-bg px-4 py-3 mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="font-sans text-[13px] text-bk-heading">Add a team for the game you came to play, then go back to enter it.</p>

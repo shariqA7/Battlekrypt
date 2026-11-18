@@ -3,11 +3,11 @@
 // shift when the content arrives.
 import { LoadingRegion, Skeleton, SkeletonCardGrid, SkeletonChart, SkeletonHeading, SkeletonList, SkeletonStatGrid } from "./Skeleton";
 
-/** Browse pages: tournaments, games, rankings, organizers (max-w-6xl + card grid). */
+/** Browse pages: tournaments, games, rankings, organizers (1280px frame + card grid). */
 export function GridPageSkeleton({ filters = true, count = 9 }: { filters?: boolean; count?: number }) {
   return (
     <LoadingRegion>
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-6xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-[1280px] mx-auto w-full">
         <SkeletonHeading />
         {filters && (
           <div className="flex flex-wrap gap-2 mb-6">
@@ -47,7 +47,7 @@ export function NarrowPageSkeleton({
 export function ProfilePageSkeleton() {
   return (
     <LoadingRegion>
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
         <div className="flex items-center gap-4 mb-8">
           <Skeleton className="h-16 w-16 shrink-0" />
           <div className="flex-1">
@@ -66,10 +66,10 @@ export function ProfilePageSkeleton() {
 export function DashboardPageSkeleton({ stats = 4 }: { stats?: number }) {
   return (
     <LoadingRegion>
-      <div className="w-full max-w-5xl mx-auto px-5 sm:px-6 pt-8">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8">
         <Skeleton className="h-11 w-full" />
       </div>
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
         <SkeletonHeading />
         <SkeletonStatGrid count={stats} className="grid-cols-2 sm:grid-cols-4 mb-8" />
         <SkeletonList rows={5} />
@@ -82,7 +82,7 @@ export function DashboardPageSkeleton({ stats = 4 }: { stats?: number }) {
 export function DetailPageSkeleton() {
   return (
     <LoadingRegion>
-      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
+      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6">
         <div className="pt-8">
           <Skeleton className="h-40 sm:h-56 w-full" />
           <Skeleton className="h-9 w-3/4 sm:w-1/2 mt-6" />

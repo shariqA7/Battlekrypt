@@ -40,7 +40,7 @@ export default async function Footer() {
 
   return (
     <footer className="mt-16 bg-bk-bg-footer border-t border-bk-border">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 pt-12 pb-8">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-12 pb-8">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-8 lg:gap-16">
           {/* Column 1: brand */}
           <div className="flex flex-col items-start gap-4">

@@ -14,7 +14,7 @@ export default async function PlayerProfilePage({
   if (!player) notFound();
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <div className="flex items-center gap-4 mb-8">
         <InitialTile name={player.user.displayName} size={64} round src={player.user.avatarUrl} />
         <div className="min-w-0">

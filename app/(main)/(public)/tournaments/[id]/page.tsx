@@ -80,7 +80,7 @@ export default async function TournamentDetailPage({
   return (
     <>
       <TrackView tournamentId={tournament.id} />
-      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10">
+      <main className="flex-1 w-full max-w-[1280px] mx-auto px-4 sm:px-6">
         {/* ---------------- hero ---------------- */}
         <header className="relative pt-10 sm:pt-14 pb-10 sm:pb-12 border-b border-bk-border">
           {!bannerUrl && (

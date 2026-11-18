@@ -11,7 +11,7 @@ export default async function MyPayoutsPage() {
   const payouts = await listPayoutsForPlayer(user.id);
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">Prize payouts</h1>
       <p className="font-sans text-bk-body text-[13px] mb-6">
         Organizers pay prizes directly. Tell us whether you received yours, so other players can trust the organizer.

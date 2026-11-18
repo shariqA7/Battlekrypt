@@ -22,7 +22,7 @@ export default async function ConsentPage({ params }: { params: Promise<{ token:
   const info = await getConsentLinkInfo(token);
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-xl mx-auto w-full">
       <SectionHeading className="mb-3">Parent or guardian approval</SectionHeading>
 
       {info.ok ? (

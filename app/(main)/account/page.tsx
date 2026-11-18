@@ -13,7 +13,7 @@ export default async function AccountPage() {
   if (!overview || overview.state.state === "erased") redirect("/");
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-xl mx-auto w-full space-y-8">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-xl mx-auto w-full space-y-8">
       <div>
         <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">Account &amp; privacy</h1>
         <p className="font-sans text-[13px] text-bk-muted">Signed in as {user.email}</p>

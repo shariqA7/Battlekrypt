@@ -86,7 +86,7 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
   const cryptoAvailable = open && !inFlight && (await cryptoCheckoutAvailable(i.currency));
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full space-y-5">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full space-y-5">
       <p className="font-sans text-[12px]"><Link href="/invoices" className="text-bk-gold-light underline">← My invoices</Link></p>
       <InvoiceDocument invoice={{ ...i, orgName: i.organizer.orgName }} status={status} />
       <p className="font-sans text-[12px]">
