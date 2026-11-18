@@ -230,8 +230,7 @@ async function main() {
   ok("an invented game is refused", !(await o("ob-social", { step: "games", games: ["Totally Made Up"] })).ok);
   ok("the picker only lists games this player may see", (await getOnboardingData("ob-social"))?.games.some((g) => g.name === "OnbIndiaOnlyGame") === false);
   const emptyPick = await o("ob-social", { step: "games", games: [] });
-  if (!emptyPick.ok) realLog("EMPTY PICK RESULT:", JSON.stringify(emptyPick));
-  ok("an empty pick is allowed and clears it", emptyPick.ok);
+  ok(`an empty pick is allowed and clears it ${emptyPick.ok ? "" : "=> " + JSON.stringify(emptyPick)}`, emptyPick.ok);
 
   // style step
   ok("an invalid play style is refused", failedIds(await o("ob-social", { step: "style", playStyle: "tryhard" })).join() === "play_style");
