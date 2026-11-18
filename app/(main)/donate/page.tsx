@@ -23,13 +23,13 @@ export default async function DonatePage({ searchParams }: { searchParams: Promi
   if (!o.enabled) return <FeatureOffNotice title="Donations are paused">The community fund isn&apos;t taking donations right now. Please check back soon.</FeatureOffNotice>;
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">Support the community</h1>
       <p className="font-sans text-bk-body text-[13px] mb-6">
         Donations go to BattleKrypt&apos;s community fund. We use it for tournament prize pools, giveaways and keeping the platform running, and we show below exactly where it went.
       </p>
 
-      <div className="grid grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-3 mb-8">
         {[["Raised", money(o.fund.raised)], ["Used so far", money(o.fund.allocated)], ["Still in the fund", money(o.fund.balance)]].map(([k, v]) => (
           <div key={k} className="bg-bk-surface border border-bk-border px-3 py-3">
             <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-muted">{k}</p>

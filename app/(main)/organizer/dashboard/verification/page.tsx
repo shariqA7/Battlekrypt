@@ -31,7 +31,7 @@ export default async function OrganizerVerificationPage() {
   const fmt = (d: Date | null) => (d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "");
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <Link href="/organizer/dashboard" className="font-sans text-[12px] text-bk-muted hover:text-bk-gold-light">
         ← Dashboard
       </Link>

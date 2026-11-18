@@ -22,7 +22,7 @@ export default async function ClaimNamePage() {
   const claims = await listMyClaims(user.id);
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-12 max-w-xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12 max-w-xl mx-auto w-full">
       <SectionHeading className="mb-3">Report a club using your name</SectionHeading>
       <p className="font-sans text-bk-body text-[13px] mb-6 pl-[19px]">
         If a club took a name that belongs to you or your organization, tell us

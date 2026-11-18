@@ -27,7 +27,7 @@ export default async function ChallengeCoHostPage({ params }: { params: Promise<
   if ("error" in result) redirect("/organizer/dashboard/institute");
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <SectionHeading className="mb-3 break-words">{challenge.title}</SectionHeading>
       <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
         Co-hosting for {challenge.posterName}. Approve or reject applicants from your own institute;

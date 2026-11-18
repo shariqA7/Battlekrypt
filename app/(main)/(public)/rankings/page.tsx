@@ -53,7 +53,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
     const sorted = [...games].sort((a, b) => withData(b) - withData(a) || a.name.localeCompare(b.name));
 
     return (
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-6xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-[1280px] mx-auto w-full">
         <SectionHeading className="mb-2">Rankings</SectionHeading>
         <p className="font-sans text-bk-body text-sm mb-8 pl-[19px]">
           Pick a game to see its top players and club teams.
@@ -100,7 +100,7 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
   const pages = data?.pages ?? 1;
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <Link href={href({ as })} className="font-sans text-[12px] text-bk-muted hover:text-bk-heading">&larr; All games</Link>
       <SectionHeading className="mt-3 mb-5">{selected.name} rankings</SectionHeading>
 

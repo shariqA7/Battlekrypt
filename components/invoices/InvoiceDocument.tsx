@@ -39,44 +39,46 @@ export default function InvoiceDocument({ invoice: i, status }: { invoice: Invoi
         <div><dt className="text-bk-muted">Issued</dt><dd className="text-bk-heading">{d(i.issuedAt)}</dd></div>
         <div><dt className="text-bk-muted">Due</dt><dd className={status === "overdue" ? "text-bk-live" : "text-bk-heading"}>{i.dueDate ? d(i.dueDate) : "No due date"}</dd></div>
       </dl>
-      <table className="w-full font-sans text-[13px]">
-        <tbody className="divide-y divide-bk-border">
-          {i.lines.map((l) => (
-            <tr key={l.id}>
-              <td className="py-2 text-bk-heading">
-                {l.description}
-                {l.refundable && <span className="block text-[11px] text-bk-muted">Held for you and returned later — not a fee.</span>}
-              </td>
-              <td className="py-2 text-right font-mono text-bk-heading">
-                {l.waived ? (
-                  <>
-                    <span className="text-bk-muted line-through mr-2">{m(l.unitAmount)}</span>
-                    <span className="text-bk-teal">Waived</span>
-                  </>
-                ) : (
-                  m(l.amount)
-                )}
-              </td>
-            </tr>
-          ))}
-          {tax > 0 && (
+      <div className="overflow-x-auto -mx-1 px-1">
+        <table className="w-full font-sans text-[13px]">
+          <tbody className="divide-y divide-bk-border">
+            {i.lines.map((l) => (
+              <tr key={l.id}>
+                <td className="py-2 text-bk-heading">
+                  {l.description}
+                  {l.refundable && <span className="block text-[11px] text-bk-muted">Held for you and returned later — not a fee.</span>}
+                </td>
+                <td className="py-2 text-right font-mono text-bk-heading">
+                  {l.waived ? (
+                    <>
+                      <span className="text-bk-muted line-through mr-2">{m(l.unitAmount)}</span>
+                      <span className="text-bk-teal">Waived</span>
+                    </>
+                  ) : (
+                    m(l.amount)
+                  )}
+                </td>
+              </tr>
+            ))}
+            {tax > 0 && (
+              <tr>
+                <td className="py-2 text-bk-muted">{i.taxLabel} ({i.taxRate.toString()}% of the plan fee after any discount)</td>
+                <td className="py-2 text-right font-mono text-bk-heading">{m(i.taxAmount)}</td>
+              </tr>
+            )}
+            {fee > 0 && (
+              <tr>
+                <td className="py-2 text-bk-muted">Payment processing fee</td>
+                <td className="py-2 text-right font-mono text-bk-heading">{m(i.gatewayFee)}</td>
+              </tr>
+            )}
             <tr>
-              <td className="py-2 text-bk-muted">{i.taxLabel} ({i.taxRate.toString()}% of the plan fee after any discount)</td>
-              <td className="py-2 text-right font-mono text-bk-heading">{m(i.taxAmount)}</td>
+              <td className="py-2 font-bold text-bk-heading">Total</td>
+              <td className="py-2 text-right font-mono font-bold text-bk-gold-light text-[15px]">{m(i.total)}</td>
             </tr>
-          )}
-          {fee > 0 && (
-            <tr>
-              <td className="py-2 text-bk-muted">Payment processing fee</td>
-              <td className="py-2 text-right font-mono text-bk-heading">{m(i.gatewayFee)}</td>
-            </tr>
-          )}
-          <tr>
-            <td className="py-2 font-bold text-bk-heading">Total</td>
-            <td className="py-2 text-right font-mono font-bold text-bk-gold-light text-[15px]">{m(i.total)}</td>
-          </tr>
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
       {i.note && <p className="font-sans text-[12px] text-bk-muted mt-3">{i.note}</p>}
     </div>
   );

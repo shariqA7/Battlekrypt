@@ -140,10 +140,10 @@ export default async function PlayerDashboard() {
 
   return (
     <>
-      <div className="w-full max-w-5xl mx-auto px-5 sm:px-6 pt-8">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 pt-8">
         <DashboardTop />
       </div>
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
           <div className="flex items-center gap-3 min-w-0">
             <InitialTile name={name || "?"} size={48} round src={playerProfile?.user.avatarUrl} />

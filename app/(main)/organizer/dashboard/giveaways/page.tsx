@@ -28,7 +28,7 @@ export default async function OrganizerGiveawaysPage() {
   const blocked = (status?.blockers.length ?? 0) > 0;
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <Link href="/organizer/dashboard" className="font-sans text-[12px] text-bk-gold-light hover:underline">← Dashboard</Link>
       <div className="flex flex-wrap items-center justify-between gap-3 mt-3 mb-2">
         <SectionHeading>Giveaways</SectionHeading>

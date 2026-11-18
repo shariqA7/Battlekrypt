@@ -29,7 +29,7 @@ export default async function CoHostQueuePage({ params }: { params: Promise<{ id
   if ("error" in result) redirect("/organizer/dashboard/institute");
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <SectionHeading className="mb-3 break-words">{tournament.name}</SectionHeading>
       <p className="font-sans text-bk-body text-sm mb-6 pl-[19px]">
         Co-hosting for {tournament.organizer.orgName}. You can approve or reject players from your

@@ -31,11 +31,13 @@ console.log = (...a: unknown[]) => {
 const acct = { method: "JazzCash", payeeName: "Sara Khan", details: "0300-1234567" };
 
 async function main() {
-  await prisma.user.createMany({ data: [
-    { id: "g-org", email: "g-org@x.com", displayName: "Org", kycStatus: "approved" },
-    { id: "g-kid", email: "g-kid@x.com", displayName: "Ahmed Khan" },
-    { id: "g-adult", email: "g-adult@x.com", displayName: "Ali Raza" },
-  ]});
+  await prisma.user.createMany({
+    data: [
+      { id: "g-org", email: "g-org@x.com", displayName: "Org", kycStatus: "approved" },
+      { id: "g-kid", email: "g-kid@x.com", displayName: "Ahmed Khan" },
+      { id: "g-adult", email: "g-adult@x.com", displayName: "Ali Raza" },
+    ]
+  });
   const org = await prisma.organizerProfile.create({ data: { userId: "g-org", orgName: "OrgCo" } });
   const kid = await prisma.playerProfile.create({ data: { userId: "g-kid", firstName: "Ahmed", lastName: "Khan", birthDate: yearsAgo(15), age: 15, guardianEmail: "Mum@X.com" } });
   const adult = await prisma.playerProfile.create({ data: { userId: "g-adult", firstName: "Ali", lastName: "Raza", birthDate: yearsAgo(30), age: 30, username: "ali_r" } });
@@ -144,13 +146,15 @@ async function main() {
     await prisma.user.create({ data: { id: `rk${i}`, email: `rk${i}@x.com`, displayName: `Rank Player ${i}` } });
     ps.push(await prisma.playerProfile.create({ data: { userId: `rk${i}`, birthDate: i === 3 ? yearsAgo(14) : yearsAgo(25), username: i === 3 ? null : `rk_user${i}` } }));
   }
-  await prisma.playerGameRating.createMany({ data: [
-    { playerId: ps[0].id, gameId: g2.id, mode: "squad", rating: 1600 },
-    { playerId: ps[1].id, gameId: g2.id, mode: "squad", rating: 1500 },
-    { playerId: ps[2].id, gameId: g2.id, mode: "squad", rating: 1500 },
-    { playerId: ps[3].id, gameId: g2.id, mode: "squad", rating: 1300 },
-    { playerId: ps[0].id, gameId: g2.id, mode: "solo", rating: 1100 },
-  ]});
+  await prisma.playerGameRating.createMany({
+    data: [
+      { playerId: ps[0].id, gameId: g2.id, mode: "squad", rating: 1600 },
+      { playerId: ps[1].id, gameId: g2.id, mode: "squad", rating: 1500 },
+      { playerId: ps[2].id, gameId: g2.id, mode: "squad", rating: 1500 },
+      { playerId: ps[3].id, gameId: g2.id, mode: "squad", rating: 1300 },
+      { playerId: ps[0].id, gameId: g2.id, mode: "solo", rating: 1100 },
+    ]
+  });
   const modes = await modesWithPlayers(g2.id);
   ok("only modes with players are listed", modes.length === 2 && modes.includes("squad") && modes.includes("solo"));
   const sq = await getPlayerRanking(g2.id, "squad", 1);
@@ -176,11 +180,13 @@ async function main() {
   // ---- onboarding
   await prisma.game.create({ data: { name: "OnbGlobalGame", genre: "MOBA", format: "multiplayer", teamSizeMax: 5 } });
   await prisma.game.create({ data: { name: "OnbIndiaOnlyGame", genre: "Battle Royale", format: "multiplayer", teamSizeMax: 4, onlyInCountries: ["IN"] } });
-  await prisma.user.createMany({ data: [
-    { id: "ob-social", email: "ob-social@x.com", displayName: "Social Person" },
-    { id: "ob-pw", email: "ob-pw@x.com", displayName: "Password Person" },
-    { id: "ob-kid", email: "ob-kid@x.com", displayName: "Kid Social" },
-  ]});
+  await prisma.user.createMany({
+    data: [
+      { id: "ob-social", email: "ob-social@x.com", displayName: "Social Person" },
+      { id: "ob-pw", email: "ob-pw@x.com", displayName: "Password Person" },
+      { id: "ob-kid", email: "ob-kid@x.com", displayName: "Kid Social" },
+    ]
+  });
   await prisma.playerProfile.create({ data: { userId: "ob-social" } });
   await prisma.playerProfile.create({ data: { userId: "ob-pw", firstName: "Pat", lastName: "Word", username: "pat_word", birthDate: yearsAgo(28), age: 28, country: "Pakistan" } });
   await prisma.playerProfile.create({ data: { userId: "ob-kid" } });
@@ -223,7 +229,8 @@ async function main() {
   ok("a game restricted to another country is refused (PK player)", failedIds(await o("ob-social", { step: "games", games: ["OnbIndiaOnlyGame"] })).join() === "games_known");
   ok("an invented game is refused", !(await o("ob-social", { step: "games", games: ["Totally Made Up"] })).ok);
   ok("the picker only lists games this player may see", (await getOnboardingData("ob-social"))?.games.some((g) => g.name === "OnbIndiaOnlyGame") === false);
-  ok("an empty pick is allowed and clears it", (await o("ob-social", { step: "games", games: [] })).ok);
+  const emptyPick = await o("ob-social", { step: "games", games: [] });
+  ok("an empty pick is refused (pick one game or skip)", !emptyPick.ok && failedIds(emptyPick).join() === "games_min");
 
   // style step
   ok("an invalid play style is refused", failedIds(await o("ob-social", { step: "style", playStyle: "tryhard" })).join() === "play_style");

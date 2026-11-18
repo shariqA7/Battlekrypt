@@ -2,9 +2,8 @@
 
 // The result of the server's checks, shown at the TOP of the form. A green tick means a
 // check passed, a red cross means it failed. Colours are theme tokens (bk-teal / bk-live),
-// so they follow light and dark mode. When something failed, the failed checks lead and
-// the passed ones fold away; when everything passed, one green line is shown.
-import { useState } from "react";
+// so they follow light and dark mode. When something failed, only the failed checks are
+// listed (the passed ones are noise); when everything passed, one green line is shown.
 
 export interface PanelCheck {
   id: string;
@@ -36,11 +35,9 @@ export default function ResultPanel({
   checks: PanelCheck[] | null;
   successMessage?: string;
 }) {
-  const [showPassed, setShowPassed] = useState(false);
   if (!checks || checks.length === 0) return null;
 
   const failed = checks.filter((c) => !c.ok);
-  const passed = checks.filter((c) => c.ok);
   const allGood = failed.length === 0;
 
   return (
@@ -66,30 +63,6 @@ export default function ResultPanel({
               </li>
             ))}
           </ul>
-          {passed.length > 0 && (
-            <div className="mt-2.5">
-              <button
-                type="button"
-                onClick={() => setShowPassed((v) => !v)}
-                className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-muted hover:text-bk-body"
-                aria-expanded={showPassed}
-              >
-                {showPassed ? "Hide" : "Show"} {passed.length} passed
-              </button>
-              {showPassed && (
-                <ul className="mt-2 space-y-1.5">
-                  {passed.map((c) => (
-                    <li key={c.id} className="flex items-start gap-2 font-sans text-[12px] text-bk-teal">
-                      <span className="mt-px">
-                        <Tick />
-                      </span>
-                      {c.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
         </>
       )}
     </div>

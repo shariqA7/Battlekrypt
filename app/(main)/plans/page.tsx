@@ -50,7 +50,7 @@ export default async function PlansPage() {
   }
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-2">My plans</h1>
       <p className="font-sans text-bk-body text-[13px] mb-8">
         Paid plans add convenience and remove ads. Joining tournaments, playing and your rating are

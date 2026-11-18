@@ -34,7 +34,7 @@ export default async function OrganizationApplicationPage() {
 
   if (app.status === "pending") {
     return (
-      <main className="flex-1 px-6 py-16 max-w-xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-12 sm:py-16 max-w-xl mx-auto w-full">
         <div className="bg-bk-surface border border-bk-border p-6">
           <span className="inline-block bg-bk-amber/[0.12] text-bk-amber font-sans text-[11px] uppercase tracking-[0.8px] px-2.5 py-1 mb-4">
             Under review
@@ -76,7 +76,7 @@ export default async function OrganizationApplicationPage() {
   };
 
   return (
-    <main className="flex-1 px-6 py-12 max-w-xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-12 max-w-xl mx-auto w-full">
       <div className="bg-bk-surface border border-bk-live/40 p-6 mb-6">
         <span className="inline-block bg-bk-live-bg text-bk-live font-sans text-[11px] uppercase tracking-[0.8px] px-2.5 py-1 mb-4">
           Not approved

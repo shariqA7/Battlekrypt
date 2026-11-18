@@ -8,6 +8,31 @@ import {
 } from "@/lib/validation/auth";
 
 export const MAX_FAVORITE_GAMES = 10;
+
+// Hobbies are saved as one comma-separated string (no database change) but entered as tags.
+// 8 tags x 20 characters + separators stays well inside the 200-character column limit.
+export const MAX_HOBBY_TAGS = 8;
+export const MAX_HOBBY_LENGTH = 20;
+
+const cleanHobby = (t: string) => t.replace(/[\u0000-\u001F]/g, " ").replace(/\s+/g, " ").trim().slice(0, MAX_HOBBY_LENGTH).trim();
+
+// "reading, chess" -> ["reading", "chess"]. Trims, drops empties and case-insensitive
+// duplicates, and caps the count and length, so older free-text values still load safely.
+export function parseHobbies(text: string | null | undefined): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of (text ?? "").split(/[,;\n]/)) {
+    const t = cleanHobby(raw);
+    const key = t.toLowerCase();
+    if (!t || seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+    if (out.length >= MAX_HOBBY_TAGS) break;
+  }
+  return out;
+}
+
+export const joinHobbies = (tags: string[]) => tags.join(", ");
 export const GENDERS = ["male", "female", "other"] as const;
 export const PLAY_STYLES = ["casual", "competitive"] as const;
 export type PlayStyleValue = (typeof PLAY_STYLES)[number];
@@ -87,6 +112,8 @@ export function gamesChecks(names: unknown, allowed: string[]): { checks: Check[
   return {
     value: unique.filter((n) => allowedSet.has(n)),
     checks: [
+      // The games step needs at least one pick; a player with none chooses "Skip for now" instead.
+      { id: "games_min", ok: unique.length >= 1, message: "Pick at least 1 game, or choose Skip for now" },
       { id: "games_count", ok: unique.length <= MAX_FAVORITE_GAMES, message: `Pick up to ${MAX_FAVORITE_GAMES} games` },
       { id: "games_known", ok: unique.every((n) => allowedSet.has(n)), message: "Every game is in the catalog" },
     ],

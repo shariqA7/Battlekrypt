@@ -20,7 +20,7 @@ export default async function OrganizerProfilePage({
   const totalVotes = organizer.likes + organizer.dislikes;
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <div className="flex items-center gap-4 mb-5">
         <InitialTile kind="org" name={organizer.orgName} size={64} />
         <div className="min-w-0">

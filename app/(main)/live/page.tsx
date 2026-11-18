@@ -27,7 +27,7 @@ export default async function LivePage({
   ]);
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-3xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
       <div className="flex items-center gap-2 mb-6">
         <span className="w-2 h-2 rounded-full bg-bk-live" />
         <h1 className="font-sans font-extrabold text-2xl text-bk-heading">Live now</h1>

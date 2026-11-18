@@ -41,7 +41,7 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
   ].filter(Boolean) as [string, string][];
 
   return (
-    <main className="flex-1 px-5 sm:px-6 py-10 max-w-4xl mx-auto w-full space-y-8">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-4xl mx-auto w-full space-y-8">
       <Link href="/games" className="font-sans font-bold text-[11px] uppercase tracking-[1.2px] text-bk-body hover:text-bk-gold-light">
         ← All games
       </Link>

@@ -81,7 +81,7 @@ export default async function ChallengePage({ params }: { params: Promise<{ id: 
   const instituteUsage = institutional && isPoster ? await getChallengeInstitutionUsage(c.id) : {};
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <Link href="/challenges" className="font-sans text-[12px] text-bk-muted underline">← Challenges</Link>
 
       {note && (

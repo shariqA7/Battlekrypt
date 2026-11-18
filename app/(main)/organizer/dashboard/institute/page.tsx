@@ -27,7 +27,7 @@ export default async function OrganizerInstitutePage() {
   ]);
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">My institute</h1>
       <p className="font-sans text-bk-body text-sm mb-6">
         Register the school, college or university you run. Once an admin verifies it, you can host

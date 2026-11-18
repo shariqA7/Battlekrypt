@@ -110,7 +110,7 @@ export default async function ManageTournamentPage({
 
   return (
     <>
-      <main className="flex-1 px-5 sm:px-6 py-10 max-w-3xl mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-3xl mx-auto w-full">
         <ButtonLink href="/organizer/dashboard" variant="ghost" size="sm" className="mb-3 -ml-3">
           ← Dashboard
         </ButtonLink>

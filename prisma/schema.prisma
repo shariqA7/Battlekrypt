@@ -1392,6 +1392,10 @@ model SiteSettings {
   defaultAvatarUrl        String?  // player without a photo
   defaultOrgLogoUrl       String?  // organizer without a logo
   defaultClubLogoUrl      String?
+  // Light-theme versions of the three defaults above. Empty = the dark/base image is used on both themes.
+  defaultAvatarLightUrl   String?
+  defaultOrgLogoLightUrl  String?
+  defaultClubLogoLightUrl String?
   // Shown on the club registration form: amount + where to send the fee.
   clubPaymentInstructions String?
   // Shown on the plan-upgrade form: where to send the plan payment.

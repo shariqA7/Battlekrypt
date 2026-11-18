@@ -25,7 +25,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   if (!data) redirect(redirectTo);
 
   return (
-    <main className="flex-1 flex flex-col items-center justify-start md:justify-center px-5 py-10">
+    <main className="flex-1 flex flex-col items-center justify-start px-4 sm:px-6 py-6 sm:py-8">
       <div className="w-full max-w-[460px]">
         <div className="rounded-2xl border border-bk-border bg-bk-bg p-6 sm:p-7" style={{ boxShadow: "0 0 60px rgba(244,200,66,0.07)" }}>
           <Suspense fallback={null}>

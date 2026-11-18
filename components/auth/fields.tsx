@@ -28,6 +28,28 @@ export function TextField({
   );
 }
 
+// A <select> with the browser's own arrow turned off and ours drawn 16px in from the right
+// border, vertically centred, so every dropdown lines up the same everywhere.
+export function NativeSelect({ className = "", children, ...rest }: { children: ReactNode } & SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className="relative block">
+      <select className={`${fieldClass} appearance-none pr-10 cursor-pointer ${className}`} {...rest}>
+        {children}
+      </select>
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-bk-muted"
+      >
+        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
 export function SelectField({
   label,
   optional,
@@ -38,9 +60,7 @@ export function SelectField({
   return (
     <label className={`block ${className}`}>
       <Label optional={optional}>{label}</Label>
-      <select className={`${fieldClass} appearance-none pr-9 bg-no-repeat`} {...rest}>
-        {children}
-      </select>
+      <NativeSelect {...rest}>{children}</NativeSelect>
     </label>
   );
 }

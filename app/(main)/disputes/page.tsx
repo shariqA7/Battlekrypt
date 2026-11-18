@@ -13,7 +13,7 @@ export default async function MyDisputesPage() {
   const disputes = await listMyDisputes(user.id);
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">Payment disputes</h1>
       <p className="font-sans text-bk-muted text-[12px] mb-6">Cases about an entry fee, as the player who paid or the organizer who received it.</p>
       {disputes.length === 0 ? (

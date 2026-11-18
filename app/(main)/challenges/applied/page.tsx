@@ -21,7 +21,7 @@ export default async function MyApplicationsPage() {
   const apps = await listMyApplications(user.id);
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-2xl mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <Link href="/challenges" className="font-sans text-[12px] text-bk-muted underline">← Challenges</Link>
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mt-3 mb-6">My applications</h1>
       {apps.length === 0 ? (

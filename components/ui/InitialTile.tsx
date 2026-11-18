@@ -24,9 +24,11 @@ export default function InitialTile({
   kind?: "org" | "club";
   src?: string | null;
 }) {
-  const { defaultAvatarUrl, defaultOrgLogoUrl, defaultClubLogoUrl } = useBranding();
+  const b = useBranding();
   // Own image, else the admin default for this kind of tile (null if none set).
-  const image = src || (round ? defaultAvatarUrl : kind === "club" ? defaultClubLogoUrl : kind === "org" ? defaultOrgLogoUrl : null);
+  const image = src || (round ? b.defaultAvatarUrl : kind === "club" ? b.defaultClubLogoUrl : kind === "org" ? b.defaultOrgLogoUrl : null);
+  // Light-theme version of the admin default (never used for an own image).
+  const imageLight = src ? null : round ? b.defaultAvatarLightUrl : kind === "club" ? b.defaultClubLogoLightUrl : kind === "org" ? b.defaultOrgLogoLightUrl : null;
   // Built-in artwork for the kinds that have one; game tiles keep their initials.
   const builtin = round ? PLACEHOLDERS.avatar : kind === "club" ? PLACEHOLDERS.club : kind === "org" ? PLACEHOLDERS.org : null;
   const initials = name
@@ -42,8 +44,8 @@ export default function InitialTile({
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
       className={`shrink-0 overflow-hidden flex items-center justify-center bg-bk-gold-from/15 border border-bk-gold-from/40 text-bk-gold-light font-sans font-bold ${round ? "rounded-full" : ""}`}
     >
-      {image || builtin ? (
-        <ThemedImage src={image} fallback={builtin ?? PLACEHOLDERS.avatar} />
+      {image || imageLight || builtin ? (
+        <ThemedImage src={image} srcLight={imageLight} fallback={builtin ?? PLACEHOLDERS.avatar} />
       ) : (
         initials || "?"
       )}
