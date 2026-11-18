@@ -74,6 +74,9 @@ export default async function OrganizerDashboard() {
           <ButtonLink href="/organizer/dashboard/giveaways" variant="outline" size="sm">
             Giveaways
           </ButtonLink>
+          <ButtonLink href="/organizer/dashboard/scrims" variant="outline" size="sm">
+            Recurring scrims
+          </ButtonLink>
           <ButtonLink href="/organizer/dashboard/members" variant="outline" size="sm">
             Members
           </ButtonLink>

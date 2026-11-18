@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { previewMetadata, blurb } from "@/lib/link-preview";
 import ShareLinks from "@/components/ui/ShareLinks";
+import { getSeriesBrief } from "@/lib/services/scrim-series";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { getTournamentById, getStandings } from "@/lib/services/tournaments";
@@ -56,6 +58,7 @@ export default async function TournamentDetailPage({
   // Room credentials and the check-in code never reach the page: they are
   // served only through their own access-checked endpoints.
   const tournament = toPublicTournament(full);
+  const series = await getSeriesBrief(full.seriesId);
   const eventsHosted = await prisma.tournament.count({
     where: { organizerId: tournament.organizerId, status: "completed" },
   });
@@ -175,6 +178,11 @@ export default async function TournamentDetailPage({
                 )}
               </div>
               <ShareLinks path={`/tournaments/${tournament.slug}`} title={tournament.name} className="mt-4" />
+              {series && (
+                <p className="font-sans text-[12px] text-bk-body mt-3">
+                  Part of <Link href={`/scrims/${series.slug}`} className="text-bk-gold-light underline">{series.name}</Link>. See all sessions.
+                </p>
+              )}
             </div>
           </div>
         </header>

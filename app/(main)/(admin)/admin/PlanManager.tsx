@@ -45,6 +45,9 @@ const LABELS: Record<string, { label: string; kind: "limit" | "count" | "flag" }
   maxChallengePrizeUsd: { label: "Max challenge prize (USD)", kind: "limit" },
   canJoinChallenges: { label: "Can join challenges", kind: "flag" },
   maxGiveawaysPerMonth: { label: "Giveaways run / month", kind: "limit" },
+  maxScrimSeries: { label: "Recurring scrim series at once (0 = none)", kind: "limit" },
+  maxSeriesDays: { label: "Longest series (days, empty = non-stop)", kind: "limit" },
+  maxSlotsPerDay: { label: "Series sessions per day", kind: "limit" },
 };
 
 const input =

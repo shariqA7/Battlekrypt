@@ -46,6 +46,11 @@ export function describeLimits(audience: PlanAudience, l: Limits): string[] {
   if (audience === "organizer") {
     const g = (l as { maxGiveawaysPerMonth: number | null }).maxGiveawaysPerMonth;
     out.push(g === null ? "Run unlimited giveaways" : `Run ${g} giveaway${g === 1 ? "" : "s"} per month`);
+    const sl = l as { maxScrimSeries: number | null; maxSeriesDays: number | null; maxSlotsPerDay: number | null };
+    if (sl.maxScrimSeries === null || sl.maxScrimSeries > 0) {
+      out.push(sl.maxScrimSeries === null ? "Run unlimited recurring scrim series" : `Run ${sl.maxScrimSeries} recurring scrim series at once`);
+      out.push(sl.maxSeriesDays === null ? "Series can run non-stop" : `Series can run up to ${sl.maxSeriesDays} days`);
+    }
   }
   if (l.canJoinChallenges) out.push("Join challenges");
   return out;

@@ -33,15 +33,18 @@ export function startOfMonthUtc(now: Date = new Date()) {
 // another tournament (this month, or in a new game).
 export async function assertOrganizerCanCreateTournament(
   organizer: OrganizerPlanHolder,
-  gameId: string
+  gameId: string,
+  opts: { skipMonthly?: boolean } = {}
 ) {
   const { limits } = await resolvePlan("organizer", organizer);
 
-  if (limits.maxTournamentsPerMonth !== null) {
+  // Days of a recurring series are limited by the series limits instead, not one-by-one here.
+  if (limits.maxTournamentsPerMonth !== null && !opts.skipMonthly) {
     const thisMonth = await prisma.tournament.count({
       where: {
         organizerId: organizer.id,
         status: { not: "cancelled" },
+        seriesId: null,
         createdAt: { gte: startOfMonthUtc() },
       },
     });
