@@ -17,6 +17,7 @@ import { parseReference } from "@/lib/proof-match";
 import { normalizeProofInput } from "@/lib/proof-storage";
 import { isIdentityVerified } from "@/lib/identity";
 import { makeTournamentSlug } from "@/lib/slug";
+import { nextSessionIdsBySeries } from "@/lib/services/series-browse";
 import { prepareRulesForCreate } from "@/lib/services/rules";
 import { assertOrganizerCanCreateTournament } from "@/lib/services/plan-gates";
 import { checkOrganizerTrust, TrustLimitError, markPrizesPaid } from "@/lib/services/organizer-trust";
@@ -131,6 +132,14 @@ export async function listTournaments(filters: TournamentListFilters) {
     where.AND = [...existing, { game: gameVisibilityWhere(filters.viewerCountry) }];
   }
 
+  // The default browse view shows one card per recurring scrim series (its next open session), not
+  // one per day. Asking for a specific status (e.g. completed) lists everything as usual.
+  if (!filters.status) {
+    const nextIds = await nextSessionIdsBySeries();
+    const existing = where.AND ? (Array.isArray(where.AND) ? where.AND : [where.AND]) : [];
+    where.AND = [...existing, { OR: [{ seriesId: null }, { id: { in: nextIds } }] }];
+  }
+
   const [data, total] = await Promise.all([
     prisma.tournament.findMany({
       where,
@@ -213,6 +222,9 @@ export interface CreateTournamentInput {
   // arrive here as custom warning rules.
   rules?: (RuleFields & { suggestedRuleId: string | null })[];
   startAt?: Date;
+  // Set by the scrim series generator: links the event to its series and skips the monthly event quota.
+  seriesId?: string;
+  sessionNo?: number;
 }
 
 // Throws PlanLimitError (lib/services/plan-gates.ts) when the organizer's
@@ -220,7 +232,7 @@ export interface CreateTournamentInput {
 export async function createTournament(input: CreateTournamentInput) {
   const organizer = await prisma.organizerProfile.findUnique({ where: { id: input.organizerId } });
   if (!organizer) throw new Error("Organizer profile not found.");
-  await assertOrganizerCanCreateTournament(organizer, input.gameId);
+  await assertOrganizerCanCreateTournament(organizer, input.gameId, { skipMonthly: !!input.seriesId });
 
   // Anti-scam gate: starter limits for new organizers, and no new paid or
   // prized events while an earlier prize payout is unsettled.
@@ -276,6 +288,7 @@ export async function createTournament(input: CreateTournamentInput) {
         input.audienceScope === "institution" && !!input.requireFreshInstitutionProof,
       customFields: input.customFields as Prisma.InputJsonValue,
       startAt: input.startAt,
+      ...(input.seriesId ? { series: { connect: { id: input.seriesId } }, sessionNo: input.sessionNo } : {}),
       status: "draft",
       rules: input.rules?.length
         ? { create: await prepareRulesForCreate(input.rules) }

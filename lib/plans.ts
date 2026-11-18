@@ -42,6 +42,9 @@ export const LIMIT_KEYS = {
     maxChallengePrizeUsd: "limit",
     canJoinChallenges: "flag",
     maxGiveawaysPerMonth: "limit",
+    maxScrimSeries: "limit",
+    maxSeriesDays: "limit",
+    maxSlotsPerDay: "limit",
   },
   club: {
     maxEntriesPerGame: "limit",
@@ -83,6 +86,11 @@ export interface OrganizerLimits {
   canJoinChallenges: boolean;
   // Giveaways this organization may run per calendar month (null = unlimited).
   maxGiveawaysPerMonth: number | null;
+  // Recurring scrim series. maxScrimSeries: how many may run at once (0 = none). maxSeriesDays: the
+  // longest a series may run in days (null = non-stop is allowed). maxSlotsPerDay: sessions per day.
+  maxScrimSeries: number | null;
+  maxSeriesDays: number | null;
+  maxSlotsPerDay: number | null;
 }
 
 export interface ClubPlanLimits {
@@ -132,6 +140,9 @@ const FREE_DEFAULTS: LimitsByAudience = {
     maxChallengePrizeUsd: 10,
     canJoinChallenges: false,
     maxGiveawaysPerMonth: 1,
+    maxScrimSeries: 0,
+    maxSeriesDays: 0,
+    maxSlotsPerDay: 0,
   },
   club: {
     maxEntriesPerGame: 1,
@@ -170,6 +181,9 @@ const PAID_DEFAULTS: LimitsByAudience = {
     maxChallengePrizeUsd: 100,
     canJoinChallenges: true,
     maxGiveawaysPerMonth: 10,
+    maxScrimSeries: 1,
+    maxSeriesDays: 31,
+    maxSlotsPerDay: 2,
   },
   club: {
     maxEntriesPerGame: null,

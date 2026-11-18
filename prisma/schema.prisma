@@ -153,6 +153,7 @@ model Game {
   templates     TournamentTemplate[]
   playerRatings PlayerGameRating[]
   challenges    Challenge[]
+  scrimSeries ScrimSeries[]
 }
 
 enum GameRequestStatus {
@@ -420,6 +421,7 @@ model OrganizerProfile {
   reports             OrganizerReport[]
   ratings             OrganizerRating[]
   giveaways           Giveaway[]
+  scrimSeries         ScrimSeries[]
   deposits     SecurityDeposit[]
   invoices     Invoice[]
   identity     IdentityVerification?
@@ -1122,6 +1124,10 @@ model Tournament {
   // Basic shareable-link tracking (spec §3) — incremented on a real page
   // view and on a successful registration.
   clickCount        Int @default(0)
+  // Set when this event is one day of a recurring scrim series (see ScrimSeries).
+  seriesId          String?
+  series            ScrimSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  sessionNo         Int? // 1, 2, 3... in the order of the series
   registrationCount Int @default(0)
 
   createdAt DateTime @default(now())
@@ -1144,6 +1150,8 @@ model Tournament {
   featured               FeaturedTournament?
 
   @@index([audienceScope])
+  @@unique([seriesId, sessionNo])
+  @@index([seriesId, startAt])
   @@index([venueType])
   @@index([country])
 }
@@ -3259,4 +3267,54 @@ model AdDailyStat {
   campaign    AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@id([campaignId, day])
+}
+
+// ------------------------------------------------------------
+// SCRIM SERIES: a recurring scrim (daily, weekdays, weekends, chosen days) that an organizer
+// on a paid plan sets up once. A daily job turns it into ordinary scrim events, one per
+// session, a couple of weeks ahead. Each generated event is a normal Tournament (own room,
+// registrations, results). See lib/scrim-series-rules.ts and lib/services/scrim-series.ts.
+// ------------------------------------------------------------
+enum ScrimSeriesStatus {
+  active
+  paused
+  ended
+}
+
+model ScrimSeries {
+  id                  String            @id @default(uuid())
+  slug                String            @unique
+  organizerId         String
+  organizer           OrganizerProfile  @relation(fields: [organizerId], references: [id])
+  gameId              String
+  game                Game              @relation(fields: [gameId], references: [id])
+  name                String
+  description         String?
+  bannerUrl           String?
+  mode                TournamentMode
+  maxTeamSize         Int
+  maxTeams            Int
+  playersPerRoom      Int?
+  entryType           EntryType
+  entryFeeAmount      Decimal?          @db.Decimal(14, 2) // per session
+  entryFeeCurrency    String?
+  paymentInstructions String?
+  rulesText           String?
+  country             String?
+  // When it runs. Days are 0 (Sunday) to 6 (Saturday), in the organizer's own time zone.
+  timezone            String
+  daysOfWeek          Int[]
+  slotTimes           String[] // "20:00", "22:00": several sessions per day
+  startDate           DateTime          @db.Date
+  endDate             DateTime?         @db.Date // null = no end date (non-stop)
+  skipDates           String[] // "2026-12-25": days with no session
+  status              ScrimSeriesStatus @default(active)
+  lastError           String? // why the last automatic generation stopped, if it did
+  lastGeneratedAt     DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  sessions            Tournament[]
+
+  @@index([organizerId, status])
+  @@index([status])
 }

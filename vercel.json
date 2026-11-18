@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/payment-disputes",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/scrim-series",
+      "schedule": "0 5 * * *"
     }
   ]
 }
