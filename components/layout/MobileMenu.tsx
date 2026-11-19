@@ -3,26 +3,25 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import SearchBox from "@/components/layout/SearchBox";
+import { isGroup, itemIsActive, pathMatches, type NavItem } from "@/components/layout/nav-config";
 import { BrandLogo } from "@/components/ui/BannerImage";
-
-interface NavLink {
-  label: string;
-  href: string;
-}
 
 // The navigation drawer for phones and small tablets. The desktop bar in
 // Nav.tsx is hidden below the xl breakpoint, so everything it offers has to be
 // reachable from here.
 export default function MobileMenu({
-  links,
+  items,
   signedIn,
 }: {
-  links: NavLink[];
+  items: NavItem[];
   signedIn: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  // Groups the person has expanded; the one holding the current page starts open.
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const toggle = (label: string, current: boolean) =>
+    setExpanded((e) => ({ ...e, [label]: !current }));
 
   // Close after navigating, and lock page scroll while the drawer is open.
   useEffect(() => {
@@ -98,20 +97,50 @@ export default function MobileMenu({
               </button>
             </div>
 
-            <SearchBox id="drawer-search" className="p-4 border-b border-bk-border-nav" />
-
             <nav className="flex-1">
-              {links.map((l) => {
-                const active = pathname === l.href || pathname.startsWith(`${l.href}/`);
+              {items.map((it) => {
+                const active = itemIsActive(pathname, it);
+                if (!isGroup(it)) {
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`${item} ${active ? "text-bk-gold-light border-l-2 border-l-bk-gold-from" : ""}`}
+                    >
+                      {it.label}
+                    </Link>
+                  );
+                }
+                const isOpen = expanded[it.label] ?? active;
                 return (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`${item} ${active ? "text-bk-gold-light border-l-2 border-l-bk-gold-from" : ""}`}
-                  >
-                    {l.label}
-                  </Link>
+                  <div key={it.label}>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => toggle(it.label, isOpen)}
+                      className={`${item} w-full flex items-center justify-between text-left ${active ? "text-bk-gold-light border-l-2 border-l-bk-gold-from" : ""}`}
+                    >
+                      <span>{it.label}</span>
+                      <span aria-hidden="true" className="font-mono text-[16px] leading-none">
+                        {isOpen ? "−" : "+"}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="bg-bk-heading/[0.03]">
+                        {it.children.map((c) => (
+                          <Link
+                            key={c.href}
+                            href={c.href}
+                            aria-current={pathMatches(pathname, c.href) && !c.href.includes("?") && !c.href.includes("#") ? "page" : undefined}
+                            className="block pl-9 pr-5 py-3 font-sans text-[14px] text-bk-body border-b border-bk-border-nav active:bg-bk-heading/[0.05]"
+                          >
+                            {c.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
               <Link href="/donate" className={`${item} text-bk-muted`}>
