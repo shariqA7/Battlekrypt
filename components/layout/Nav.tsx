@@ -7,6 +7,7 @@ import UserMenu from "@/components/layout/UserMenu";
 import MobileMenu from "@/components/layout/MobileMenu";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import NavLinks from "@/components/layout/NavLinks";
+import NotificationBell, { NotificationBellLink } from "@/components/notifications/NotificationBell";
 import { buildNav } from "@/components/layout/nav-config";
 import NavFrame from "@/components/layout/NavFrame";
 import { buttonClass } from "@/components/ui/Button";
@@ -70,6 +71,7 @@ export default async function Nav() {
             the menu button holds the links. */}
         <div className="flex items-center gap-1 xl:hidden">
           <ThemeToggle />
+          {user && <NotificationBellLink initialUnread={unreadNotifications} />}
           {user && (
             <UserMenu
               displayName={displayName ?? "Player"}
@@ -97,16 +99,7 @@ export default async function Nav() {
             </>
           ) : (
             <>
-              <Link href="/notifications" aria-label="Notifications" className="relative text-bk-body hover:text-bk-heading px-1">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M6 9a6 6 0 1112 0c0 5 2 6 2 6H4s2-1 2-6zM10 19a2 2 0 004 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-bk-live text-white text-[9px] font-bold rounded-full px-1 min-w-[15px] text-center">
-                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                  </span>
-                )}
-              </Link>
+              <NotificationBell initialUnread={unreadNotifications} />
               <UserMenu
                 displayName={displayName ?? "Player"}
                 email={email}
