@@ -15,6 +15,7 @@ const PLAY: FooterLink[] = [
   { label: "Challenges", href: "/challenges" },
   { label: "Giveaways", href: "/giveaways" },
   { label: "Rankings", href: "/rankings" },
+  { label: "Plans", href: "/pricing" },
 ];
 
 const COMMUNITY: FooterLink[] = [

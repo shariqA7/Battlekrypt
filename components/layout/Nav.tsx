@@ -7,23 +7,13 @@ import UserMenu from "@/components/layout/UserMenu";
 import MobileMenu from "@/components/layout/MobileMenu";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import NavLinks from "@/components/layout/NavLinks";
-import SearchBox from "@/components/layout/SearchBox";
+import { buildNav } from "@/components/layout/nav-config";
 import NavFrame from "@/components/layout/NavFrame";
 import { buttonClass } from "@/components/ui/Button";
 
-const NAV_LINKS = [
-  { label: "Games", href: "/games" },
-  { label: "Live", href: "/live" },
-  { label: "Tournaments", href: "/tournaments" },
-  { label: "Challenges", href: "/challenges" },
-  { label: "Giveaways", href: "/giveaways" },
-  { label: "Rankings", href: "/rankings" },
-  { label: "Organizers", href: "/organizers" },
-];
-
 export default async function Nav() {
   const featureFlags = await getFeatureFlags();
-  const links = NAV_LINKS.filter((l) => (l.href !== "/challenges" || featureFlags.challenges) && (l.href !== "/giveaways" || featureFlags.giveaways));
+  const items = buildNav({ challenges: featureFlags.challenges, giveaways: featureFlags.giveaways });
   const supabase = await createClient();
   const {
     data: { user },
@@ -62,23 +52,22 @@ export default async function Nav() {
 
   return (
     // nav-safe: clears the notch and runs edge to edge in landscape (globals.css).
-    // The full bar (inline search + five links + buttons) needs ~1200px, so
+    // The full bar (logo + links + buttons) needs ~1200px, so
     // anything narrower than xl gets the menu button and drawer instead.
     <nav className="nav-safe bg-bk-bg-nav border-b border-bk-border-nav">
       <NavFrame>
-        <div className="flex items-center gap-8 min-w-0">
+        <div className="flex items-center min-w-0">
           <Link href="/" className="shrink-0 flex items-center" aria-label="BattleKrypt home">
             <SiteLogo heightClass="h-10 sm:h-12" className="text-bk-gold-light font-sans font-extrabold text-[22px] sm:text-2xl tracking-tight" />
           </Link>
-          <SearchBox className="hidden xl:block w-64" />
         </div>
 
         <div className="hidden xl:block">
-          <NavLinks links={links} />
+          <NavLinks items={items} />
         </div>
 
         {/* Phones and tablets: signed-in people keep their avatar menu in the bar;
-            the menu button holds the links and search. */}
+            the menu button holds the links. */}
         <div className="flex items-center gap-1 xl:hidden">
           <ThemeToggle />
           {user && (
@@ -92,7 +81,7 @@ export default async function Nav() {
               orgApplicationStatus={orgApplicationStatus}
             />
           )}
-          <MobileMenu links={links} signedIn={!!user} />
+          <MobileMenu items={items} signedIn={!!user} />
         </div>
 
         <div className="hidden xl:flex items-center gap-3 xl:justify-self-end">
