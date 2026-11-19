@@ -2,6 +2,7 @@
 
 // Pick favourite games from the catalog (already filtered to the player's country by the
 // server). Tiles instead of typed names, so nobody ends up with "pubg" vs "PUBG Mobile".
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import InitialTile from "@/components/ui/InitialTile";
 import { fieldClass } from "@/components/auth/fields";
@@ -77,7 +78,7 @@ export default function GamePicker({
             </button>
           );
         })}
-        {shown.length === 0 && <p className="col-span-2 font-sans text-[13px] text-bk-muted py-4 text-center">No games match.</p>}
+        {shown.length === 0 && <div className="col-span-2"><EmptyState compact icon={EmptyIcons.search} title="No games match" hint="Try a different name." /></div>}
       </div>
     </div>
   );

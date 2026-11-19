@@ -16,6 +16,7 @@ import {
   FREE_PLAN_CODE,
   computeNewExpiry,
   isVerified,
+  parseLimits,
   resolvePlan,
   validateLimitsInput,
   type EffectivePlan,
@@ -69,6 +70,7 @@ function serializePlan(p: {
   extras?: unknown;
   isActive: boolean;
   sortOrder: number;
+  privateForUserId?: string | null;
 }) {
   return {
     code: p.code,
@@ -83,14 +85,22 @@ function serializePlan(p: {
     extras: (p.extras && typeof p.extras === "object" && !Array.isArray(p.extras) ? p.extras : {}) as Record<string, string | number | boolean>,
     isActive: p.isActive,
     sortOrder: p.sortOrder,
+    isPrivate: !!p.privateForUserId,
+    privateForUserId: p.privateForUserId ?? null,
   };
 }
 
-export async function listPlans(opts: { audience?: PlanAudience; activeOnly?: boolean } = {}) {
+// activeOnly = the plans someone can buy: the public ones, plus the private plan made for forUserId.
+// includePrivate (admin pickers) adds every private plan. With neither, everything is returned (the
+// admin plan editor).
+export async function listPlans(opts: { audience?: PlanAudience; activeOnly?: boolean; forUserId?: string | null; includePrivate?: boolean } = {}) {
   const rows = await prisma.plan.findMany({
     where: {
       ...(opts.audience && { audience: opts.audience }),
       ...(opts.activeOnly && { isActive: true }),
+      ...(opts.activeOnly && !opts.includePrivate && {
+        OR: [{ privateForUserId: null }, ...(opts.forUserId ? [{ privateForUserId: opts.forUserId }] : [])],
+      }),
     },
     orderBy: [{ audience: "asc" }, { sortOrder: "asc" }],
   });
@@ -207,7 +217,7 @@ export async function createPlanRequest(
   if (audience === "club" && !account.approved) return fail("club_not_approved");
 
   const plan = await prisma.plan.findUnique({ where: { code: input.planCode } });
-  if (!plan || plan.audience !== audience || !plan.isActive || !plan.isPaid) {
+  if (!plan || plan.audience !== audience || !plan.isActive || !plan.isPaid || (plan.privateForUserId && plan.privateForUserId !== userId)) {
     return fail("plan_not_found");
   }
 
@@ -408,6 +418,62 @@ export interface UpdatePlanInput {
   depositAmount?: unknown;
   extras?: unknown;
   isActive?: unknown;
+}
+
+// ------------------------------------------------------------
+// Create a plan (admin). Starts from the audience's default limits; anything given overrides them.
+// A plan with privateForUserId is a custom quote: only that account sees and can buy it.
+// ------------------------------------------------------------
+export interface CreatePlanInput {
+  audience: unknown;
+  name: unknown;
+  priceAmount: unknown;
+  priceCurrency: unknown;
+  durationDays?: unknown;
+  limits?: unknown;
+  depositAmount?: unknown;
+  privateForUserId?: string | null;
+}
+
+export async function createPlan(adminId: string, input: CreatePlanInput) {
+  if (!isAudience(input.audience)) return fail("validation_error", "Choose who the plan is for.");
+  const audience = input.audience;
+  if (typeof input.name !== "string" || input.name.trim().length < 2 || input.name.trim().length > 60) {
+    return fail("validation_error", "Plan name must be 2–60 characters.");
+  }
+  const name = input.name.trim();
+
+  const defaults = parseLimits(audience, {}, true) as unknown as Record<string, number | boolean | null>;
+  const given = input.limits === undefined ? {} : input.limits;
+  if (!given || typeof given !== "object" || Array.isArray(given)) return fail("validation_error", "Limits must be an object.");
+  const limits = { ...defaults, ...(given as Record<string, unknown>) };
+
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 30) || "plan";
+  let code = `${audience}_${base}`;
+  if (await prisma.plan.findUnique({ where: { code } })) code = `${code}_${Math.random().toString(36).slice(2, 6)}`;
+  const isPrivate = !!input.privateForUserId;
+  const top = await prisma.plan.aggregate({ where: { audience }, _max: { sortOrder: true } });
+
+  // The row is made switched off and unpriced, then filled in by the same checks the editor uses.
+  await prisma.plan.create({
+    data: {
+      code, audience, name, isPaid: true, durationDays: 30, limits: defaults as object, isActive: false,
+      sortOrder: isPrivate ? 900 : (top._max.sortOrder ?? 0) + 1,
+      privateForUserId: input.privateForUserId ?? null,
+    },
+  });
+  const done = await updatePlan(code, adminId, {
+    name, priceAmount: input.priceAmount, priceCurrency: input.priceCurrency,
+    durationDays: input.durationDays ?? 30, limits, depositAmount: input.depositAmount, isActive: true,
+  });
+  if ("error" in done) {
+    await prisma.plan.delete({ where: { code } }).catch(() => undefined);
+    return done;
+  }
+  await prisma.adminActionLog.create({
+    data: { adminId, action: "created_plan", targetType: "Plan", targetId: code, notes: isPrivate ? `custom plan for ${input.privateForUserId}` : "public plan" },
+  });
+  return done;
 }
 
 export async function updatePlan(code: string, adminId: string, input: UpdatePlanInput) {

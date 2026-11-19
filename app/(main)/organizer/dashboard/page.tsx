@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyTournaments } from "@/lib/services/tournaments";
@@ -149,9 +150,8 @@ export default async function OrganizerDashboard() {
         )}
 
         {tournaments.length === 0 ? (
-          <Panel className="p-6 text-center">
-            <p className="font-sans text-bk-body text-sm mb-4">No tournaments yet. Create your first one.</p>
-            <ButtonLink href="/organizer/dashboard/tournaments/new">+ New tournament</ButtonLink>
+          <Panel>
+            <EmptyState compact icon={EmptyIcons.trophy} title="No tournaments yet" hint="Create your first one and it will be listed here." action={{ label: "+ New tournament", href: "/organizer/dashboard/tournaments/new" }} />
           </Panel>
         ) : (
           <div className="flex flex-col gap-3">

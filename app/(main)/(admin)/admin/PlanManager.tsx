@@ -1,5 +1,6 @@
 "use client";
 
+import { LIMIT_LABELS as LABELS } from "@/lib/plan-limit-labels";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { buttonClass } from "@/components/ui/Button";
@@ -16,6 +17,7 @@ export interface AdminPlan {
   depositAmount: number | null;
   extras: Record<string, string | number | boolean>;
   isActive: boolean;
+  isPrivate?: boolean; // a custom quote, made for one account
 }
 
 export interface AdminPlanField {
@@ -24,31 +26,6 @@ export interface AdminPlanField {
   label: string;
   kind: string; // "text" | "number" | "flag"
 }
-
-// Human labels + input kind for each limit key (mirrors LIMIT_KEYS in
-// lib/plans.ts). "limit" fields: empty = unlimited.
-const LABELS: Record<string, { label: string; kind: "limit" | "count" | "flag" }> = {
-  maxTournamentsPerMonth: { label: "Tournaments / month", kind: "limit" },
-  maxGames: { label: "Max games", kind: "limit" },
-  maxTemplates: { label: "Saved templates", kind: "limit" },
-  advancedAnalytics: { label: "Advanced analytics", kind: "flag" },
-  prioritySupport: { label: "Priority support", kind: "flag" },
-  maxEntriesPerGame: { label: "Entries per game", kind: "limit" },
-  maxPlayersPerTeam: { label: "Players per team", kind: "count" },
-  maxSubstitutesPerTeam: { label: "Substitutes per team", kind: "count" },
-  canSetCoach: { label: "Can set coach", kind: "flag" },
-  merchStore: { label: "Merch store", kind: "flag" },
-  enhancedProfile: { label: "Enhanced profile", kind: "flag" },
-  priorityRegistration: { label: "Priority registration", kind: "flag" },
-  extendedStats: { label: "Extended stats", kind: "flag" },
-  maxChallengesPerMonth: { label: "Challenges posted / month", kind: "limit" },
-  maxChallengePrizeUsd: { label: "Max challenge prize (USD)", kind: "limit" },
-  canJoinChallenges: { label: "Can join challenges", kind: "flag" },
-  maxGiveawaysPerMonth: { label: "Giveaways run / month", kind: "limit" },
-  maxScrimSeries: { label: "Recurring scrim series at once (0 = none)", kind: "limit" },
-  maxSeriesDays: { label: "Longest series (days, empty = non-stop)", kind: "limit" },
-  maxSlotsPerDay: { label: "Series sessions per day", kind: "limit" },
-};
 
 const input =
   "bg-bk-bg border border-bk-border text-bk-heading text-[12px] font-sans px-2 h-[30px]";
@@ -125,6 +102,7 @@ function PlanRow({
           aria-label="Plan name"
         />
         <span className="font-mono text-[11px] text-bk-muted">{plan.code}</span>
+        {plan.isPrivate && <span className="font-sans text-[10px] tracking-[0.8px] uppercase text-bk-gold-light border border-bk-gold-light/50 px-1.5 py-0.5">Custom quote</span>}
         {plan.isPaid && (
           <>
             <input

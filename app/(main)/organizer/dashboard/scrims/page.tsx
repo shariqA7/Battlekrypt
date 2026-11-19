@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -41,7 +42,7 @@ export default async function OrganizerScrimsPage() {
       {allowed && full && <p className="font-sans text-[13px] text-bk-body mb-6">You&apos;re running the most series your plan allows. End one, or upgrade, to start another.</p>}
 
       <div className="space-y-3">
-        {items.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No series yet.</p>}
+        {items.length === 0 && <EmptyState compact icon={EmptyIcons.calendar} title="No scrim series yet" hint="Create a series to run daily scrims on a schedule." />}
         {items.map((s) => (
           <Panel key={s.id} className="p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">

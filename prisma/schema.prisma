@@ -1654,6 +1654,9 @@ model Plan {
   extras        Json         @default("{}")
   isActive      Boolean      @default(true)
   sortOrder     Int          @default(0)
+  // Set for a plan made for ONE account (a custom quote): only that user sees it on the plans page
+  // and can buy it. Null = a normal public plan.
+  privateForUserId String?
 
   requests PlanRequest[]
 
@@ -1661,6 +1664,7 @@ model Plan {
   updatedAt DateTime @updatedAt
 
   @@index([audience, sortOrder])
+  @@index([privateForUserId])
 }
 
 enum PlanRequestStatus {
@@ -3317,4 +3321,35 @@ model ScrimSeries {
 
   @@index([organizerId, status])
   @@index([status])
+}
+
+// ------------------------------------------------------------
+// CUSTOM PLAN REQUESTS ("Customize your plan" > Talk to sales): an organizer says what they want in
+// a plan, an admin quotes a price by making a private plan for them (Plan.privateForUserId), and the
+// organizer buys it through the normal plan purchase flow. See lib/services/custom-plans.ts.
+// ------------------------------------------------------------
+enum CustomPlanRequestStatus {
+  open
+  quoted
+  closed
+}
+
+model CustomPlanRequest {
+  id             String                  @id @default(uuid())
+  userId         String
+  contactName    String
+  contactEmail   String?
+  contactPhone   String?
+  limits         Json // every plan option, as the organizer asked for it
+  note           String?
+  status         CustomPlanRequestStatus @default(open)
+  quotedPlanCode String? // the private plan made for them
+  adminNote      String?
+  handledById    String?
+  handledAt      DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId])
 }

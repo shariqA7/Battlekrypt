@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -39,7 +40,7 @@ export default function ChallengeCoHostQueue({ initial, open }: { initial: Row[]
     <div>
       {error && <p className="text-bk-live text-[12px] mb-3">{error}</p>}
       {rows.length === 0 && (
-        <p className="font-sans text-[12px] text-bk-muted">No applicants from your institute right now.</p>
+        <EmptyState compact icon={EmptyIcons.users} title="No applicants from your institute" hint="Applicants from your institute will appear here." />
       )}
       <ul className="space-y-3">
         {rows.map((r) => (

@@ -2,7 +2,8 @@
 // best-effort: a failed lookup or insert is logged and swallowed, never allowed
 // to undo the action that triggered it.
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/services/notifications";
+import { notify, notifyMany } from "@/lib/services/notifications";
+import { usersOfRegistration } from "@/lib/services/entry-notifications";
 
 type Kind = "tournament" | "challenge";
 
@@ -122,11 +123,18 @@ export function notifyEntryDecision(registrationId: string, approved: boolean, b
   return safely("entry decision", async () => {
     const r = await prisma.registration.findUnique({
       where: { id: registrationId },
-      select: { player: { select: { userId: true } }, tournament: { select: { id: true, name: true } } },
+      select: {
+        player: { select: { userId: true } },
+        teamEntry: { select: { members: { select: { player: { select: { userId: true } } } } } },
+        tournament: { select: { id: true, name: true } },
+      },
     });
-    if (!r?.player) return;
+    if (!r) return;
+    // A solo player, or every member of a team entry.
+    const userIds = usersOfRegistration(r);
+    if (userIds.length === 0) return;
     const who = byCoHost ? "your institute" : "the organizer";
-    await notify(r.player.userId, {
+    await notifyMany(userIds, {
       type: approved ? "entry_approved" : "entry_rejected",
       title: approved
         ? awaitingPayment

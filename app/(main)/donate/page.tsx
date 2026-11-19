@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getDonateOverview, listMyDonations } from "@/lib/services/donations";
@@ -59,7 +60,7 @@ export default async function DonatePage({ searchParams }: { searchParams: Promi
       <section className="mt-10" aria-label="Where the money went">
         <h2 className="font-sans font-bold text-[15px] text-bk-heading mb-2">Where the money went</h2>
         {o.allocations.length === 0 ? (
-          <p className="font-sans text-[12px] text-bk-muted">Nothing has been spent from the fund yet. Every use will be listed here.</p>
+          <EmptyState compact icon={EmptyIcons.document} title="Nothing spent yet" hint="Every use of the Community Fund will be listed here." />
         ) : (
           <ul className="divide-y divide-bk-border border border-bk-border">
             {o.allocations.map((a) => (

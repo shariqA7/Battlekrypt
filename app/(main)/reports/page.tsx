@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listMyReports } from "@/lib/services/organizer-reports";
@@ -20,7 +21,7 @@ export default async function MyReportsPage() {
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">My reports</h1>
       <p className="font-sans text-bk-body text-[13px] mb-6">Problems you reported about organizers. An admin reviews each one.</p>
       {reports.length === 0 ? (
-        <p className="font-sans text-[13px] text-bk-muted">You haven&apos;t sent any reports.</p>
+        <EmptyState icon={EmptyIcons.flag} title="No reports sent" hint="Problems you report about organizers will be listed here." />
       ) : (
         <div className="flex flex-col gap-2">
           {reports.map((r) => (

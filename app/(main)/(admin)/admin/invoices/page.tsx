@@ -27,7 +27,7 @@ export default async function AdminInvoicesPage({ searchParams }: { searchParams
 
   const [page, plans, settings, enabled] = await Promise.all([
     listInvoicesPage({ q, cursor: null, limit: 50 }, filter),
-    listPlans({ audience: "organizer", activeOnly: true }),
+    listPlans({ audience: "organizer", activeOnly: true, includePrivate: true }),
     getInvoiceSettings(),
     getEnabledCurrencies(),
   ]);

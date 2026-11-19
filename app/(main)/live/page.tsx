@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -38,13 +39,7 @@ export default async function LivePage({
       </Suspense>
 
       {tournaments.length === 0 ? (
-        <p className="text-bk-muted font-sans text-sm">
-          Nothing is live right now — check{" "}
-          <Link href="/tournaments" className="text-bk-gold-light underline">
-            all tournaments
-          </Link>
-          .
-        </p>
+        <EmptyState icon={EmptyIcons.bolt} title="Nothing is live right now" hint="Matches show up here while they are being played." action={{ label: "Browse tournaments", href: "/tournaments" }} />
       ) : (
         <div className="flex flex-col gap-2">
           {tournaments.map((t) => {

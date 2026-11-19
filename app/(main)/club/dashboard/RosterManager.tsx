@@ -3,6 +3,7 @@
 // Club owner's roster screen: create teams, invite players (to a team as
 // player/substitute, or as a solo player), and manage who's on the roster.
 // All rules are enforced by the API; this just surfaces its error messages.
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useCallback, useEffect, useState } from "react";
 
 interface Game {
@@ -226,7 +227,7 @@ export default function RosterManager({
         </div>
 
         {roster.teams.length === 0 ? (
-          <p className="text-bk-muted font-sans text-sm">No teams yet.</p>
+          <EmptyState compact icon={EmptyIcons.users} title="No teams yet" hint="Teams you create will appear here." />
         ) : (
           <div className="flex flex-col gap-2">
             {roster.teams.map((t) => (
@@ -304,7 +305,7 @@ export default function RosterManager({
                 </div>
 
                 {t.members.length === 0 ? (
-                  <p className="font-sans text-bk-muted text-xs mt-2">No members yet.</p>
+                  <EmptyState compact icon={EmptyIcons.users} title="No members yet" hint="Add players from your roster to this team." />
                 ) : (
                   <div className="flex flex-col gap-1.5 mt-2">
                     {t.members.map((m) => (
@@ -347,7 +348,7 @@ export default function RosterManager({
       <section>
         <p className="font-sans font-bold text-bk-heading text-base mb-3">Solo players</p>
         {roster.soloPlayers.length === 0 ? (
-          <p className="text-bk-muted font-sans text-sm">No solo players yet.</p>
+          <EmptyState compact icon={EmptyIcons.users} title="No solo players yet" hint="Solo players you add will appear here." />
         ) : (
           <div className="flex flex-col gap-2">
             {roster.soloPlayers.map((s) => (
@@ -480,7 +481,7 @@ export default function RosterManager({
           Pending invitations ({invites.length})
         </p>
         {invites.length === 0 ? (
-          <p className="text-bk-muted font-sans text-sm">Nothing pending.</p>
+          <EmptyState compact icon={EmptyIcons.check} title="No pending invites" hint="Invites you send will be listed here until they are answered." />
         ) : (
           <div className="flex flex-col gap-2">
             {invites.map((i) => (

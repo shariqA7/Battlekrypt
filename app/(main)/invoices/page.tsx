@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +19,7 @@ export default async function MyInvoicesPage() {
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-2">My invoices</h1>
       <p className="font-sans text-bk-body text-[13px] mb-6">Bills for your organization&apos;s plan. Open one to see how to pay.</p>
       {invoices.length === 0 ? (
-        <p className="font-sans text-bk-muted text-sm">You have no invoices.</p>
+        <EmptyState icon={EmptyIcons.receipt} title="No invoices yet" hint="Bills for your organization's plan will appear here." />
       ) : (
         <ul className="space-y-2">
           {invoices.map((i) => (

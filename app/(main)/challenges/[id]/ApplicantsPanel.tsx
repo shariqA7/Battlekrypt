@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -103,7 +104,7 @@ export default function ApplicantsPanel({
           ))}
         </div>
       )}
-      {applicants.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No applications yet.</p>}
+      {applicants.length === 0 && <EmptyState compact icon={EmptyIcons.users} title="No applications yet" hint="Applicants will appear here." />}
 
       <ul className="divide-y divide-bk-border">
         {shown.map((a) => (

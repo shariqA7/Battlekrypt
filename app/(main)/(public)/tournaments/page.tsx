@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import { listTournaments } from "@/lib/services/tournaments";
 import { Suspense } from "react";
@@ -41,9 +42,7 @@ export default async function TournamentsPage({
         </Suspense>
 
         {tournaments.length === 0 ? (
-          <p className="text-bk-muted font-sans text-sm">
-            No tournaments match. Try clearing a filter, or check back once organizers publish more.
-          </p>
+          <EmptyState icon={EmptyIcons.search} title="No tournaments match" hint="Try clearing a filter, or check back once organizers publish more." action={{ label: "Clear filters", href: "/tournaments" }} />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {tournaments.map((t) => (

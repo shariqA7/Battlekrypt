@@ -29,29 +29,43 @@ export function startOfMonthUtc(now: Date = new Date()) {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 }
 
+// How many events of one kind a plan allows per month. Tournaments, leagues and scrims each have
+// their own limit (null = unlimited).
+const MONTHLY_LIMIT_KEY = {
+  tournament: "maxTournamentsPerMonth",
+  league: "maxLeaguesPerMonth",
+  scrim: "maxScrimsPerMonth",
+} as const;
+const MONTHLY_NOUN = { tournament: "tournaments", league: "leagues", scrim: "scrims" } as const;
+
 // Throws PlanLimitError if this organizer's plan doesn't allow creating
-// another tournament (this month, or in a new game).
+// another event of this kind (this month, or in a new game).
 export async function assertOrganizerCanCreateTournament(
   organizer: OrganizerPlanHolder,
   gameId: string,
-  opts: { skipMonthly?: boolean } = {}
+  opts: { skipMonthly?: boolean; type?: "tournament" | "league" | "scrim" } = {}
 ) {
   const { limits } = await resolvePlan("organizer", organizer);
 
   // Days of a recurring series are limited by the series limits instead, not one-by-one here.
-  if (limits.maxTournamentsPerMonth !== null && !opts.skipMonthly) {
+  const kind = opts.type ?? "tournament";
+  const monthly = limits[MONTHLY_LIMIT_KEY[kind]];
+  if (monthly !== null && !opts.skipMonthly) {
     const thisMonth = await prisma.tournament.count({
       where: {
         organizerId: organizer.id,
+        type: kind,
         status: { not: "cancelled" },
         seriesId: null,
         createdAt: { gte: startOfMonthUtc() },
       },
     });
-    if (thisMonth >= limits.maxTournamentsPerMonth) {
+    if (thisMonth >= monthly) {
       throw new PlanLimitError(
         "tournament_limit",
-        `Your plan allows ${limits.maxTournamentsPerMonth} tournaments per month. Upgrade to host more.`
+        monthly === 0
+          ? `Your plan doesn't include ${MONTHLY_NOUN[kind]}. Upgrade to host them.`
+          : `Your plan allows ${monthly} ${MONTHLY_NOUN[kind]} per month. Upgrade to host more.`
       );
     }
   }

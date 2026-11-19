@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -65,9 +66,7 @@ export default async function PricingPage() {
             <p className="font-sans text-[13px] text-bk-muted mt-1 mb-5">{sec.blurb}</p>
 
             {options.length === 0 ? (
-              <p className="font-sans text-[13px] text-bk-muted border border-bk-border bg-bk-surface p-5">
-                No paid plans are available right now.
-              </p>
+              <div className="border border-bk-border bg-bk-surface"><EmptyState compact icon={EmptyIcons.document} title="No paid plans available right now" hint="Everything you need to play is free. Check back for new plans." /></div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {options.map((p) => {

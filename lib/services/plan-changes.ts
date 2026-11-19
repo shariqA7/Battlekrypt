@@ -63,8 +63,10 @@ function blocker(c: Ctx, kind: ChangeKind | "stop"): ChangeFail | null {
   return null;
 }
 
-async function targetPlan(code: string) {
+async function targetPlan(code: string, userId: string) {
   const t = await prisma.plan.findUnique({ where: { code } });
+  // A private (custom quote) plan can only be chosen by the account it was made for.
+  if (t?.privateForUserId && t.privateForUserId !== userId) return null;
   if (!t || t.audience !== "organizer" || !t.isPaid || !t.isActive || t.priceAmount === null || !t.priceCurrency) return null;
   return t;
 }
@@ -89,7 +91,7 @@ export interface ChangePreview {
 export async function previewPlanChange(organizerId: string, targetCode: string, now: Date = new Date()): Promise<{ data: ChangePreview } | ChangeFail> {
   const c = await context(organizerId);
   if (!c) return fail("not_found", "Organization not found.");
-  const t = await targetPlan(targetCode);
+  const t = await targetPlan(targetCode, c.org.userId);
   if (!t || !c.current) return fail(c.current ? "invalid_target" : "no_active_plan", c.current ? "That plan isn't available." : "There is no active paid plan to change.");
 
   const kind = classifyChange(
@@ -176,7 +178,7 @@ export async function requestPlanChange(input: { organizerId: string; targetCode
   const refreshed = await prisma.organizerProfile.findUnique({ where: { id: c.org.id } });
   let invoiceNumber: string | null = null;
   if (refreshed && settings.renewalInvoicesEnabled && expiry.getTime() <= now.getTime() + settings.renewalLeadDays * 86_400_000) {
-    const t = await targetPlan(p.targetCode);
+    const t = await targetPlan(p.targetCode, c.org.userId);
     if (t) {
       const r = await createRenewalInvoice(refreshed, t, expiry.toISOString().slice(0, 10));
       if ("data" in r) invoiceNumber = r.data.number;
@@ -246,7 +248,7 @@ export async function getPlanChangeView(userId: string) {
   const scheduled = c.org.nextPlanCode && c.org.nextPlanStartsAt ? { name: names.get(c.org.nextPlanCode) ?? c.org.nextPlanCode, on: c.org.nextPlanStartsAt.toISOString() } : null;
 
   const others = await prisma.plan.findMany({
-    where: { audience: "organizer", isPaid: true, isActive: true, NOT: { code: c.current.code } },
+    where: { audience: "organizer", isPaid: true, isActive: true, NOT: { code: c.current.code }, OR: [{ privateForUserId: null }, { privateForUserId: userId }] },
     orderBy: { sortOrder: "asc" },
     select: { code: true },
   });

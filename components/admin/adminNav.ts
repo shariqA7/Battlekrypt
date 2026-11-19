@@ -53,6 +53,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "Money",
     items: [
       { href: "/admin/plans", label: "Plans", icon: "plans" },
+      { href: "/admin/custom-plans", label: "Custom plan requests", icon: "plans", badgeKeys: ["customPlans"] },
       { href: "/admin/invoices", label: "Invoices", icon: "payments", badgeKeys: ["invoices"] },
       { href: "/admin/payments", label: "Payments", icon: "payments" },
       { href: "/admin/ledger", label: "Ledger", icon: "payments" },

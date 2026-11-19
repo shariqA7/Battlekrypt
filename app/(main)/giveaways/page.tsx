@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
@@ -72,7 +73,7 @@ export default async function GiveawaysPage() {
 
       <section aria-label="Open giveaways">
         <h2 className="font-sans font-bold text-[15px] text-bk-heading mb-3">Open now</h2>
-        {live.length === 0 ? <p className="font-sans text-[13px] text-bk-muted">No giveaways are open right now.</p> : <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{live.map((g) => <Card key={g.id} g={g} />)}</ul>}
+        {live.length === 0 ? <EmptyState compact icon={EmptyIcons.gift} title="No giveaways are open right now" hint="Giveaways from organizers show up here while they are open." /> : <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{live.map((g) => <Card key={g.id} g={g} />)}</ul>}
       </section>
 
       {drawn.length > 0 && (

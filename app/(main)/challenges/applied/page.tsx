@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +26,7 @@ export default async function MyApplicationsPage() {
       <Link href="/challenges" className="font-sans text-[12px] text-bk-muted underline">← Challenges</Link>
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mt-3 mb-6">My applications</h1>
       {apps.length === 0 ? (
-        <p className="font-sans text-[13px] text-bk-muted">You haven&apos;t applied to any challenges yet.</p>
+        <EmptyState icon={EmptyIcons.bolt} title="You haven't applied to any challenges" hint="Applications you send will be listed here." action={{ label: "Browse challenges", href: "/challenges" }} />
       ) : (
         <ul className="border border-bk-border divide-y divide-bk-border">
           {apps.map((a) => (

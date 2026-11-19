@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import { buttonClass } from "@/components/ui/Button";
 
@@ -71,7 +72,7 @@ export default function MembersManager({ initialMembers }: { initialMembers: Mem
       </form>
 
       {members.length === 0 ? (
-        <p className="font-sans text-[13px] text-bk-muted">No members yet.</p>
+        <EmptyState compact icon={EmptyIcons.users} title="No members yet" hint="Members you add will appear here." />
       ) : (
         <ul className="bg-bk-surface border border-bk-border divide-y divide-bk-border">
           {members.map((m) => (
