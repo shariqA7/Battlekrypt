@@ -44,7 +44,7 @@ function Chip({ children, tone = "plain" }: { children: React.ReactNode; tone?: 
 export default async function OrganizationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdminPage("organizations");
   const { id } = await params;
-  const [o, allPlans] = await Promise.all([getOrganizationDetail(id), listPlans({ audience: "organizer", activeOnly: true })]);
+  const [o, allPlans] = await Promise.all([getOrganizationDetail(id), listPlans({ audience: "organizer", activeOnly: true, includePrivate: true })]);
   if (!o) notFound();
   const plans = allPlans.map((p) => ({ code: p.code, name: p.name, isPaid: p.isPaid, isActive: p.isActive }));
   const isInst = o.type === "institute";

@@ -14,7 +14,10 @@ const n = (v: number | boolean | null, unit: string) =>
 export function describeLimits(audience: PlanAudience, l: Limits): string[] {
   const out: string[] = [];
   if (audience === "organizer") {
-    out.push(n(l.maxTournamentsPerMonth, "tournaments per month"));
+    const m = l as { maxTournamentsPerMonth: number | null; maxLeaguesPerMonth: number | null; maxScrimsPerMonth: number | null };
+    out.push(n(m.maxTournamentsPerMonth, "tournaments per month"));
+    out.push(n(m.maxLeaguesPerMonth, "leagues per month"));
+    out.push(n(m.maxScrimsPerMonth, "scrims per month"));
     out.push(n(l.maxGames, "games hosted"));
     out.push(n(l.maxTemplates, "saved templates"));
     if (l.advancedAnalytics) out.push("Advanced analytics (coming soon)");

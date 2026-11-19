@@ -16,7 +16,7 @@ export default async function AdminOrganizationsPage() {
   await requireAdminPage("organizations");
   const [initial, allPlans, fields, cfg, institutes, pending, rejected, total, unverified] = await Promise.all([
     listOrganizationsPage({ q: "", cursor: null, limit: ADMIN_PAGE_SIZE }),
-    listPlans({ audience: "organizer", activeOnly: true }),
+    listPlans({ audience: "organizer", activeOnly: true, includePrivate: true }),
     listPlanFields("organizer"),
     getTrustConfig(),
     prisma.institution.count(),

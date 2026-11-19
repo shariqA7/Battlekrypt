@@ -10,13 +10,14 @@ import { countOpenFlags } from "@/lib/services/challenge-integrity";
 import { countOpenConsentCases } from "@/lib/services/consent-cases";
 import { countOpenReports } from "@/lib/services/organizer-reports";
 import { countOpenFeedback } from "@/lib/services/feedback";
+import { countOpenCustomRequests } from "@/lib/services/custom-plans";
 import { countDisputesForAdmin } from "@/lib/services/payment-disputes";
 
 // Which area each queue belongs to. Staff only see (and are only counted for) the queues they can open.
 const ITEM_AREAS: Record<string, AdminArea> = {
   planPayments: "payments", invoices: "payments", organizers: "approvals", identity: "approvals", clubs: "approvals", games: "approvals",
   tournamentReviews: "approvals", challengeReview: "approvals", challengeDisputes: "approvals", challengeIntegrity: "approvals",
-  consent: "approvals", paymentDisputes: "approvals", institutions: "institutions", changeRequests: "change_requests", playerReports: "reports", donations: "donations", giveaways: "giveaways", feedback: "feedback",
+  consent: "approvals", paymentDisputes: "approvals", institutions: "institutions", changeRequests: "change_requests", playerReports: "reports", donations: "donations", giveaways: "giveaways", feedback: "feedback", customPlans: "plans",
 };
 
 /** The attention counts with every queue this person can't open zeroed out, and the total redone. */
@@ -30,7 +31,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
   const [
     orgApps, legacyOrganizers, clubUpgrades, games, claims, planRequests, tierReviews,
     heldChallenges, challengeDisputes, reportedChallenges, challengeFlags, institutions,
-    consentCases, changeRequests, identityChecks, playerReports, invoiceProofs, paymentDisputes, donations, giveaways, feedback,
+    consentCases, changeRequests, identityChecks, playerReports, invoiceProofs, paymentDisputes, donations, giveaways, feedback, customPlans,
   ] = await Promise.all([
     prisma.organizationApplication.count({ where: { status: "pending" } }),
     prisma.organizerProfile.count({ where: { user: { kycStatus: { in: ["none", "pending"] } } } }),
@@ -54,6 +55,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     prisma.donation.count({ where: { status: "pending" } }),
     prisma.giveaway.count({ where: { status: "pending_review" } }),
     countOpenFeedback(),
+    countOpenCustomRequests(),
   ]);
 
   const items = {
@@ -75,6 +77,7 @@ export const getAttentionCounts = cache(async function getAttentionCounts() {
     donations,
     giveaways,
     feedback,
+    customPlans,
   };
   const total = Object.values(items).reduce((n, v) => n + v, 0);
   return { items, total, pendingOrgApps: orgApps };

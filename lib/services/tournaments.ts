@@ -232,7 +232,7 @@ export interface CreateTournamentInput {
 export async function createTournament(input: CreateTournamentInput) {
   const organizer = await prisma.organizerProfile.findUnique({ where: { id: input.organizerId } });
   if (!organizer) throw new Error("Organizer profile not found.");
-  await assertOrganizerCanCreateTournament(organizer, input.gameId, { skipMonthly: !!input.seriesId });
+  await assertOrganizerCanCreateTournament(organizer, input.gameId, { skipMonthly: !!input.seriesId, type: input.type });
 
   // Anti-scam gate: starter limits for new organizers, and no new paid or
   // prized events while an earlier prize payout is unsettled.

@@ -12,6 +12,7 @@ import { getDepositDue, getMyDeposits } from "@/lib/services/security-deposits";
 import { describeExtras, listPlanFields } from "@/lib/services/plan-fields";
 import { hasOpenPlanInvoice } from "@/lib/services/invoices";
 import Link from "next/link";
+import { getMyCustomRequests } from "@/lib/services/custom-plans";
 
 const AUDIENCE_LABEL = { organizer: "Organizer", club: "Club", player: "Player" } as const;
 
@@ -27,12 +28,13 @@ export default async function PlansPage() {
 
   const openInvoice = await hasOpenPlanInvoice(user.id);
   const changeView = await getPlanChangeView(user.id);
-  const [states, plans, settings, planFields, myDeposits] = await Promise.all([
+  const [states, plans, settings, planFields, myDeposits, customWaiting] = await Promise.all([
     getMyPlanStates(user.id),
-    listPlans({ activeOnly: true }),
+    listPlans({ activeOnly: true, forUserId: user.id }),
     getPlanSettings(),
     listPlanFields(),
     getMyDeposits(user.id),
+    getMyCustomRequests(user.id),
   ]);
 
   // Refundable deposit still to pay for each organizer plan (0 = none due).
@@ -173,7 +175,10 @@ export default async function PlansPage() {
                 <div key={p.code} className="bg-bk-surface border border-bk-border p-4 mb-3">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="font-sans font-bold text-bk-heading text-[15px]">{p.name}</p>
+                      <p className="font-sans font-bold text-bk-heading text-[15px]">
+                        {p.name}
+                        {p.isPrivate && <span className="ml-2 align-middle font-sans text-[10px] tracking-[0.8px] uppercase text-bk-gold-light border border-bk-gold-light/50 px-1.5 py-0.5">Made for you</span>}
+                      </p>
                       {p.priceAmount !== null && p.priceCurrency && (
                         <p className="font-mono text-bk-gold-light text-sm mt-0.5">
                           {formatMoney(p.priceAmount, p.priceCurrency)}{" "}
@@ -223,6 +228,25 @@ export default async function PlansPage() {
                 </div>
               );
             })}
+
+            {s.audience === "organizer" && (
+              <div className="border border-bk-border border-dashed p-4 mb-3">
+                <p className="font-sans font-bold text-bk-heading text-[15px]">Customize your plan</p>
+                <p className="font-sans text-[13px] text-bk-body mt-1">
+                  Need more scrims, longer series or something these plans don&apos;t offer? Choose exactly what you want and our sales team will quote you a price.
+                </p>
+                {customWaiting.length > 0 && (
+                  <p className="font-sans text-[12px] text-bk-gold-light mt-2">
+                    {customWaiting.some((r) => r.status === "quoted")
+                      ? "We've sent you a quote. Your custom plan is listed above."
+                      : `Your request is with our team (${customWaiting.length} waiting).`}
+                  </p>
+                )}
+                <Link href="/plans/customize" className="inline-block mt-3 bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-2.5">
+                  Talk to sales
+                </Link>
+              </div>
+            )}
           </section>
         );
       })}

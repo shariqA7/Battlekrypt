@@ -1,0 +1,26 @@
+// Human labels + input kind for each limit key (mirrors LIMIT_KEYS in
+// lib/plans.ts). "limit" fields: empty = unlimited.
+export const LIMIT_LABELS: Record<string, { label: string; kind: "limit" | "count" | "flag" }> = {
+  maxTournamentsPerMonth: { label: "Tournaments per month", kind: "limit" },
+  maxLeaguesPerMonth: { label: "Leagues per month", kind: "limit" },
+  maxScrimsPerMonth: { label: "Single scrims per month", kind: "limit" },
+  maxGames: { label: "Max games", kind: "limit" },
+  maxTemplates: { label: "Saved templates", kind: "limit" },
+  advancedAnalytics: { label: "Advanced analytics", kind: "flag" },
+  prioritySupport: { label: "Priority support", kind: "flag" },
+  maxEntriesPerGame: { label: "Entries per game", kind: "limit" },
+  maxPlayersPerTeam: { label: "Players per team", kind: "count" },
+  maxSubstitutesPerTeam: { label: "Substitutes per team", kind: "count" },
+  canSetCoach: { label: "Can set coach", kind: "flag" },
+  merchStore: { label: "Merch store", kind: "flag" },
+  enhancedProfile: { label: "Enhanced profile", kind: "flag" },
+  priorityRegistration: { label: "Priority registration", kind: "flag" },
+  extendedStats: { label: "Extended stats", kind: "flag" },
+  maxChallengesPerMonth: { label: "Challenges posted / month", kind: "limit" },
+  maxChallengePrizeUsd: { label: "Max challenge prize (USD)", kind: "limit" },
+  canJoinChallenges: { label: "Can join challenges", kind: "flag" },
+  maxGiveawaysPerMonth: { label: "Giveaways run / month", kind: "limit" },
+  maxScrimSeries: { label: "Recurring scrim series at once (0 = none)", kind: "limit" },
+  maxSeriesDays: { label: "Longest series (days, empty = non-stop)", kind: "limit" },
+  maxSlotsPerDay: { label: "Series sessions per day", kind: "limit" },
+};
