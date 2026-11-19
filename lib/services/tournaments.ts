@@ -40,6 +40,7 @@ import {
   notifyAwaitingPayment,
   notifyEntryDecision,
 } from "@/lib/services/institution-notifications";
+import { notifyResultsPosted, notifyTournamentCancelled, notifyTournamentStarted } from "@/lib/services/entry-notifications";
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { checkAgainstPool, replacePrizeTiers, type PrizeTierInput } from "@/lib/services/prize-tiers";
 import { hybridStagesError } from "@/lib/services/stages";
@@ -1274,6 +1275,7 @@ export async function cancelTournament(tournamentId: string, organizerId: string
   // "paid" so the organizer can see who needs a manual refund by looking
   // at this tournament's registration list.
 
+  await notifyTournamentCancelled(tournamentId);
   return { data: updated };
 }
 
@@ -1712,7 +1714,9 @@ export async function updateTournamentStatus(
   // does NOT retroactively recompute ratings (see awardTournamentRatings).
   if (newStatus === "completed") {
     await awardTournamentRatings(tournamentId);
+    await notifyResultsPosted(tournamentId);
   }
+  if (newStatus === "in_progress") await notifyTournamentStarted(tournamentId);
 
   return { data: updated };
 }

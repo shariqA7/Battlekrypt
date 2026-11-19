@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
 import type { ProofMatch } from "@/lib/proof-match";
 import { useEffect, useState } from "react";
@@ -403,7 +404,7 @@ export default function RegistrationQueue({
       <div>
         {manualAddForm}
         {manualError && <p className="text-bk-live text-[11px] font-sans mb-3">{manualError}</p>}
-        <p className="text-bk-muted font-sans text-sm">No registrations yet.</p>
+        <EmptyState compact icon={EmptyIcons.users} title="No registrations yet" hint="Entries will appear here as players register." />
       </div>
     );
   }

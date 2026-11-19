@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listPayoutsForPlayer } from "@/lib/services/organizer-trust";
@@ -17,7 +18,7 @@ export default async function MyPayoutsPage() {
         Organizers pay prizes directly. Tell us whether you received yours, so other players can trust the organizer.
       </p>
       {payouts.length === 0 ? (
-        <p className="font-sans text-[13px] text-bk-muted">No prizes to confirm.</p>
+        <EmptyState icon={EmptyIcons.trophy} title="No prizes to confirm" hint="When an organizer marks a prize as paid, you confirm it here." />
       ) : (
         <div className="flex flex-col gap-3">
           {payouts.map((p) => (

@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import InitialTile from "@/components/ui/InitialTile";
@@ -125,13 +126,16 @@ export default async function RankingsPage({ searchParams }: { searchParams: Pro
       )}
 
       {!data || data.rows.length === 0 ? (
-        <Panel className="p-6 text-center">
-          <p className="font-sans font-bold text-bk-heading mb-1">No rankings yet</p>
-          <p className="font-sans text-[13px] text-bk-body">
-            {view === "players"
-              ? "Ratings are earned by placing in tournaments. Once players do, they appear here."
-              : "No club team has placed in a tournament for this game yet."}
-          </p>
+        <Panel>
+          <EmptyState
+            icon={EmptyIcons.trophy}
+            title="No rankings yet"
+            hint={
+              view === "players"
+                ? "Ratings are earned by placing in tournaments. Once players do, they appear here."
+                : "No club team has placed in a tournament for this game yet."
+            }
+          />
         </Panel>
       ) : (
         <Panel className="overflow-hidden">

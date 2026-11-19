@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
@@ -47,7 +48,7 @@ export default async function OrganizerInstitutePage() {
 
       <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Co-host invitations</p>
       {invites.length === 0 && (
-        <p className="font-sans text-[12px] text-bk-muted">No invitations yet.</p>
+        <EmptyState compact icon={EmptyIcons.building} title="No invitations yet" hint="Invitations to co-host will appear here." />
       )}
       <ul className="space-y-3">
         {invites.map((i) => (
@@ -65,7 +66,7 @@ export default async function OrganizerInstitutePage() {
 
       <p className="font-sans font-medium text-bk-heading text-sm mt-10 mb-3">Challenge co-host invitations</p>
       {challengeInvites.length === 0 && (
-        <p className="font-sans text-[12px] text-bk-muted">No invitations yet.</p>
+        <EmptyState compact icon={EmptyIcons.building} title="No invitations yet" hint="Invitations to co-host will appear here." />
       )}
       <ul className="space-y-3">
         {challengeInvites.map((i) => (

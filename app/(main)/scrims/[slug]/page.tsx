@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -53,7 +54,7 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
       <ShareLinks path={`/s/${series.slug}`} title={`${series.name}: join the next scrim`} className="mb-8" />
 
       <h2 className="font-sans font-bold text-bk-heading text-[15px] mb-3">Upcoming sessions</h2>
-      {groups.length === 0 && <p className="font-sans text-[13px] text-bk-muted">No sessions are open yet. Check back soon.</p>}
+      {groups.length === 0 && <EmptyState icon={EmptyIcons.calendar} title="No sessions open yet" hint="Check back soon." />}
       <div className="space-y-5">
         {groups.map((g) => (
           <div key={g.day}>

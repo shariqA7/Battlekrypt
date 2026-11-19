@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyGameRequests } from "@/lib/services/tournaments";
@@ -36,7 +37,7 @@ export default async function OrganizerGamesPage() {
         Your requests
       </p>
       {requests.length === 0 ? (
-        <p className="text-bk-muted font-sans text-sm">No requests yet.</p>
+        <EmptyState compact icon={EmptyIcons.document} title="No game requests yet" hint="If your game isn't on the list, request it and an admin will review it." />
       ) : (
         <div className="flex flex-col gap-2">
           {requests.map((r) => (

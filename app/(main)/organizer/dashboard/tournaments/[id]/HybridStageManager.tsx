@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toLocalInput } from "@/components/tournaments/VenuePicker";
@@ -254,7 +255,7 @@ function StageCard({
         </button>
       </div>
 
-      {entrants.length === 0 && <p className="font-sans text-[12px] text-bk-muted">No approved entries yet.</p>}
+      {entrants.length === 0 && <EmptyState compact icon={EmptyIcons.users} title="No approved entries yet" hint="Approve registrations first, then add entries to a stage." />}
       <div className="flex flex-col gap-1.5">
         {entrants.map((e) => {
           const entry = byReg.get(e.id);

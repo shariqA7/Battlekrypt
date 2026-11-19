@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,7 +42,7 @@ export default function GiveawayManager({ items, mode }: { items: ManagedGiveawa
   }
   const ask = (q: string) => prompt(q);
 
-  if (items.length === 0) return <p className="font-sans text-[13px] text-bk-muted">No giveaways yet.</p>;
+  if (items.length === 0) return <EmptyState compact icon={EmptyIcons.gift} title="No giveaways yet" hint="Create one and it will be listed here." />;
 
   return (
     <div className="space-y-4">

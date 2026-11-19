@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -17,7 +18,7 @@ export default async function MyDisputesPage() {
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">Payment disputes</h1>
       <p className="font-sans text-bk-muted text-[12px] mb-6">Cases about an entry fee, as the player who paid or the organizer who received it.</p>
       {disputes.length === 0 ? (
-        <p className="font-sans text-bk-body text-[13px]">No cases yet. You can open one from a paid entry on your dashboard.</p>
+        <EmptyState icon={EmptyIcons.shield} title="No payment disputes" hint="You can open a case from a paid entry on your dashboard." />
       ) : (
         <ul className="space-y-2">
           {disputes.map((d) => {

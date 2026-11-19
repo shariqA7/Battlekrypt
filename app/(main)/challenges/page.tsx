@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import FeatureOffNotice from "@/components/ui/FeatureOffNotice";
 import { getFeatureFlags } from "@/lib/services/feature-flags";
 import { gameVisibilityWhere } from "@/lib/game-region";
@@ -62,7 +63,7 @@ export default async function ChallengesPage({
       </div>
 
       {challenges.length === 0 ? (
-        <p className="font-sans text-[13px] text-bk-muted">No open challenges right now.</p>
+        <EmptyState icon={EmptyIcons.bolt} title="No open challenges right now" hint="Post one and let players apply." action={{ label: "Post a challenge", href: "/challenges/new" }} />
       ) : (
         <ul className="space-y-3">
           {challenges.map((c) => (

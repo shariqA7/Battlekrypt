@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import { listTournaments } from "@/lib/services/tournaments";
 import TournamentCard from "@/components/tournaments/TournamentCard";
@@ -80,7 +81,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
           </Link>
         </div>
         {upcoming.length === 0 ? (
-          <p className="text-bk-muted font-sans text-sm">No tournaments published yet. Check back soon.</p>
+          <EmptyState icon={EmptyIcons.calendar} title="No tournaments published yet" hint="New events show up here as soon as organizers publish them." />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {upcoming.map((t) => (

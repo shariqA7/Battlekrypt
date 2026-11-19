@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyPlanStates, getPlanSettings, listPlans } from "@/lib/services/plan-requests";
@@ -69,10 +70,7 @@ export default async function PlansPage() {
       )}
 
       {states.length === 0 && (
-        <p className="font-sans text-bk-muted text-sm">
-          Complete player onboarding, or register as an organizer or club, to see plans for that
-          account.
-        </p>
+        <EmptyState icon={EmptyIcons.document} title="No plans to show yet" hint="Complete player onboarding, or register as an organizer or club, to see plans for that account." />
       )}
 
       {states.map((s) => {

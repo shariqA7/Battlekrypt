@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getMyRegistrations } from "@/lib/services/tournaments";
@@ -175,9 +176,8 @@ export default async function PlayerDashboard() {
         <ClubInvites membership={clubMembership} invites={clubInvites} />
 
         {registrations.length === 0 ? (
-          <Panel className="p-6 text-center">
-            <p className="font-sans text-bk-body text-sm mb-4">You haven&apos;t joined any tournaments yet.</p>
-            <ButtonLink href="/tournaments">Browse tournaments</ButtonLink>
+          <Panel>
+            <EmptyState compact icon={EmptyIcons.trophy} title="You haven't joined any tournaments yet" hint="Find an event, register, and it will show up here." action={{ label: "Browse tournaments", href: "/tournaments" }} />
           </Panel>
         ) : (
           <>

@@ -1,3 +1,4 @@
+import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { listOrganizers } from "@/lib/services/tournaments";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -12,7 +13,7 @@ export default async function OrganizersPage() {
       <SectionHeading className="mb-6">Organizers</SectionHeading>
 
       {organizers.length === 0 ? (
-        <p className="text-bk-muted font-sans text-sm">No organizers yet.</p>
+        <EmptyState icon={EmptyIcons.building} title="No organizers yet" hint="Approved organizers will appear here." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {organizers.map((o) => (
