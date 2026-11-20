@@ -231,6 +231,7 @@ async function main() {
   ok("the picker only lists games this player may see", (await getOnboardingData("ob-social"))?.games.some((g) => g.name === "OnbIndiaOnlyGame") === false);
   const emptyPick = await o("ob-social", { step: "games", games: [] });
   ok("an empty pick is refused (pick one game or skip)", !emptyPick.ok && failedIds(emptyPick).join() === "games_min");
+  ok("…and the earlier pick is left as it was", (await prisma.playerProfile.findUnique({ where: { userId: "ob-social" } }))?.favoriteGames.join() === "OnbGlobalGame");
 
   // style step
   ok("an invalid play style is refused", failedIds(await o("ob-social", { step: "style", playStyle: "tryhard" })).join() === "play_style");

@@ -407,7 +407,11 @@ async function applyWithdrawal(player: { id: string; userId: string }, childName
       data: { status: "rejected" },
     });
     const { bumpRegistrationCount } = await import("@/lib/services/tournaments");
-    for (const tid of new Set(upcoming.map((r) => r.tournamentId))) await bumpRegistrationCount(tid);
+    const { refreshSeats } = await import("@/lib/services/rooms");
+    for (const tid of new Set(upcoming.map((r) => r.tournamentId))) {
+      await bumpRegistrationCount(tid);
+      await refreshSeats(tid);
+    }
   }
 
   // Entries in a running tournament wait for an admin (Approvals > Guardian withdrawals).

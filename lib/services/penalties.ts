@@ -5,6 +5,7 @@
 //    a warning, a point deduction, or disqualification). The host may pick a
 //    different one for a given case; a co-host institute cannot.
 //  * Every consequence is a row in Penalty. Revoking keeps the row.
+import { refreshSeats } from "@/lib/services/rooms";
 import { prisma } from "@/lib/prisma";
 import type { NoShowPenalty, PenaltyCause, PenaltyKind, Prisma } from "@prisma/client";
 import { getRegistrationActor } from "@/lib/services/institutions";
@@ -163,6 +164,7 @@ export async function disqualifyRegistration(
     issue(tx, ctx, { kind: "disqualification", cause, reason: r.reason, ruleId })
   );
   await notifyPenaltyIssued(penalty.id);
+  await refreshSeats(ctx.reg.tournamentId); // a disqualified entry frees its seat
   const updated = await prisma.registration.findUniqueOrThrow({ where: { id: registrationId } });
   return { data: updated };
 }
@@ -229,6 +231,7 @@ export async function reportNoShow(registrationId: string, organizerId: string, 
     return p;
   });
   await notifyPenaltyIssued(penalty.id);
+  if (penalty.kind === "disqualification") await refreshSeats(ctx.reg.tournamentId);
   return { data: penalty };
 }
 
@@ -247,6 +250,7 @@ export async function applyNoShowPolicy(registrationId: string, organizerId: str
     issue(tx, ctx, { kind: chosen.kind!, points: chosen.points, cause: "no_show", reason: "No-show" })
   );
   await notifyPenaltyIssued(penalty.id);
+  if (penalty.kind === "disqualification") await refreshSeats(ctx.reg.tournamentId);
   return { data: penalty };
 }
 

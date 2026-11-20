@@ -1,6 +1,7 @@
 // POST /api/tournaments/:id/club-entries — enter a club team or solo roster
 // player. Team entry: { teamId, memberPlayerIds }. Solo entry: { playerId }.
 // Only the club owner (or, for a team, that team's captain) may call this.
+import { getEntryPlacement } from "@/lib/services/rooms";
 import { NextResponse } from "next/server";
 import { requireAuthenticatedUser } from "@/lib/player-helpers";
 import { clubEntryError } from "@/lib/club-helpers";
@@ -23,6 +24,7 @@ export async function POST(
     paymentProofUrl: typeof body.paymentProofUrl === "string" ? body.paymentProofUrl : undefined,
     paymentReference: typeof body.paymentReference === "string" ? body.paymentReference : undefined,
     customFieldResponses: body.customFieldResponses,
+    roomId: typeof body.roomId === "string" && body.roomId ? body.roomId : undefined,
   };
 
   const result =
@@ -47,5 +49,5 @@ export async function POST(
   if ("error" in result) {
     return clubEntryError(result as { error: ClubEntryErrorCode; message?: string });
   }
-  return NextResponse.json(result.data, { status: 201 });
+  return NextResponse.json({ ...result.data, entry: await getEntryPlacement(result.data.id) }, { status: 201 });
 }

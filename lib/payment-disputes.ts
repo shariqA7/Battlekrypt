@@ -23,7 +23,7 @@ export const DISPUTE_KINDS: { kind: DisputeKind; side: DisputeSide; label: strin
 export type DisputeContext = {
   entryType: "free" | "paid";
   hasProof: boolean;
-  registrationStatus: "pending" | "approved" | "rejected" | "disqualified";
+  registrationStatus: "pending" | "approved" | "rejected" | "disqualified" | "waitlisted" | "withdrawn";
   tournamentStatus: "draft" | "published" | "registration_open" | "registration_closed" | "in_progress" | "completed" | "cancelled";
   registeredAt: Date;
   approvedAt: Date | null;
