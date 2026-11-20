@@ -39,3 +39,19 @@ export async function requireOrganizer() {
 
   return { organizerProfile } as const;
 }
+
+/** Confirms the caller is signed in and not banned. Returns the user, or the response to send back. */
+export async function requireSignedIn() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      response: NextResponse.json({ error: { code: "unauthenticated", message: "Sign in required." } }, { status: 401 }),
+    } as const;
+  }
+  const banned = await banGuard(user.id);
+  if (banned) return { response: banned } as const;
+  return { user } as const;
+}

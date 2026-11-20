@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { registerForTournament } from "@/lib/services/tournaments";
+import { getEntryPlacement } from "@/lib/services/rooms";
 import { ensureUserRecord } from "@/lib/ensure-user";
 import { banGuard } from "@/lib/services/bans";
 import { requiresClubTeam } from "@/lib/team-entry";
@@ -63,6 +64,7 @@ export async function POST(
     paymentReference: typeof body.paymentReference === "string" ? body.paymentReference : undefined,
     teamName: body.teamName,
     teamMemberPlayerIds: body.teamMemberPlayerIds,
+    roomId: typeof body.roomId === "string" && body.roomId ? body.roomId : undefined,
   });
 
   const errorMap: Record<string, { status: number; message: string }> = {
@@ -95,5 +97,7 @@ export async function POST(
     );
   }
 
-  return NextResponse.json(result.data, { status: 201 });
+  // `entry` says where the team ended up: a seat (and which room) or the waiting list (and the place in line).
+  if (!("data" in result) || !result.data) return NextResponse.json({ error: { code: "unknown", message: "Couldn't save your entry." } }, { status: 500 });
+  return NextResponse.json({ ...result.data, entry: await getEntryPlacement(result.data.id) }, { status: 201 });
 }

@@ -1,5 +1,6 @@
 // GET /api/tournaments/:id — full tournament detail, public
 // PATCH /api/tournaments/:id — organizer edits a draft
+import { parseSeatSettings } from "@/lib/seat-settings";
 import { isAgeRequirement } from "@/lib/age";
 import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { NextResponse } from "next/server";
@@ -99,12 +100,21 @@ export async function PATCH(
   const venue = parseVenue(body, { partial: true });
   if (!venue.ok) return moneyError(venue.message);
 
+  // Seat settings: only what was sent is changed.
+  const seatParsed = parseSeatSettings({ ...body, rooms: undefined });
+  if (!seatParsed.ok) return moneyError(seatParsed.message);
+  const seat: Record<string, unknown> = {};
+  for (const k of ["waitlistEnabled", "payWindowMinutes", "refundPolicy", "refundCutoffHours"] as const) {
+    if (body[k] !== undefined && body[k] !== "") seat[k] = seatParsed.value[k];
+  }
+
   const result = await updateTournament(id, auth.organizerProfile.id, {
     name: body.name,
     description: body.description,
     bannerUrl: body.bannerUrl,
     maxTeams: body.maxTeams,
     playersPerRoom: body.playersPerRoom,
+    ...seat,
     entryFeeAmount: fee.value?.amount,
     entryFeeCurrency: fee.value?.currency,
     paymentInstructions: body.paymentInstructions,
@@ -149,6 +159,12 @@ export async function PATCH(
       },
       { status: 409 }
     );
+  }
+  if (result.error === "refund_locked") {
+    return NextResponse.json({ error: { code: "refund_locked", message: "Teams have already entered, so the refund policy can no longer change. They agreed to it when they joined." } }, { status: 409 });
+  }
+  if (result.error === "capacity_by_rooms") {
+    return NextResponse.json({ error: { code: "capacity_by_rooms", message: "This tournament has rooms, so its seats are the rooms' seats. Change a room's seats instead." } }, { status: 409 });
   }
   if (result.error === "payout_hold" || result.error === "starter_limit" || result.error === "reports_pause") {
     return NextResponse.json({ error: { code: result.error, message: result.message } }, { status: 409 });

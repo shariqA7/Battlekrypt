@@ -89,6 +89,8 @@ export async function decideConsentCase(
     await prisma.registration.update({ where: { id: c.registration.id }, data: { status: "disqualified" } });
     const { bumpRegistrationCount } = await import("@/lib/services/tournaments");
     await bumpRegistrationCount(t.id);
+    const { refreshSeats } = await import("@/lib/services/rooms");
+    await refreshSeats(t.id);
   }
 
   const player = await prisma.playerProfile.findUnique({ where: { id: c.playerId }, select: { userId: true } });

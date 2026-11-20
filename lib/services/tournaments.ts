@@ -44,6 +44,9 @@ import { notifyResultsPosted, notifyTournamentCancelled, notifyTournamentStarted
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { checkAgainstPool, replacePrizeTiers, type PrizeTierInput } from "@/lib/services/prize-tiers";
 import { hybridStagesError } from "@/lib/services/stages";
+import { announceSeatChanges, lockSeats, placeEntry, previewPlacement, refreshSeats, SEAT_TOURNAMENT_SELECT } from "@/lib/services/rooms";
+import { payDeadline } from "@/lib/rooms";
+import type { RefundPolicyKey } from "@/lib/seat-settings";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
 import { tryToUsd } from "@/lib/currency-fx";
 import { awardTournamentRatings } from "@/lib/services/ratings";
@@ -197,6 +200,12 @@ export interface CreateTournamentInput {
   maxTeamSize?: number;
   maxTeams: number;
   playersPerRoom?: number;
+  // Seats: see lib/seat-settings.ts. Rooms themselves are added by the caller after creation.
+  waitlistEnabled?: boolean;
+  payWindowMinutes?: number;
+  refundPolicy?: RefundPolicyKey;
+  refundCutoffHours?: number;
+  teamsPerRoom?: number;
   format: Prisma.TournamentCreateInput["format"];
   entryType: EntryType;
   entryFeeAmount?: number;
@@ -259,6 +268,11 @@ export async function createTournament(input: CreateTournamentInput) {
       maxTeamSize: input.maxTeamSize,
       maxTeams: input.maxTeams,
       playersPerRoom: input.playersPerRoom,
+      waitlistEnabled: input.waitlistEnabled,
+      payWindowMinutes: input.payWindowMinutes,
+      refundPolicy: input.refundPolicy,
+      refundCutoffHours: input.refundCutoffHours,
+      teamsPerRoom: input.teamsPerRoom,
       format: input.format,
       entryType: input.entryType,
       entryFeeAmount: input.entryFeeAmount,
@@ -462,6 +476,26 @@ export async function getTournamentCapacity(tournamentId: string) {
   return { maxTeams: tournament.maxTeams, filled, open: Math.max(tournament.maxTeams - filled, 0) };
 }
 
+const SEAT_TOURNAMENT_SELECT_VALUES = (t: {
+  id: string; slug: string; name: string; maxTeams: number; startAt: Date | null; entryType: "free" | "paid"; waitlistEnabled: boolean; payWindowMinutes: number;
+}) => ({ id: t.id, slug: t.slug, name: t.name, maxTeams: t.maxTeams, startAt: t.startAt, entryType: t.entryType, waitlistEnabled: t.waitlistEnabled, payWindowMinutes: t.payWindowMinutes });
+
+// What a placement means for the new registration row: a seat is "pending" in its room (a paid entry
+// that arrives without proof gets a payment deadline); no seat is "waitlisted" with no room.
+function seatFields(
+  placement: { kind: "seat" | "waitlist" | "full"; roomId?: string | null },
+  paymentProofUrl: string | undefined,
+  payWindowMinutes = 60,
+  paid = false,
+) {
+  if (placement.kind === "waitlist") return { status: "waitlisted" as const, waitlistedAt: new Date(), roomId: null };
+  return {
+    status: "pending" as const,
+    roomId: placement.kind === "seat" ? placement.roomId ?? null : null,
+    payDueAt: paid && !paymentProofUrl ? payDeadline(new Date(), payWindowMinutes) : null,
+  };
+}
+
 export interface RegisterInput {
   tournamentId: string;
   playerId: string;
@@ -483,6 +517,8 @@ export interface RegisterInput {
   // tournaments that ask for fresh proof).
   // Club entries skip the per-tournament ID photo (members are verified).
   skipInstitutionProof?: boolean;
+  /** The room the entry would like (a tournament with rooms). If it is full the entry goes to the nearest room with a seat. */
+  roomId?: string;
 }
 
 export async function registerForTournament(input: RegisterInput) {
@@ -491,6 +527,7 @@ export async function registerForTournament(input: RegisterInput) {
   });
 
   if (!tournament) return { error: "not_found" as const };
+  const seatTournament = SEAT_TOURNAMENT_SELECT_VALUES(tournament);
 
   if (!["published", "registration_open"].includes(tournament.status)) {
     return { error: "registration_closed" as const };
@@ -503,10 +540,13 @@ export async function registerForTournament(input: RegisterInput) {
   // just stops counting against capacity. (Before this fix, rejected/DQ'd
   // registrations were kept for the audit trail but still counted forever,
   // so a freed slot could only ever be filled via manual-add.)
-  const activeCount = await getActiveRegistrationCount(input.tournamentId);
-  if (activeCount >= tournament.maxTeams) {
-    return { error: "full" as const };
-  }
+  //
+  // This is only the early, friendly answer. Who really gets the last seat is decided inside the
+  // transaction below, under a per-tournament lock (see lib/services/rooms.ts), so 30 teams
+  // pressing Join together can't overfill a 25-seat room.
+  const preview = await previewPlacement(seatTournament, input.roomId);
+  if (preview.kind === "full") return { error: "full" as const };
+  const willQueue = preview.kind === "waitlist";
 
   // Prevent anyone in this registration — the registering player OR any
   // named teammate — from already being registered for this tournament,
@@ -521,7 +561,7 @@ export async function registerForTournament(input: RegisterInput) {
   const existing = await prisma.registration.findFirst({
     where: {
       tournamentId: input.tournamentId,
-      status: { in: ["pending", "approved"] },
+      status: { in: ["pending", "approved", "waitlisted"] },
       OR: [
         { playerId: { in: allPlayerIds } },
         { teamEntry: { members: { some: { playerId: { in: allPlayerIds } } } } },
@@ -572,7 +612,9 @@ export async function registerForTournament(input: RegisterInput) {
   if (tournament.entryType === "paid" && (await getOrganizerPause(tournament.organizerId)).paused) {
     return { error: "organizer_paused" as const };
   }
-  if (tournament.entryType === "paid" && !input.paymentProofUrl) {
+  // A team joining the waiting list pays nothing yet: it is asked for payment only when a seat opens
+  // for it (and then has `payWindowMinutes` to send it). So no refunds for people who never got a seat.
+  if (tournament.entryType === "paid" && !input.paymentProofUrl && !willQueue) {
     return { error: "payment_proof_required" as const };
   }
   const reference = parseReference(input.paymentReference);
@@ -580,7 +622,7 @@ export async function registerForTournament(input: RegisterInput) {
   if (input.paymentProofUrl && !normalizeProofInput(input.paymentProofUrl, payerUserId)) {
     return { error: "invalid_payment_proof" as const };
   }
-  if (tournament.entryType === "paid" && !reference) {
+  if (tournament.entryType === "paid" && !reference && !willQueue) {
     return { error: "payment_reference_required" as const };
   }
 
@@ -599,6 +641,9 @@ export async function registerForTournament(input: RegisterInput) {
     const created = await prisma.$transaction(async (tx) => {
       const full = await reserveInstitutionSlot(tx, input.tournamentId, institutionGate.institutionId);
       if (full) return full;
+      await lockSeats(tx, input.tournamentId);
+      const placement = await placeEntry(tx, seatTournament, input.roomId);
+      if (placement.kind === "full") return { error: "full" as const, message: "Every seat is taken.", placement };
       const teamEntry = await tx.teamEntry.create({
         data: {
           tournamentId: input.tournamentId,
@@ -610,10 +655,11 @@ export async function registerForTournament(input: RegisterInput) {
           },
         },
       });
-      return tx.registration.create({
+      const reg = await tx.registration.create({
         data: {
           tournamentId: input.tournamentId,
           teamEntryId: teamEntry.id,
+          ...seatFields(placement, input.paymentProofUrl, tournament.payWindowMinutes, tournament.entryType === "paid"),
           paymentStatus: paymentStatus ?? "unpaid",
           paymentProofUrl: input.paymentProofUrl,
           paymentReference: reference?.display ?? null,
@@ -624,23 +670,29 @@ export async function registerForTournament(input: RegisterInput) {
           customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
         },
       });
+      return { reg, placement };
     });
     if ("error" in created) return { error: created.error, message: created.message };
-    const registration = created;
+    const registration = created.reg;
+    await announceSeatChanges(seatTournament, created.placement.released, created.placement.promoted, created.placement.resold);
     await bumpRegistrationCount(input.tournamentId);
     await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
-    if (institutionGate.routedInstitutionId) {
+    if (institutionGate.routedInstitutionId && created.placement.kind === "seat") {
       await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
     }
-    return { data: registration };
+    return { data: registration, placement: created.placement };
   }
   const created = await prisma.$transaction(async (tx) => {
     const full = await reserveInstitutionSlot(tx, input.tournamentId, institutionGate.institutionId);
     if (full) return full;
-    return tx.registration.create({
+    await lockSeats(tx, input.tournamentId);
+    const placement = await placeEntry(tx, seatTournament, input.roomId);
+    if (placement.kind === "full") return { error: "full" as const, message: "Every seat is taken.", placement };
+    const reg = await tx.registration.create({
       data: {
         tournamentId: input.tournamentId,
         playerId: input.playerId,
+        ...seatFields(placement, input.paymentProofUrl, tournament.payWindowMinutes, tournament.entryType === "paid"),
         paymentStatus: paymentStatus ?? "unpaid",
         paymentProofUrl: input.paymentProofUrl,
         paymentReference: reference?.display ?? null,
@@ -651,16 +703,18 @@ export async function registerForTournament(input: RegisterInput) {
         customFieldResponses: input.customFieldResponses as Prisma.InputJsonValue,
       },
     });
+    return { reg, placement };
   });
   if ("error" in created) return { error: created.error, message: created.message };
-  const registration = created;
+  const registration = created.reg;
+  await announceSeatChanges(seatTournament, created.placement.released, created.placement.promoted, created.placement.resold);
   await bumpRegistrationCount(input.tournamentId);
   await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
 
-  if (institutionGate.routedInstitutionId) {
+  if (institutionGate.routedInstitutionId && created.placement.kind === "seat") {
     await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
   }
-  return { data: registration };
+  return { data: registration, placement: created.placement };
 }
 
 // Queue of registrations. The host sees everything (view "all") or just the
@@ -798,6 +852,7 @@ export async function rejectRegistration(
   });
 
   await notifyEntryDecision(registrationId, false, actor.role === "cohost", false);
+  await refreshSeats(registration.tournamentId); // the seat is free: the next team in line gets it
   return { data: updated, reason };
 }
 
@@ -1012,6 +1067,10 @@ export interface UpdateTournamentInput {
   bannerUrl?: string;
   maxTeams?: number;
   playersPerRoom?: number;
+  waitlistEnabled?: boolean;
+  payWindowMinutes?: number;
+  refundPolicy?: RefundPolicyKey;
+  refundCutoffHours?: number;
   entryFeeAmount?: number;
   entryFeeCurrency?: string;
   paymentInstructions?: string;
@@ -1151,6 +1210,19 @@ export async function updateTournament(
     return { error: "age_locked" as const };
   }
 
+  // The refund promise is made before anyone pays, so it can't change once someone has entered.
+  // (Only a real change is blocked: the edit form resends the current values on every save.)
+  const refundChanged =
+    (data.refundPolicy !== undefined && data.refundPolicy !== tournament.refundPolicy) ||
+    (data.refundCutoffHours !== undefined && data.refundCutoffHours !== tournament.refundCutoffHours);
+  if (refundChanged && (await getActiveRegistrationCount(tournamentId)) > 0) {
+    return { error: "refund_locked" as const };
+  }
+  // With rooms, the seats are the rooms' seats: change a room, not the total.
+  if (data.maxTeams !== undefined && data.maxTeams !== tournament.maxTeams && (await prisma.tournamentRoom.count({ where: { tournamentId } })) > 0) {
+    return { error: "capacity_by_rooms" as const };
+  }
+
   // Online <-> LAN changes what players are promised (room credentials vs.
   // showing up somewhere), so it locks once anyone has registered. The venue
   // DETAILS can still be corrected afterwards (a typo in the address).
@@ -1249,6 +1321,8 @@ export async function updateTournament(
     ...(prizeAwards !== undefined ? replacePrizeAwards(tournamentId, prizeAwards) : []),
   ];
   if (ops.length > 0) await prisma.$transaction(ops);
+  // More seats (or the waiting list just switched on) can let waiting teams in.
+  if (data.maxTeams !== undefined || data.waitlistEnabled !== undefined) await refreshSeats(tournamentId);
   return { data: updated };
 }
 

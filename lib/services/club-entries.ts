@@ -145,7 +145,7 @@ export async function submitClubTeamEntry(
   tournamentId: string,
   teamId: string,
   memberPlayerIds: string[],
-  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown } = {}
+  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown; roomId?: string } = {}
 ) {
   const actor = await resolveTeamActor(userId, teamId);
   if ("error" in actor) return actor;
@@ -182,6 +182,7 @@ export async function submitClubTeamEntry(
     paymentReference: opts.paymentReference,
     payerUserId: userId,
     customFieldResponses: opts.customFieldResponses,
+    roomId: opts.roomId,
   });
   if ("error" in result) return result as { error: string };
 
@@ -211,7 +212,7 @@ export async function submitClubSoloEntry(
   userId: string,
   tournamentId: string,
   playerId: string,
-  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown } = {}
+  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown; roomId?: string } = {}
 ) {
   const actor = await resolveClubOwner(userId);
   if ("error" in actor) return actor;
@@ -238,6 +239,7 @@ export async function submitClubSoloEntry(
     paymentReference: opts.paymentReference,
     payerUserId: userId,
     customFieldResponses: opts.customFieldResponses,
+    roomId: opts.roomId,
   });
 }
 

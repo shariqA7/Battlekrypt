@@ -2,6 +2,7 @@
 // The platform never holds this money: an admin decides, and when the payer is right the
 // organizer is ORDERED to refund directly. The case then tracks the refund until the payer
 // confirms it. Rules (who may open what, deadlines) live in lib/payment-disputes.ts.
+import { refreshSeats } from "@/lib/services/rooms";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/services/notifications";
 import { findProofMatches } from "@/lib/services/proof-fingerprints";
@@ -174,6 +175,7 @@ export async function decideDispute(input: { adminId: string; disputeId: string;
   // A fake proof the admin agrees with takes the entry out of the tournament.
   if (d.kind === "fake_proof" && input.outcome === "for_organizer" && ["pending", "approved"].includes(d.registration.status)) {
     await prisma.registration.update({ where: { id: d.registrationId }, data: { status: "rejected" } });
+    await refreshSeats(d.tournamentId);
   }
 
   const amountText = refunds ? (amount === null ? "the full entry fee" : `${amount} ${t.entryFeeCurrency ?? ""}`.trim()) : null;

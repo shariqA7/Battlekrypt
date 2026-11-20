@@ -1143,6 +1143,16 @@ model Tournament {
   // What happens to an entry reported as a no-show (decided by the organizer).
   noShowPenalty          NoShowPenalty           @default(none)
   noShowPenaltyPoints    Int? // only for point_deduction
+  // Rooms: one tournament can run many rooms (lobbies). teamsPerRoom is the default size of a
+  // room; maxTeams is the total of every room's seats when rooms exist.
+  teamsPerRoom           Int?
+  rooms                  TournamentRoom[]
+  // When every seat is taken, extra teams queue instead of being turned away.
+  waitlistEnabled        Boolean                 @default(true)
+  // Minutes a promoted team has to send payment before the seat goes to the next in line (paid events).
+  payWindowMinutes       Int                     @default(60)
+  refundPolicy           RefundPolicy            @default(organizer_decides)
+  refundCutoffHours      Int                     @default(24)
   penalties              Penalty[]
   flags                  TournamentFlag[]
   teamEntries            TeamEntry[]
@@ -1175,6 +1185,23 @@ model TournamentVote {
 enum VoteValue {
   like
   dislike
+}
+
+// One room (lobby) of a tournament: its own start time and its own number of seats. A tournament
+// with no rooms behaves as before (one pool of maxTeams seats).
+model TournamentRoom {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  number       Int // 1, 2, 3 ... the order players see
+  name         String? // optional label, shown instead of "Room 3"
+  startAt      DateTime? // null = the tournament's start time
+  capacity     Int // most teams (or players in solo games) in this room
+  registrations Registration[]
+  createdAt    DateTime   @default(now())
+
+  @@unique([tournamentId, number])
+  @@index([tournamentId, startAt])
 }
 
 model Stage {
@@ -1275,6 +1302,29 @@ enum RegistrationStatus {
   approved
   rejected
   disqualified
+  // Every room is full: the entry queues (first come, first served) and takes the next free seat.
+  // It holds no seat and no payment is asked of it until it is promoted.
+  waitlisted
+  // The team or player left, or its seat was released because payment didn't arrive in time.
+  withdrawn
+}
+
+// What the organizer promises someone who pays and then pulls out. Chosen per tournament and shown
+// before anyone pays.
+enum RefundPolicy {
+  organizer_decides // each withdrawal is the organizer's call
+  no_refund
+  full_before_cutoff // full refund if withdrawn at least refundCutoffHours before the room starts
+  if_resold // refund only if the seat is taken by someone from the waiting list
+}
+
+enum RefundStatus {
+  not_applicable // free entry, never paid, or the entry hasn't withdrawn
+  requested // waiting for the organizer to decide
+  waiting_resale // will be owed once the seat is taken by someone else
+  owed // the organizer has to send the money back
+  refunded // the organizer says it was sent
+  declined // not eligible under the policy (or the organizer said no)
 }
 
 enum PaymentStatus {
@@ -1358,6 +1408,19 @@ model Registration {
   stageEntries    StageEntry[]
   addedBy         AddedBy       @default(self)
 
+  // The room this entry plays in (null on older single-room tournaments, and while waitlisted).
+  roomId         String?
+  room           TournamentRoom? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  waitlistedAt   DateTime? // joined the waiting list; the queue is first come, first served on this
+  promotedAt     DateTime? // taken off the waiting list into a seat
+  payDueAt       DateTime? // paid events: pay by this time or the seat goes to the next team
+  withdrawnAt    DateTime?
+  withdrawReason String?
+  releaseReason  String? // set when the system released the seat (e.g. payment window ended)
+  refundStatus    RefundStatus @default(not_applicable)
+  refundDecidedAt DateTime?
+  refundedAt      DateTime?
+
   disqualifiedRuleId          String?
   disqualifiedRule            TournamentRule? @relation("DisqualifiedRule", fields: [disqualifiedRuleId], references: [id])
   disqualifiedReason          String?
@@ -1382,6 +1445,8 @@ model Registration {
 
   // Quota counts ask "how many live entries does this institute have in this tournament".
   @@index([tournamentId, institutionId])
+  @@index([tournamentId, status, waitlistedAt])
+  @@index([roomId])
 
   // Set when a guardian withdrew consent while this entry was in a tournament already running.
   consentCase ConsentCase?

@@ -1,5 +1,7 @@
 // GET  /api/tournaments  — public browse/search/filter
 // POST /api/tournaments  — organizer creates a draft tournament
+import { parseSeatSettings } from "@/lib/seat-settings";
+import { createRooms } from "@/lib/services/rooms";
 import { getViewerRegion } from "@/lib/services/viewer-region";
 import { parseVenue } from "@/lib/venue-input";
 import { parsePrizeTiers, checkAgainstPool } from "@/lib/services/prize-tiers";
@@ -168,6 +170,12 @@ export async function POST(request: Request) {
   const venue = parseVenue(body);
   if (!venue.ok) return moneyError(venue.message);
 
+  const seat = parseSeatSettings(body);
+  if (!seat.ok) return moneyError(seat.message);
+  // With rooms, the total seats ARE the rooms' seats (thousands of teams = many rooms).
+  const roomPlan = seat.value.rooms;
+  const totalTeams = roomPlan ? roomPlan.count * roomPlan.capacity : body.maxTeams;
+
   const tournament = await createTournament({
     organizerId: organizerProfile.id,
     gameId: body.gameId,
@@ -177,8 +185,13 @@ export async function POST(request: Request) {
     type: body.type,
     mode: body.mode,
     maxTeamSize: body.maxTeamSize,
-    maxTeams: body.maxTeams,
+    maxTeams: totalTeams,
     playersPerRoom: body.playersPerRoom,
+    waitlistEnabled: seat.value.waitlistEnabled,
+    payWindowMinutes: seat.value.payWindowMinutes,
+    refundPolicy: seat.value.refundPolicy,
+    refundCutoffHours: seat.value.refundCutoffHours,
+    teamsPerRoom: roomPlan?.capacity,
     format: body.format,
     entryType: body.entryType,
     entryFeeAmount: money.entryFee?.amount,
@@ -217,6 +230,12 @@ export async function POST(request: Request) {
       { error: { code: tournament.code, message: tournament.message } },
       { status: tournament.code === "fx_unavailable" ? 503 : 409 }
     );
+  }
+
+  // Build the rooms. Room 1 starts when the tournament does unless the organizer chose another time.
+  if (roomPlan) {
+    const made = await createRooms(tournament.id, organizerProfile.id, { ...roomPlan, firstStartAt: roomPlan.firstStartAt ?? tournament.startAt ?? null });
+    if ("error" in made && made.error) console.error("createRooms after create failed", made);
   }
 
   return NextResponse.json(tournament, { status: 201 });
