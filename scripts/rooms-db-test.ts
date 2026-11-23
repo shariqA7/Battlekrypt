@@ -1,7 +1,7 @@
 // Rooms, safe seat counting and the waiting list, against a real database.
 // Needs a Postgres with all migrations applied (see phase8-1-test.ts for how to run).
 import { prisma } from "../lib/prisma";
-import { registerForTournament, rejectRegistration, updateTournament } from "../lib/services/tournaments";
+import { approveRegistration, manualAddRegistration, registerForTournament, rejectRegistration, updateTournament } from "../lib/services/tournaments";
 import { submitSeatPayment } from "../lib/services/seat-payments";
 import { createRooms, deleteRoom, getEntryPlacement, getSeatSummary, moveEntryToRoom, refreshSeats, updateRoom } from "../lib/services/rooms";
 
@@ -160,6 +160,33 @@ async function main() {
   const inRoom1 = await prisma.registration.findFirst({ where: { roomId: rooms[0].id, status: "pending" } });
   ok("moving into a full room is refused", err(await moveEntryToRoom(inRoom1!.id, org.id, rooms[1].id)) === "room_full");
   ok("moving to a room with a seat works", !err(await moveEntryToRoom(inRoom1!.id, org.id, rooms[0].id)));
+
+  // organizer approvals can't smuggle a queueing or withdrawn team into a seat
+  const tAp = await tournament("Approvals", { maxTeams: 1 });
+  const [ap1, ap2] = await players(2);
+  await join(tAp.id, ap1);
+  const apQ = await join(tAp.id, ap2);
+  const apQid = (apQ as { data: { id: string } }).data.id;
+  ok("approving a team that is still queueing is refused", (await approveRegistration(apQid, org.id) as { error?: string }).error === "waitlisted");
+  ok("…and it stays on the waiting list with no seat", (await prisma.registration.findUnique({ where: { id: apQid } }))?.status === "waitlisted");
+  await prisma.registration.update({ where: { id: apQid }, data: { status: "withdrawn" } });
+  ok("approving a withdrawn team is refused", (await approveRegistration(apQid, org.id) as { error?: string }).error === "withdrawn");
+  ok("rejecting a withdrawn team is refused (keeps its refund record)", (await rejectRegistration(apQid, org.id) as { error?: string }).error === "withdrawn");
+
+  // an organizer adding someone by hand lands in a room with a seat
+  const tMan = await tournament("Manual", { maxTeams: 1 });
+  await createRooms(tMan.id, org.id, { count: 2, capacity: 1, firstStartAt: start, everyMinutes: 30 });
+  const manRooms = await prisma.tournamentRoom.findMany({ where: { tournamentId: tMan.id }, orderBy: { number: "asc" } });
+  for (const email of ["m1@x.com", "m2@x.com", "m3@x.com"]) {
+    const k = ++counter;
+    await prisma.user.create({ data: { id: `u${k}`, email, displayName: `Manual ${k}` } });
+    await prisma.playerProfile.create({ data: { userId: `u${k}`, birthDate: new Date("2000-01-01") } });
+  }
+  const m1 = await manualAddRegistration(tMan.id, org.id, "m1@x.com", "waived" as never) as { data?: { roomId: string | null } };
+  const m2 = await manualAddRegistration(tMan.id, org.id, "m2@x.com", "waived" as never) as { data?: { roomId: string | null } };
+  ok("manual add: first goes to Room 1, second to Room 2", m1.data?.roomId === manRooms[0].id && m2.data?.roomId === manRooms[1].id);
+  const m3 = await manualAddRegistration(tMan.id, org.id, "m3@x.com", "waived" as never) as { data?: { roomId: string | null }; error?: string };
+  ok("manual add never turns the organizer away: with every room full it sits outside the rooms", !m3.error && m3.data?.roomId === null);
 
   // ---------------------------------------------------------------------------------------------
   // 6. paid events: the queue pays nothing; a promoted team has a payment window

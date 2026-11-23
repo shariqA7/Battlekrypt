@@ -44,7 +44,7 @@ import { notifyResultsPosted, notifyTournamentCancelled, notifyTournamentStarted
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { checkAgainstPool, replacePrizeTiers, type PrizeTierInput } from "@/lib/services/prize-tiers";
 import { hybridStagesError } from "@/lib/services/stages";
-import { announceSeatChanges, lockSeats, placeEntry, previewPlacement, refreshSeats, SEAT_TOURNAMENT_SELECT } from "@/lib/services/rooms";
+import { announceSeatChanges, lockSeats, placeEntry, previewPlacement, refreshSeats, roomForOrganizerAdd, SEAT_TOURNAMENT_SELECT } from "@/lib/services/rooms";
 import { payDeadline } from "@/lib/rooms";
 import type { RefundPolicyKey } from "@/lib/seat-settings";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
@@ -519,6 +519,9 @@ export interface RegisterInput {
   skipInstitutionProof?: boolean;
   /** The room the entry would like (a tournament with rooms). If it is full the entry goes to the nearest room with a seat. */
   roomId?: string;
+  // Set when this is one session of a multi-session booking: the entry belongs to the booking, shares
+  // its one payment proof, and only the booking's first entry is put through the duplicate-screenshot check.
+  booking?: { id?: string; checkProof: boolean };
 }
 
 export async function registerForTournament(input: RegisterInput) {
@@ -664,6 +667,7 @@ export async function registerForTournament(input: RegisterInput) {
           paymentProofUrl: input.paymentProofUrl,
           paymentReference: reference?.display ?? null,
           payerUserId,
+          ...(input.booking?.id ? { bookingId: input.booking.id } : {}),
           institutionProofPath: institutionGate.proofPath,
           routedInstitutionId: institutionGate.routedInstitutionId,
           institutionId: institutionGate.institutionId,
@@ -676,7 +680,7 @@ export async function registerForTournament(input: RegisterInput) {
     const registration = created.reg;
     await announceSeatChanges(seatTournament, created.placement.released, created.placement.promoted, created.placement.resold);
     await bumpRegistrationCount(input.tournamentId);
-    await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
+    if (!input.booking || input.booking.checkProof) await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
     if (institutionGate.routedInstitutionId && created.placement.kind === "seat") {
       await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
     }
@@ -697,6 +701,7 @@ export async function registerForTournament(input: RegisterInput) {
         paymentProofUrl: input.paymentProofUrl,
         paymentReference: reference?.display ?? null,
           payerUserId,
+        ...(input.booking?.id ? { bookingId: input.booking.id } : {}),
         institutionProofPath: institutionGate.proofPath,
         routedInstitutionId: institutionGate.routedInstitutionId,
         institutionId: institutionGate.institutionId,
@@ -709,7 +714,7 @@ export async function registerForTournament(input: RegisterInput) {
   const registration = created.reg;
   await announceSeatChanges(seatTournament, created.placement.released, created.placement.promoted, created.placement.resold);
   await bumpRegistrationCount(input.tournamentId);
-  await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
+  if (!input.booking || input.booking.checkProof) await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
 
   if (institutionGate.routedInstitutionId && created.placement.kind === "seat") {
     await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
@@ -787,6 +792,10 @@ export async function approveRegistration(registrationId: string, organizerId: s
     registration.routedInstitutionId
   );
   if (!actor) return { error: "forbidden" as const };
+  // A team still queueing has no seat to approve it into (it moves up by itself when one frees,
+  // or the organizer adds a room), and a withdrawn team has left.
+  if (registration.status === "waitlisted") return { error: "waitlisted" as const };
+  if (registration.status === "withdrawn") return { error: "withdrawn" as const };
 
   if (actor.role === "cohost") {
     const needsPayment =
@@ -845,6 +854,8 @@ export async function rejectRegistration(
     registration.routedInstitutionId
   );
   if (!actor) return { error: "forbidden" as const };
+  // A withdrawn entry keeps its refund record; rejecting it would erase that.
+  if (registration.status === "withdrawn") return { error: "withdrawn" as const };
 
   const updated = await prisma.registration.update({
     where: { id: registrationId },
@@ -921,6 +932,7 @@ export async function getMyRegistrations(playerId: string) {
     },
     include: {
       tournament: { include: { game: true } },
+      room: { select: { number: true, name: true, startAt: true } },
     },
     orderBy: { registeredAt: "desc" },
   });
@@ -1846,7 +1858,7 @@ export async function manualAddRegistration(
     where: {
       tournamentId,
       playerId: playerProfile.id,
-      status: { in: ["pending", "approved"] },
+      status: { in: ["pending", "approved", "waitlisted"] },
     },
   });
   if (existing) return { error: "already_registered" as const };
@@ -1881,10 +1893,13 @@ export async function manualAddRegistration(
   const created = await prisma.$transaction(async (tx) => {
     const full = await reserveInstitutionSlot(tx, tournamentId, institutionGate.institutionId);
     if (full) return full;
+    await lockSeats(tx, tournamentId);
+    const roomId = await roomForOrganizerAdd(tx, tournamentId);
     return tx.registration.create({
       data: {
         tournamentId,
         playerId: playerProfile.id,
+        roomId,
         status: "approved",
         approvedAt: new Date(),
         addedBy: "organizer",

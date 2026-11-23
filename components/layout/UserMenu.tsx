@@ -131,6 +131,10 @@ export default function UserMenu({
               <TicketIcon />
               My matches
             </MenuLink>
+            <MenuLink href="/bookings" onNavigate={() => setOpen(false)}>
+              <TicketIcon />
+              My bookings
+            </MenuLink>
             <MenuLink href="/dashboard/profile" onNavigate={() => setOpen(false)}>
               <UserIcon />
               Profile

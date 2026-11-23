@@ -18,14 +18,18 @@ import { parentalConsentOn } from "@/lib/services/feature-flags";
 import { consentNeeded } from "@/lib/consent";
 import { getConsentStateForPlayer } from "@/lib/services/parental-consent";
 import { redirect } from "next/navigation";
+import { roomLabel } from "@/lib/rooms";
+import { REFUND_STATUS_LABEL, type RefundStatusKey } from "@/lib/refunds";
 
 import AdSlot from "@/components/ui/AdSlot";
 import DashboardTop from "@/components/dashboard/DashboardTop";
-const REG_STATUS: Record<string, { label: string; tone: "teal" | "amber" | "danger" }> = {
+const REG_STATUS: Record<string, { label: string; tone: "teal" | "amber" | "danger" | "neutral" }> = {
   pending: { label: "Pending approval", tone: "amber" },
   approved: { label: "Approved", tone: "teal" },
   rejected: { label: "Rejected", tone: "danger" },
   disqualified: { label: "Disqualified", tone: "danger" },
+  waitlisted: { label: "On the waiting list", tone: "amber" },
+  withdrawn: { label: "Withdrawn", tone: "neutral" },
 };
 
 const PAYMENT_NOTE: Record<string, string> = {
@@ -37,7 +41,8 @@ const PAYMENT_NOTE: Record<string, string> = {
 type Reg = Awaited<ReturnType<typeof getMyRegistrations>>[number];
 
 function RegistrationCard({ r, canReport = false, canRate = false, myStars = null }: { r: Reg; canReport?: boolean; canRate?: boolean; myStars?: number | null }) {
-  const status = REG_STATUS[r.status];
+  // Never assume a status is in the list: an unknown one shows as plain text instead of crashing the page.
+  const status = REG_STATUS[r.status] ?? { label: r.status.replace(/_/g, " "), tone: "neutral" as const };
   const t = r.tournament;
   const staked = t.entryType === "paid" || (t.prizePoolAmount != null && Number(t.prizePoolAmount) > 0);
   const live = t.status === "in_progress";
@@ -66,7 +71,34 @@ function RegistrationCard({ r, canReport = false, canRate = false, myStars = nul
           {t.startAt ? <LocalDate iso={t.startAt.toISOString()} format="long" /> : "TBA"}
         </p>
       </div>
-      {t.entryType === "paid" && r.status !== "rejected" && (
+      {r.room && ["pending", "approved"].includes(r.status) && (
+        <p className="font-sans text-xs mt-2 text-bk-body">
+          {roomLabel(r.room)}
+          {r.room.startAt && (
+            <>
+              {" · "}
+              <LocalDate iso={r.room.startAt.toISOString()} format="long" />
+            </>
+          )}
+        </p>
+      )}
+      {r.status === "waitlisted" && (
+        <p className="font-sans text-xs mt-2 text-bk-amber">
+          Every seat is taken. You move up when one frees{t.entryType === "paid" ? ", and pay only then" : ""}.
+        </p>
+      )}
+      {r.status === "pending" && r.payDueAt && !r.paymentProofUrl && (
+        <p className="font-sans text-xs mt-2 text-bk-amber">
+          A seat opened for you. Pay by <LocalDate iso={r.payDueAt.toISOString()} format="long" /> to keep it.
+        </p>
+      )}
+      {r.status === "withdrawn" && r.refundStatus !== "not_applicable" && (
+        <p className="font-sans text-xs mt-2 text-bk-body">Refund: {REFUND_STATUS_LABEL[r.refundStatus as RefundStatusKey]}</p>
+      )}
+      {r.status === "withdrawn" && r.releaseReason === "payment_window_expired" && (
+        <p className="font-sans text-xs mt-2 text-bk-muted">Your seat was released because payment didn&apos;t arrive in time.</p>
+      )}
+      {t.entryType === "paid" && !["rejected", "waitlisted", "withdrawn"].includes(r.status) && (
         <p className={`font-sans text-xs mt-2 ${r.paymentStatus === "unpaid" ? "text-bk-amber" : "text-bk-muted"}`}>
           {PAYMENT_NOTE[r.paymentStatus]}
         </p>
@@ -167,7 +199,7 @@ export default async function PlayerDashboard() {
 
         {registrations.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-            <Stat gold value={registrations.length} label="Joined" />
+            <Stat gold value={registrations.filter((r) => r.status !== "withdrawn").length} label="Joined" />
             <Stat value={approved} label="Approved" />
             <Stat value={pending} label="Pending" className="col-span-2 sm:col-span-1" />
           </div>

@@ -143,6 +143,10 @@ export async function confirmRefunds(organizerId: string, tournamentId: string) 
   if (t.organizerId !== organizerId) return { error: "forbidden" as const };
   if (t.status !== "cancelled" || !t.cancelRefundsDueAt) return { error: "nothing_to_confirm" as const };
   if (t.refundsConfirmedAt) return { data: t };
+  // A cancelled series session: players are still choosing between a refund and the next session.
+  if (t.seriesId && (await prisma.registration.count({ where: { tournamentId, choiceStatus: "pending" } })) > 0) {
+    return { error: "waiting_for_players" as const };
+  }
   const data = await prisma.tournament.update({ where: { id: tournamentId }, data: { refundsConfirmedAt: new Date() } });
   return { data };
 }
