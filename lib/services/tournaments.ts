@@ -519,6 +519,9 @@ export interface RegisterInput {
   skipInstitutionProof?: boolean;
   /** The room the entry would like (a tournament with rooms). If it is full the entry goes to the nearest room with a seat. */
   roomId?: string;
+  // Set when this is one session of a multi-session booking: the entry belongs to the booking, shares
+  // its one payment proof, and only the booking's first entry is put through the duplicate-screenshot check.
+  booking?: { id?: string; checkProof: boolean };
 }
 
 export async function registerForTournament(input: RegisterInput) {
@@ -664,6 +667,7 @@ export async function registerForTournament(input: RegisterInput) {
           paymentProofUrl: input.paymentProofUrl,
           paymentReference: reference?.display ?? null,
           payerUserId,
+          ...(input.booking?.id ? { bookingId: input.booking.id } : {}),
           institutionProofPath: institutionGate.proofPath,
           routedInstitutionId: institutionGate.routedInstitutionId,
           institutionId: institutionGate.institutionId,
@@ -676,7 +680,7 @@ export async function registerForTournament(input: RegisterInput) {
     const registration = created.reg;
     await announceSeatChanges(seatTournament, created.placement.released, created.placement.promoted, created.placement.resold);
     await bumpRegistrationCount(input.tournamentId);
-    await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
+    if (!input.booking || input.booking.checkProof) await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
     if (institutionGate.routedInstitutionId && created.placement.kind === "seat") {
       await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);
     }
@@ -697,6 +701,7 @@ export async function registerForTournament(input: RegisterInput) {
         paymentProofUrl: input.paymentProofUrl,
         paymentReference: reference?.display ?? null,
           payerUserId,
+        ...(input.booking?.id ? { bookingId: input.booking.id } : {}),
         institutionProofPath: institutionGate.proofPath,
         routedInstitutionId: institutionGate.routedInstitutionId,
         institutionId: institutionGate.institutionId,
@@ -709,7 +714,7 @@ export async function registerForTournament(input: RegisterInput) {
   const registration = created.reg;
   await announceSeatChanges(seatTournament, created.placement.released, created.placement.promoted, created.placement.resold);
   await bumpRegistrationCount(input.tournamentId);
-  await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
+  if (!input.booking || input.booking.checkProof) await queueProofCheck({ kind: "registration", refId: registration.id, playerId: input.playerId, organizerId: tournament.organizerId }, input.paymentProofUrl, reference?.key);
 
   if (institutionGate.routedInstitutionId && created.placement.kind === "seat") {
     await notifyNewQueueItem("tournament", input.tournamentId, institutionGate.routedInstitutionId);

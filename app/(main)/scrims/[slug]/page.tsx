@@ -51,6 +51,12 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
       {stopped && <p className="font-sans text-[13px] text-bk-live mb-4">{stopped}</p>}
       {series.mode !== "solo" && <p className="font-sans text-[12px] text-bk-muted mb-4">This is a team game. You enter with a club team. Creating a club is free.</p>}
 
+      {series.status !== "ended" && sessions.some((x) => x.open && !x.full) && (
+        <Link href={`/scrims/${series.slug}/book`} className="inline-block bg-white text-bk-bg font-sans font-bold text-[12px] tracking-[0.8px] uppercase px-5 py-3 mb-4">
+          Book several sessions
+        </Link>
+      )}
+
       <ShareLinks path={`/s/${series.slug}`} title={`${series.name}: join the next scrim`} className="mb-8" />
 
       <h2 className="font-sans font-bold text-bk-heading text-[15px] mb-3">Upcoming sessions</h2>

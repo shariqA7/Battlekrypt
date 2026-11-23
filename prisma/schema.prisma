@@ -1431,6 +1431,15 @@ model Registration {
 
   customFieldResponses Json?
 
+  // Part of a multi-session booking (one payment for several sessions of a scrim series).
+  bookingId String?
+  booking   SeriesBooking? @relation(fields: [bookingId], references: [id])
+  // When a session is cancelled, a PAID entry asks its payer to choose: move to the next session
+  // or take a refund. pending until they choose (or the deadline passes and we move them).
+  choiceStatus   SessionChoice?
+  choiceDeadline DateTime?
+  carriedFromId  String? // the cancelled entry this one replaced (a carry-over)
+
   // Results/standings — set by the organizer once a tournament has matches
   // to report. Nullable: most registrations never get a placement (only
   // those who actually finished/placed do), and points is separate from
@@ -1447,6 +1456,8 @@ model Registration {
   @@index([tournamentId, institutionId])
   @@index([tournamentId, status, waitlistedAt])
   @@index([roomId])
+  @@index([bookingId])
+  @@index([choiceStatus, choiceDeadline])
 
   // Set when a guardian withdrew consent while this entry was in a tournament already running.
   consentCase ConsentCase?
@@ -3383,6 +3394,7 @@ model ScrimSeries {
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   sessions            Tournament[]
+  bookings            SeriesBooking[]
 
   @@index([organizerId, status])
   @@index([status])
@@ -3416,5 +3428,42 @@ model CustomPlanRequest {
   updatedAt      DateTime                @updatedAt
 
   @@index([status, createdAt])
+  @@index([userId])
+}
+
+// ------------------------------------------------------------
+// SERIES BOOKINGS: a player (or a club's team) picks several sessions of a scrim series and pays
+// once. Each session is still an ordinary Registration (so rooms, results and disputes work as
+// usual); the booking groups them and holds the single payment proof. See lib/services/series-booking.ts.
+// ------------------------------------------------------------
+enum BookingStatus {
+  pending
+  approved
+  rejected
+}
+
+enum SessionChoice {
+  pending // waiting for the payer to choose
+  moved // moved to the next session
+  refund // the payer asked for a refund
+}
+
+model SeriesBooking {
+  id              String        @id @default(uuid())
+  seriesId        String
+  series          ScrimSeries   @relation(fields: [seriesId], references: [id])
+  userId          String // the payer
+  clubTeamId      String? // set when a club's team booked
+  paymentProofUrl String?
+  paymentReference String?
+  feePerSession   Decimal?      @db.Decimal(14, 2)
+  currency        String?
+  sessionCount    Int
+  status          BookingStatus @default(pending)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  registrations   Registration[]
+
+  @@index([seriesId, status])
   @@index([userId])
 }

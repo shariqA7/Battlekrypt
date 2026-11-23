@@ -19,6 +19,9 @@ import RulesManager from "./RulesManager";
 import PublishButton from "./PublishButton";
 import ShareLinks from "@/components/ui/ShareLinks";
 import CancelButton from "./CancelButton";
+import SeriesCancelButton from "./SeriesCancelButton";
+import { listRefundsOwed } from "@/lib/services/series-booking";
+import { formatMoney } from "@/lib/money";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
 import PrizePayees from "./PrizePayees";
@@ -75,6 +78,7 @@ export default async function ManageTournamentPage({
   }
   const registrations = result.data;
   const [lock, changeRequests, flags] = await Promise.all([getLockState(id), listChangeRequestsFor(id), getFeatureFlags()]);
+  const refundsOwed = tournament.seriesId && tournament.status === "cancelled" ? await listRefundsOwed(user.id, id) : null;
   const refundsDue = tournament.status === "cancelled" && tournament.cancelRefundsDueAt && !tournament.refundsConfirmedAt;
   const payoutRows =
     tournament.status === "completed"
@@ -154,11 +158,30 @@ export default async function ManageTournamentPage({
             hasPrizePool={!!tournament.prizePoolAmount || tournament.prizeAwards.length > 0}
             payoutConfirmed={tournament.payoutConfirmed}
           />
-          <CancelButton tournamentId={id} status={tournament.status} />
+          {tournament.seriesId
+            ? <SeriesCancelButton tournamentId={id} status={tournament.status} />
+            : <CancelButton tournamentId={id} status={tournament.status} />}
         </div>
 
         {tournament.prizePoolAmount && ["in_progress", "completed"].includes(tournament.status) && (
           <PrizePayees tournamentId={id} />
+        )}
+
+        {refundsOwed && (refundsOwed.items.length > 0 || refundsOwed.waiting > 0) && (
+          <Panel className="p-4 mb-6">
+            <p className="font-sans font-bold text-bk-heading text-[14px] mb-1">Players to refund</p>
+            <p className="font-sans text-[12px] text-bk-muted mb-3">
+              These players chose a refund for this cancelled session. Send each one {refundsOwed.amount !== null && refundsOwed.currency ? formatMoney(refundsOwed.amount, refundsOwed.currency) : "their entry fee"} directly, then confirm below.
+              {refundsOwed.waiting > 0 && ` ${refundsOwed.waiting} more ${refundsOwed.waiting === 1 ? "player hasn't" : "players haven't"} chosen yet. They have 48 hours, then they're moved to the next session.`}
+            </p>
+            <ul className="space-y-1.5">
+              {refundsOwed.items.map((r, i) => (
+                <li key={i} className="font-sans text-[13px] text-bk-heading">
+                  {r.name} <span className="text-bk-muted text-[12px]">· {[r.payer, r.email, r.phone].filter(Boolean).join(" · ")}{r.reference ? ` · paid with transaction ${r.reference}` : ""}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
         )}
 
         {(lock?.locked || changeRequests.length > 0 || refundsDue) && (

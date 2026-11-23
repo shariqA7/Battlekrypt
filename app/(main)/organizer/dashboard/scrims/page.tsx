@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { resolvePlan } from "@/lib/plans";
 import { listMySeries } from "@/lib/services/scrim-series";
+import { listPendingBookingsForOrganizer } from "@/lib/services/series-booking";
+import BookingQueue from "./BookingQueue";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
 import SeriesForm from "./SeriesForm";
 import SeriesControls from "./SeriesControls";
@@ -16,7 +18,7 @@ export default async function OrganizerScrimsPage() {
   const org = await prisma.organizerProfile.findUnique({ where: { userId: user.id } });
   if (!org) redirect("/organizer/register");
 
-  const [plan, items] = await Promise.all([resolvePlan("organizer", org), listMySeries(user.id)]);
+  const [plan, items, bookings] = await Promise.all([resolvePlan("organizer", org), listMySeries(user.id), listPendingBookingsForOrganizer(user.id)]);
   const lim = plan.limits;
   const running = items.filter((s) => s.status !== "ended").length;
   const allowed = lim.maxScrimSeries === null || lim.maxScrimSeries > 0;
@@ -37,6 +39,8 @@ export default async function OrganizerScrimsPage() {
           : "recurring series aren't included. Upgrade to a paid plan to use them."}
         {!allowed && <> <Link href="/plans" className="text-bk-gold-light underline">See plans</Link></>}
       </div>
+
+      <BookingQueue items={bookings.map((b) => ({ ...b, createdAt: b.createdAt.toISOString() }))} />
 
       {allowed && !full && <SeriesForm maxSlots={lim.maxSlotsPerDay} maxDays={lim.maxSeriesDays} />}
       {allowed && full && <p className="font-sans text-[13px] text-bk-body mb-6">You&apos;re running the most series your plan allows. End one, or upgrade, to start another.</p>}

@@ -146,7 +146,7 @@ export async function submitClubTeamEntry(
   tournamentId: string,
   teamId: string,
   memberPlayerIds: string[],
-  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown; roomId?: string } = {}
+  opts: { paymentProofUrl?: string; paymentReference?: string; customFieldResponses?: unknown; roomId?: string; booking?: { id?: string; checkProof: boolean } } = {}
 ) {
   const actor = await resolveTeamActor(userId, teamId);
   if ("error" in actor) return actor;
@@ -184,6 +184,7 @@ export async function submitClubTeamEntry(
     payerUserId: userId,
     customFieldResponses: opts.customFieldResponses,
     roomId: opts.roomId,
+    booking: opts.booking,
   });
   if ("error" in result) return result as { error: string };
 
@@ -194,8 +195,9 @@ export async function submitClubTeamEntry(
     data: { clubId: actor.club.id, clubTeamId: teamId },
   });
 
-  // Any club member can enter a team, so tell the owner when it wasn't the owner who did.
-  if (actor.club.userId !== userId) {
+  // Any club member can enter a team, so tell the owner when it wasn't the owner who did. (A booking
+  // sends one note for all its sessions instead of one per session.)
+  if (actor.club.userId !== userId && !opts.booking) {
     const who = await prisma.user.findUnique({ where: { id: userId }, select: { displayName: true } });
     const name = who && !who.displayName.includes("@") ? who.displayName : "A club member";
     await notify(actor.club.userId, {
