@@ -15,6 +15,7 @@
 // The club's PERMANENT roster (ClubRoster/ClubTeam) is untouched by any of
 // this and stays editable any time.
 
+import { lockSeats, roomForOrganizerAdd } from "@/lib/services/rooms";
 import { checkAgeGate } from "@/lib/services/age-gate";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/services/notifications";
@@ -328,10 +329,11 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
     });
     if (!rosterRow) return { editable, teams: [], soloEntry: null };
 
-    // Active only — a rejected/disqualified registration frees the player up
-    // to be shown as available again, not permanently "already registered".
+    // Active only — a rejected/disqualified/withdrawn registration frees the player up
+    // to be shown as available again, not permanently "already registered". Someone waiting
+    // for a seat is still "registered": they hold a place in the queue.
     const existing = await prisma.registration.findFirst({
-      where: { tournamentId, playerId: rosterRow.playerId, status: { in: ["pending", "approved"] } },
+      where: { tournamentId, playerId: rosterRow.playerId, status: { in: ["pending", "approved", "waitlisted"] } },
     });
     return {
       editable,
@@ -369,9 +371,9 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
     where: {
       tournamentId,
       clubTeamId: { in: teams.map((t) => t.id) },
-      registration: { status: { in: ["pending", "approved"] } },
+      registration: { status: { in: ["pending", "approved", "waitlisted"] } },
     },
-    select: { id: true, clubTeamId: true, members: { select: { playerId: true } } },
+    select: { id: true, clubTeamId: true, members: { select: { playerId: true } }, registration: { select: { id: true, status: true } } },
   });
   const entryByTeam = new Map(entries.map((e) => [e.clubTeamId!, e]));
 
@@ -390,7 +392,14 @@ export async function getClubEntryOptions(userId: string, tournamentId: string) 
             : m.player.user.displayName,
           role: m.role,
         })),
-        entry: entry ? { id: entry.id, memberPlayerIds: entry.members.map((m) => m.playerId) } : null,
+        entry: entry
+          ? {
+              id: entry.id,
+              memberPlayerIds: entry.members.map((m) => m.playerId),
+              registrationId: entry.registration?.id ?? null,
+              waitlisted: entry.registration?.status === "waitlisted",
+            }
+          : null,
       };
     }),
   };
@@ -442,7 +451,7 @@ export async function manualAddClubTeamEntry(
   const alreadyIn = await prisma.registration.findFirst({
     where: {
       tournamentId,
-      status: { in: ["pending", "approved"] },
+      status: { in: ["pending", "approved", "waitlisted"] },
       OR: [
         { playerId: { in: ids } },
         { teamEntry: { members: { some: { playerId: { in: ids } } } } },
@@ -469,6 +478,8 @@ export async function manualAddClubTeamEntry(
     // Re-check the institute's entry limit under a lock (see reserveInstitutionSlot).
     const full = await reserveInstitutionSlot(tx, tournamentId, instGate.institutionId);
     if (full) return full;
+    await lockSeats(tx, tournamentId);
+    const roomId = await roomForOrganizerAdd(tx, tournamentId);
     const teamEntry = await tx.teamEntry.create({
       data: {
         tournamentId,
@@ -482,6 +493,7 @@ export async function manualAddClubTeamEntry(
       data: {
         tournamentId,
         teamEntryId: teamEntry.id,
+        roomId,
         status: "approved",
         approvedAt: new Date(),
         addedBy: "organizer",
@@ -513,7 +525,7 @@ export async function manualAddClubSoloEntry(
   if (rosterRow.gameId !== tournament.gameId) return fail("not_on_roster");
 
   const existing = await prisma.registration.findFirst({
-    where: { tournamentId, playerId, status: { in: ["pending", "approved"] } },
+    where: { tournamentId, playerId, status: { in: ["pending", "approved", "waitlisted"] } },
   });
   if (existing) return fail("already_registered");
 
@@ -532,10 +544,13 @@ export async function manualAddClubSoloEntry(
   const registration = await prisma.$transaction(async (tx) => {
     const full = await reserveInstitutionSlot(tx, tournamentId, instGate.institutionId);
     if (full) return full;
+    await lockSeats(tx, tournamentId);
+    const roomId = await roomForOrganizerAdd(tx, tournamentId);
     return tx.registration.create({
       data: {
         tournamentId,
         playerId,
+        roomId,
         status: "approved",
         approvedAt: new Date(),
         addedBy: "organizer",

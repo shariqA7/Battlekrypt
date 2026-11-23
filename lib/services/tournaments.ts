@@ -44,7 +44,7 @@ import { notifyResultsPosted, notifyTournamentCancelled, notifyTournamentStarted
 import { countriesInRegion, type RegionKey } from "@/lib/geo-data";
 import { checkAgainstPool, replacePrizeTiers, type PrizeTierInput } from "@/lib/services/prize-tiers";
 import { hybridStagesError } from "@/lib/services/stages";
-import { announceSeatChanges, lockSeats, placeEntry, previewPlacement, refreshSeats, SEAT_TOURNAMENT_SELECT } from "@/lib/services/rooms";
+import { announceSeatChanges, lockSeats, placeEntry, previewPlacement, refreshSeats, roomForOrganizerAdd, SEAT_TOURNAMENT_SELECT } from "@/lib/services/rooms";
 import { payDeadline } from "@/lib/rooms";
 import type { RefundPolicyKey } from "@/lib/seat-settings";
 import { venueIsComplete, checkInWindowError, generateCheckInCode } from "@/lib/services/venue";
@@ -787,6 +787,10 @@ export async function approveRegistration(registrationId: string, organizerId: s
     registration.routedInstitutionId
   );
   if (!actor) return { error: "forbidden" as const };
+  // A team still queueing has no seat to approve it into (it moves up by itself when one frees,
+  // or the organizer adds a room), and a withdrawn team has left.
+  if (registration.status === "waitlisted") return { error: "waitlisted" as const };
+  if (registration.status === "withdrawn") return { error: "withdrawn" as const };
 
   if (actor.role === "cohost") {
     const needsPayment =
@@ -845,6 +849,8 @@ export async function rejectRegistration(
     registration.routedInstitutionId
   );
   if (!actor) return { error: "forbidden" as const };
+  // A withdrawn entry keeps its refund record; rejecting it would erase that.
+  if (registration.status === "withdrawn") return { error: "withdrawn" as const };
 
   const updated = await prisma.registration.update({
     where: { id: registrationId },
@@ -921,6 +927,7 @@ export async function getMyRegistrations(playerId: string) {
     },
     include: {
       tournament: { include: { game: true } },
+      room: { select: { number: true, name: true, startAt: true } },
     },
     orderBy: { registeredAt: "desc" },
   });
@@ -1846,7 +1853,7 @@ export async function manualAddRegistration(
     where: {
       tournamentId,
       playerId: playerProfile.id,
-      status: { in: ["pending", "approved"] },
+      status: { in: ["pending", "approved", "waitlisted"] },
     },
   });
   if (existing) return { error: "already_registered" as const };
@@ -1881,10 +1888,13 @@ export async function manualAddRegistration(
   const created = await prisma.$transaction(async (tx) => {
     const full = await reserveInstitutionSlot(tx, tournamentId, institutionGate.institutionId);
     if (full) return full;
+    await lockSeats(tx, tournamentId);
+    const roomId = await roomForOrganizerAdd(tx, tournamentId);
     return tx.registration.create({
       data: {
         tournamentId,
         playerId: playerProfile.id,
+        roomId,
         status: "approved",
         approvedAt: new Date(),
         addedBy: "organizer",

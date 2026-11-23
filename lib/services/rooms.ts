@@ -9,7 +9,7 @@
 import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/services/notifications";
 import {
-  buildRooms, decidePlacement, inPlayOrder, payDeadline, planPromotions, queuePosition, roomLabel, roomPlanError,
+  buildRooms, decidePlacement, inPlayOrder, payDeadline, pickRoom, planPromotions, queuePosition, roomLabel, roomPlanError,
   seatsLeft, totalSeats, type Placement, type RoomPlan, type RoomSeat, type Waiting,
 } from "@/lib/rooms";
 import { resolveResales } from "@/lib/refunds";
@@ -152,6 +152,17 @@ export async function settleResales(tx: Db, tournamentId: string, seatsResold: n
   const { owed } = resolveResales(waiting.map((w) => ({ id: w.id, withdrawnAt: w.withdrawnAt as Date })), seatsResold);
   if (owed.length > 0) await tx.registration.updateMany({ where: { id: { in: owed } }, data: { refundStatus: "owed", refundDecidedAt: new Date() } });
   return owed;
+}
+
+/**
+ * An organizer adding someone by hand is vouching for them, so it never turns them away: they take
+ * the earliest room that still has a seat, or sit outside every room (over capacity) when none does.
+ * Call with the lock held.
+ */
+export async function roomForOrganizerAdd(tx: Tx, tournamentId: string): Promise<string | null> {
+  const t = await tx.tournament.findUnique({ where: { id: tournamentId }, select: { startAt: true } });
+  const s = await loadSeatState(tx, tournamentId);
+  return pickRoom(s.rooms, null, t?.startAt ?? null)?.room.id ?? null;
 }
 
 /**

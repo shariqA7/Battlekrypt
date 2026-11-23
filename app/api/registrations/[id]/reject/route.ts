@@ -27,5 +27,9 @@ export async function POST(
     );
   }
 
+  if (result.error === "withdrawn") {
+    return NextResponse.json({ error: { code: "withdrawn", message: "This team has withdrawn. Its refund is handled in the Refunds list." } }, { status: 409 });
+  }
+
   return NextResponse.json(result.data);
 }

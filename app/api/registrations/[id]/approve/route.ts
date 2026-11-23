@@ -26,6 +26,16 @@ export async function POST(
     );
   }
 
+  if (result.error === "waitlisted") {
+    return NextResponse.json(
+      { error: { code: "waitlisted", message: "This team is still on the waiting list and has no seat yet. It moves up by itself when a seat frees up or you add a room." } },
+      { status: 409 }
+    );
+  }
+  if (result.error === "withdrawn") {
+    return NextResponse.json({ error: { code: "withdrawn", message: "This team has withdrawn." } }, { status: 409 });
+  }
+
   return NextResponse.json({
     ...result.data,
     // True when a co-host approved a paid entry: the host still has to
