@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import FileUpload from "@/components/ui/FileUpload";
 import { Panel } from "@/components/ui/Panel";
 import { formatMoney } from "@/lib/money";
+import { priceBooking, type DiscountTier } from "@/lib/scrim-series-rules";
 
 interface Session { id: string; day: string; time: string; weekday: number; spotsLeft: number }
 interface Team { id: string; name: string; members: { id: string; name: string }[] }
@@ -14,8 +15,8 @@ const label = "block font-sans text-[11px] tracking-[0.8px] uppercase text-bk-mu
 const quick = "border border-bk-border text-bk-body font-sans text-[12px] px-3 h-[30px] hover:border-bk-gold-light/60";
 
 export default function BookingForm({
-  slug, paid, fee, currency, paymentInstructions, timezone, teams, sessions,
-}: { slug: string; paid: boolean; fee: number | null; currency: string | null; paymentInstructions: string | null; timezone: string; teams: Team[]; sessions: Session[] }) {
+  slug, paid, fee, currency, paymentInstructions, timezone, tiers, teams, sessions,
+}: { slug: string; paid: boolean; fee: number | null; currency: string | null; paymentInstructions: string | null; timezone: string; tiers: DiscountTier[]; teams: Team[]; sessions: Session[] }) {
   const router = useRouter();
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [teamId, setTeamId] = useState(teams[0]?.id ?? "");
@@ -34,7 +35,9 @@ export default function BookingForm({
 
   const toggle = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const pickWhere = (f: (s: Session) => boolean) => setPicked((p) => { const n = new Set(p); sessions.filter(f).forEach((s) => n.add(s.id)); return n; });
-  const total = paid && fee !== null ? fee * picked.size : 0;
+  const price = paid && fee !== null ? priceBooking(fee, picked.size, tiers) : null;
+  const total = price?.total ?? 0;
+  const nextTier = tiers.find((t) => t.minSessions > picked.size && picked.size > 0);
   const team = teams.find((t) => t.id === teamId);
   const chosenMembers = members[teamId] ?? [];
 
@@ -110,7 +113,10 @@ export default function BookingForm({
         <p className="font-sans font-bold text-bk-heading text-[14px] mb-1">{teams.length > 0 ? "3" : "2"}. {paid ? "Pay once" : "Confirm"}</p>
         {paid && fee !== null && currency ? (
           <>
-            <p className="font-mono text-[15px] text-bk-heading mt-2">{picked.size} session{picked.size === 1 ? "" : "s"} × {formatMoney(fee, currency)} = <span className="text-bk-gold-light">{formatMoney(total, currency)}</span></p>
+            <p className="font-mono text-[15px] text-bk-heading mt-2">{picked.size} session{picked.size === 1 ? "" : "s"} × {formatMoney(fee, currency)}{price && price.percentOff > 0 ? ` = ${formatMoney(price.gross, currency)}` : ""}</p>
+            {price && price.percentOff > 0 && <p className="font-mono text-[13px] text-bk-live mt-1">{price.percentOff}% discount: −{formatMoney(price.saved, currency)}</p>}
+            <p className="font-mono text-[16px] text-bk-gold-light mt-1">You pay {formatMoney(total, currency)}</p>
+            {nextTier && <p className="font-sans text-[11px] text-bk-muted mt-1">Book {nextTier.minSessions - picked.size} more session{nextTier.minSessions - picked.size === 1 ? "" : "s"} to get {nextTier.percentOff}% off.</p>}
             {paymentInstructions && (
               <div className="bg-bk-bg border border-bk-gold-light/40 px-3 py-2.5 mt-3">
                 <p className="font-sans text-[11px] tracking-[0.8px] uppercase text-bk-gold-light mb-1">How to pay</p>

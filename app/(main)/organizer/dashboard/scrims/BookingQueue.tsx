@@ -6,7 +6,7 @@ import { Panel } from "@/components/ui/Panel";
 import { formatMoney } from "@/lib/money";
 
 interface Item {
-  id: string; series: string; sessionCount: number; reference: string | null; total: number; currency: string | null;
+  id: string; series: string; sessionCount: number; reference: string | null; total: number; discountPercent: number; currency: string | null;
   payer: string; payerEmail: string | null; proofRegistrationId: string | null; createdAt: string;
 }
 
@@ -37,7 +37,7 @@ export default function BookingQueue({ items }: { items: Item[] }) {
             <p className="font-sans font-bold text-bk-heading text-[14px]">{b.payer} <span className="font-normal text-bk-muted">· {b.series}</span></p>
             <p className="font-sans text-[12px] text-bk-muted mt-0.5">
               {b.sessionCount} session{b.sessionCount === 1 ? "" : "s"}
-              {b.total > 0 && b.currency ? ` · check that ${formatMoney(b.total, b.currency)} arrived` : " · free"}
+              {b.total > 0 && b.currency ? ` · check that ${formatMoney(b.total, b.currency)} arrived${b.discountPercent ? ` (after the ${b.discountPercent}% discount)` : ""}` : " · free"}
               {b.reference ? ` · transaction ${b.reference}` : ""}
               {b.payerEmail ? ` · ${b.payerEmail}` : ""}
             </p>

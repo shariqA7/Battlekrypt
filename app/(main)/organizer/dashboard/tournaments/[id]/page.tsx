@@ -20,8 +20,8 @@ import PublishButton from "./PublishButton";
 import ShareLinks from "@/components/ui/ShareLinks";
 import CancelButton from "./CancelButton";
 import SeriesCancelButton from "./SeriesCancelButton";
+import SeriesRefunds from "./SeriesRefunds";
 import { listRefundsOwed } from "@/lib/services/series-booking";
-import { formatMoney } from "@/lib/money";
 import SaveAsTemplateButton from "./SaveAsTemplateButton";
 import PayoutButton from "./PayoutButton";
 import PrizePayees from "./PrizePayees";
@@ -168,20 +168,7 @@ export default async function ManageTournamentPage({
         )}
 
         {refundsOwed && (refundsOwed.items.length > 0 || refundsOwed.waiting > 0) && (
-          <Panel className="p-4 mb-6">
-            <p className="font-sans font-bold text-bk-heading text-[14px] mb-1">Players to refund</p>
-            <p className="font-sans text-[12px] text-bk-muted mb-3">
-              These players chose a refund for this cancelled session. Send each one {refundsOwed.amount !== null && refundsOwed.currency ? formatMoney(refundsOwed.amount, refundsOwed.currency) : "their entry fee"} directly, then confirm below.
-              {refundsOwed.waiting > 0 && ` ${refundsOwed.waiting} more ${refundsOwed.waiting === 1 ? "player hasn't" : "players haven't"} chosen yet. They have 48 hours, then they're moved to the next session.`}
-            </p>
-            <ul className="space-y-1.5">
-              {refundsOwed.items.map((r, i) => (
-                <li key={i} className="font-sans text-[13px] text-bk-heading">
-                  {r.name} <span className="text-bk-muted text-[12px]">· {[r.payer, r.email, r.phone].filter(Boolean).join(" · ")}{r.reference ? ` · paid with transaction ${r.reference}` : ""}</span>
-                </li>
-              ))}
-            </ul>
-          </Panel>
+          <SeriesRefunds items={refundsOwed.items} waiting={refundsOwed.waiting} currency={refundsOwed.currency} />
         )}
 
         {(lock?.locked || changeRequests.length > 0 || refundsDue) && (
@@ -202,7 +189,7 @@ export default async function ManageTournamentPage({
               adminNote: r.adminNote,
               createdAt: r.createdAt.toISOString(),
             }))}
-            refundsDueAt={refundsDue && tournament.cancelRefundsDueAt ? tournament.cancelRefundsDueAt.toISOString() : null}
+            refundsDueAt={refundsDue && !tournament.seriesId && tournament.cancelRefundsDueAt ? tournament.cancelRefundsDueAt.toISOString() : null}
             flags={flags}
           />
         )}

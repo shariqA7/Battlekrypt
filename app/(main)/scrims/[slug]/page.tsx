@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSeriesPublic } from "@/lib/services/scrim-series";
+import { validateDiscountTiers } from "@/lib/scrim-series-rules";
 import { previewMetadata, blurb } from "@/lib/link-preview";
 import { formatMoney } from "@/lib/money";
 import ShareLinks from "@/components/ui/ShareLinks";
@@ -47,6 +48,14 @@ export default async function SeriesPage({ params }: { params: Promise<{ slug: s
       <p className="font-sans text-[13px] text-bk-body pl-[19px] mb-1">{series.game.name} · {series.mode === "solo" ? "Solo" : series.mode === "duo" ? "Duo" : "Squad"} · by {series.organizer.orgName}</p>
       <p className="font-sans text-[14px] text-bk-heading pl-[19px] mb-1">{series.schedule} <span className="text-bk-muted">({tz})</span></p>
       <p className="font-mono text-[13px] text-bk-body pl-[19px] mb-4">{fee}{series.endDate ? ` · until ${series.endDate.toISOString().slice(0, 10)}` : " · runs non-stop"}</p>
+      {(() => {
+        const t = validateDiscountTiers(series.discountTiers);
+        return t.ok && t.value.length > 0 ? (
+          <p className="font-sans text-[13px] text-bk-gold-light pl-[19px] mb-3">
+            Save when you book several sessions at once: {t.value.map((x) => `${x.minSessions}+ sessions, ${x.percentOff}% off`).join(" · ")}.
+          </p>
+        ) : null;
+      })()}
       {series.description && <p className="font-sans text-[13px] text-bk-body whitespace-pre-wrap mb-4">{series.description}</p>}
       {stopped && <p className="font-sans text-[13px] text-bk-live mb-4">{stopped}</p>}
       {series.mode !== "solo" && <p className="font-sans text-[12px] text-bk-muted mb-4">This is a team game. You enter with a club team. Creating a club is free.</p>}
