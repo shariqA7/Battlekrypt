@@ -5,22 +5,14 @@ import { getAdsenseSettings } from "@/lib/services/ads";
 import { BrandingProvider } from "@/components/layout/BrandingProvider";
 import SplashScreen from "@/components/layout/SplashScreen";
 import Toaster from "@/components/ui/Toaster";
-import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
+import "@fontsource/hanken-grotesk/latin-400.css";
+import "@fontsource/hanken-grotesk/latin-500.css";
+import "@fontsource/hanken-grotesk/latin-700.css";
+import "@fontsource/hanken-grotesk/latin-800.css";
+import "@fontsource/jetbrains-mono/latin-500.css";
 
 import "./globals.css";
 import { THEME_INIT_SCRIPT } from "@/components/layout/ThemeToggle";
-
-const hankenGrotesk = Hanken_Grotesk({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "800"],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  weight: ["500"],
-});
 
 const TITLE = "BattleKrypt";
 const DESCRIPTION = "Tournaments, leagues, and daily scrims for competitive gaming.";
@@ -52,7 +44,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${hankenGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className="h-full antialiased"
       // The theme attribute is set by the inline script below before first paint,
       // so the server-rendered <html> and the browser's legitimately differ.
       suppressHydrationWarning
