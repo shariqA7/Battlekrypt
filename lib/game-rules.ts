@@ -9,6 +9,8 @@ export interface GameRules {
   teamSizeMax?: number | null;
   maxSubstitutes?: number | null;
   allowsCoach?: boolean | null;
+  maxPerMatch?: number | null;
+  matchLimitNote?: string | null;
 }
 
 export const hasRules = (g: GameRules) => g.teamSizeMax != null;
@@ -55,4 +57,23 @@ export function groupByGenre<T extends GameRules & { name: string; isFeatured?: 
   const rest = games.filter((x) => !x.genre || !(GENRES as readonly string[]).includes(x.genre)).sort(byName);
   if (rest.length) groups.push({ genre: "Other games", games: rest });
   return groups;
+}
+
+// ---- Room size --------------------------------------------------------------------------------
+
+/** True for a game whose match is always two sides (1v1 or team vs team): rooms are not used for it. */
+export const isHeadToHead = (g: GameRules) => g.maxPerMatch != null && g.maxPerMatch <= 2;
+
+/** What "entries" means for this game: players in solo games, teams otherwise. */
+export const entryWord = (g: GameRules, n = 2) =>
+  (g.teamSizeMax ?? 2) <= 1 ? (n === 1 ? "player" : "players") : n === 1 ? "team" : "teams";
+
+/**
+ * The warning to show when an organizer sets a room above the game's usual size, or null when
+ * it is fine (or the game has no set size). It is advice, never a block: custom lobbies can be bigger.
+ */
+export function roomSizeWarning(g: GameRules & { name?: string }, perRoom: number): string | null {
+  if (g.maxPerMatch == null || isHeadToHead(g) || !Number.isFinite(perRoom) || perRoom <= g.maxPerMatch) return null;
+  return `${g.name ? `${g.name} rooms` : "Rooms of this game"} normally hold ${g.maxPerMatch} ${entryWord(g)}. ${perRoom} is above that, ` +
+    "so check your lobby can really take it. You can still go ahead.";
 }

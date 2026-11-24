@@ -23,6 +23,8 @@ export const GAME_LIMITS = {
   url: 500,
   maxImages: 12,
   sortOrderMax: 9999,
+  maxPerMatch: 1000,
+  matchNote: 300,
 } as const;
 
 // ---------------------------------------------------------------- addresses
@@ -118,6 +120,9 @@ export interface GameDetails {
   developer: string | null;
   platforms: GamePlatform[];
   websiteUrl: string | null;
+  // Most entries (teams, or players in solo games) in one match or room; null = no guide.
+  maxPerMatch: number | null;
+  matchLimitNote: string | null;
   sortOrder: number;
   isFeatured: boolean;
   isApproved: boolean; // "visible to players"
@@ -214,6 +219,24 @@ export function cleanGameInput(raw: unknown, mode: "create" | "update", supabase
       return fail(`The order must be a whole number from 0 to ${GAME_LIMITS.sortOrderMax}.`);
     }
     out.sortOrder = n;
+  }
+
+  if (input.maxPerMatch !== undefined) {
+    const raw = input.maxPerMatch;
+    if (raw === null || (typeof raw === "string" && raw.trim() === "")) {
+      out.maxPerMatch = null;
+    } else {
+      const n = typeof raw === "string" ? Number(raw) : raw;
+      if (typeof n !== "number" || !Number.isInteger(n) || n < 1 || n > GAME_LIMITS.maxPerMatch) {
+        return fail(`The match size must be a whole number from 1 to ${GAME_LIMITS.maxPerMatch}, or empty for no limit.`);
+      }
+      out.maxPerMatch = n;
+    }
+  }
+  if (input.matchLimitNote !== undefined) {
+    const t = text(input.matchLimitNote);
+    if (t && t.length > GAME_LIMITS.matchNote) return fail(`The match size note can be at most ${GAME_LIMITS.matchNote} characters.`);
+    out.matchLimitNote = t ?? null;
   }
 
   for (const key of ["isFeatured", "isApproved"] as const) {

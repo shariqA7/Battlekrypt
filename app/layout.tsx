@@ -4,6 +4,7 @@ import { previewMetadata } from "@/lib/link-preview";
 import { getAdsenseSettings } from "@/lib/services/ads";
 import { BrandingProvider } from "@/components/layout/BrandingProvider";
 import SplashScreen from "@/components/layout/SplashScreen";
+import Toaster from "@/components/ui/Toaster";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-bk-bg text-bk-heading">
         <SplashScreen />
         <BrandingProvider branding={branding}>{children}</BrandingProvider>
+        <Toaster />
       </body>
     </html>
   );

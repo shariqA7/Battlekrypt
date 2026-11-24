@@ -20,6 +20,12 @@ import VoteWidget from "./VoteWidget";
 import StageRail from "@/components/tournaments/StageRail";
 import PrizeDistribution from "@/components/tournaments/PrizeDistribution";
 import PrizeAwardsList from "@/components/tournaments/PrizeAwardsList";
+import MyEntryPanel from "@/components/tournaments/MyEntryPanel";
+import RoomsOverview from "@/components/tournaments/RoomsOverview";
+import RefundPolicyNote from "@/components/tournaments/RefundPolicyNote";
+import { getSeatSummary, refreshSeats } from "@/lib/services/rooms";
+import { seatsLine, toPublicSeats } from "@/lib/seat-view";
+import type { RefundPolicyKey } from "@/lib/seat-settings";
 import OrganizerCard from "@/components/tournaments/OrganizerCard";
 import RuleCard from "@/components/tournaments/RuleCard";
 import LocalDate from "@/components/ui/LocalDate";
@@ -65,6 +71,10 @@ export default async function TournamentDetailPage({
 
   const range = eventDateRange(tournament, tournament.stages);
   const rail = buildRail(tournament, tournament.stages);
+  // Release unpaid seats whose time is up and move the queue, then read the rooms.
+  await refreshSeats(tournament.id);
+  const seatSummary = await getSeatSummary(tournament.id);
+  const seats = seatSummary ? toPublicSeats(seatSummary) : null;
   const cta = ctaFor(tournament, tournament._count.registrations);
   const hasPrize = !!tournament.prizePoolAmount;
   const prizeCurrency = tournament.prizePoolCurrency ?? "PKR";
@@ -144,7 +154,7 @@ export default async function TournamentDetailPage({
                         ? formatMoney(tournament.entryFeeAmount, tournament.entryFeeCurrency ?? "PKR")
                         : "—",
                   ],
-                  ["Teams", `${tournament._count.registrations}/${tournament.maxTeams}`],
+                  ["Teams", seatsLine({ taken: tournament._count.registrations, totalSeats: tournament.maxTeams, waiting: seats?.waiting ?? 0 })],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <dt>
@@ -185,11 +195,26 @@ export default async function TournamentDetailPage({
               )}
             </div>
           </div>
+          <MyEntryPanel tournamentId={tournament.id} paymentInstructions={tournament.paymentInstructions} />
         </header>
 
         {/* ---------------- body ---------------- */}
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] py-10 sm:py-12">
           <div className="min-w-0 flex flex-col gap-10">
+            {seats && seats.hasRooms && seats.rooms.length >= 2 && (
+              <section aria-labelledby="rooms-h">
+                <SectionHeading>
+                  <span id="rooms-h">Rooms</span>
+                </SectionHeading>
+                <p className="mt-3 mb-4 font-sans text-[13px] text-bk-muted">
+                  {seats.full
+                    ? seats.waitlistEnabled ? "Every room is full. You can join the waiting list and take the next free seat." : "Every room is full."
+                    : "Pick the room you want when you join. If it fills first, you're placed in the closest one."}
+                </p>
+                <RoomsOverview seats={seats} fallbackStart={tournament.startAt ? tournament.startAt.toISOString() : null} />
+              </section>
+            )}
+
             <section aria-labelledby="stages-h">
               <SectionHeading>
                 <span id="stages-h">Tournament stages</span>
@@ -269,6 +294,13 @@ export default async function TournamentDetailPage({
           </div>
 
           <aside className="min-w-0 flex flex-col gap-6 lg:self-start">
+            {tournament.entryType === "paid" && (
+              <RefundPolicyNote
+                policy={tournament.refundPolicy as RefundPolicyKey}
+                cutoffHours={tournament.refundCutoffHours}
+                payWindowMinutes={tournament.waitlistEnabled ? tournament.payWindowMinutes : undefined}
+              />
+            )}
             <PrizeDistribution tiers={tournament.prizeTiers} currency={prizeCurrency} />
             <PrizeAwardsList awards={tournament.prizeAwards} currency={prizeCurrency} winnerNames={winnerNames} />
             {tournament.prizePoolAmount != null && Number(tournament.prizePoolAmount) > 0 && (featureFlags.tournamentLock || tournament.lockEnforced) && (

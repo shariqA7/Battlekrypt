@@ -80,3 +80,50 @@ export const GAME_CATALOG: CatalogGame[] = [
   g("Teamfight Tactics", "Strategy / Other", "pc", "free_for_all", 1, 1, 0, true, "8 players enter each match individually, so it is a solo strategy game."),
   g("Chess", "Strategy / Other", "pc", "one_on_one", 1, 1, 0, false, "Traditional 1v1. In team events (Olympiads) a team is 4 active players, 1 reserve and a team captain."),
 ];
+
+// ---------------------------------------------------------------------------------------------
+// Match size: the most entries (teams, or players in solo games) one match or room holds.
+// From each publisher's rulebooks and announcements. Admin -> Games can change any of these, and
+// can fill in a game that is not listed. It is a guide, not a wall: an organizer can go above it
+// (the form warns first), because custom lobbies are often larger or smaller than the public one.
+//
+//   max   entries in one room. For a 2-entry game (max 2) a "room" is just one match, so a
+//         tournament of that game is a bracket or a league and rooms are not used.
+//   note  the working, shown to organizers and admins.
+// ---------------------------------------------------------------------------------------------
+export interface MatchLimit {
+  max: number;
+  note: string;
+}
+
+const HEAD_TO_HEAD = (what: string): MatchLimit => ({ max: 2, note: `${what} A match is always two sides, so a tournament runs as a bracket or league.` });
+
+export const MATCH_LIMITS: Record<string, MatchLimit> = {
+  "Valorant": HEAD_TO_HEAD("5v5."),
+  "Counter-Strike 2": HEAD_TO_HEAD("5v5."),
+  "Call of Duty: Warzone": { max: 50, note: "Trios. Verdansk holds up to 150 players (50 trios); other maps and modes hold 100 to 120. Lower it for a smaller map." },
+  "Call of Duty: Black Ops 7": HEAD_TO_HEAD("4v4."),
+  "Overwatch 2": HEAD_TO_HEAD("5v5."),
+  "Rainbow Six Siege X": HEAD_TO_HEAD("5v5."),
+  "Crossfire": HEAD_TO_HEAD("5v5."),
+  "Dota 2": HEAD_TO_HEAD("5v5."),
+  "League of Legends": HEAD_TO_HEAD("5v5."),
+  "Mobile Legends: Bang Bang": HEAD_TO_HEAD("5v5."),
+  "Honor of Kings": HEAD_TO_HEAD("5v5."),
+  "Apex Legends": { max: 20, note: "20 trios (60 players). This is the lobby size EA uses in the Apex Legends Global Series." },
+  "PUBG: Battlegrounds": { max: 25, note: "A full public lobby is 100 players, which is 25 squads of 4. Official esports rooms use 16 squads (64 players)." },
+  "PUBG Mobile": { max: 25, note: "Up to 100 players, which is 25 squads of 4. Official PUBG Mobile esports groups use 16 squads." },
+  "Free Fire": { max: 12, note: "Garena's tournament rulebooks allow at most 12 squads of 4 on one map. The public lobby holds 50 players." },
+  "Fortnite": { max: 50, note: "A lobby holds 100 players, which is 50 duos. Epic's Fortnite Championship Series uses 50 duos in its finals." },
+  "Tekken 8": HEAD_TO_HEAD("1v1."),
+  "Street Fighter 6": HEAD_TO_HEAD("1v1."),
+  "Fatal Fury: City of the Wolves": HEAD_TO_HEAD("1v1."),
+  "EA Sports FC 26": HEAD_TO_HEAD("1v1."),
+  "Rocket League": HEAD_TO_HEAD("3v3."),
+  "Trackmania": { max: 64, note: "Up to 64 players on one match server, as in the official Cup of the Day." },
+  "Teamfight Tactics": { max: 8, note: "8 players in every lobby (Riot's tournament format)." },
+  "Chess": HEAD_TO_HEAD("1v1."),
+};
+
+/** The catalog's match limit for a game name, or null for a game that is not listed. */
+export const matchLimitFor = (name: string): MatchLimit | null => MATCH_LIMITS[name] ?? null;

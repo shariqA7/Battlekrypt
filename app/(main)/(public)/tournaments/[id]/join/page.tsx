@@ -15,6 +15,9 @@ import { checkInstitutionGate } from "@/lib/services/institutions";
 import { toPublicTournament } from "@/lib/services/venue";
 import { getStudentId } from "@/lib/services/student-id";
 import { isUsableStudentId } from "@/lib/student-id-status";
+import { getSeatSummary, refreshSeats } from "@/lib/services/rooms";
+import { toPublicSeats } from "@/lib/seat-view";
+import type { RefundPolicyKey } from "@/lib/seat-settings";
 
 export default async function JoinTournamentPage({
   params,
@@ -33,6 +36,15 @@ export default async function JoinTournamentPage({
   if (!full) notFound();
   // This object is passed into a client component, so strip secrets first.
   const tournament = toPublicTournament(full);
+
+  // Seats: release unpaid holds that ran out, then read the rooms and the queue. When every seat is
+  // taken the forms below offer the waiting list instead of asking for payment.
+  await refreshSeats(full.id);
+  const seatSummary = await getSeatSummary(full.id);
+  const seats = seatSummary ? toPublicSeats(seatSummary) : null;
+  const refund = { policy: full.refundPolicy as RefundPolicyKey, cutoffHours: full.refundCutoffHours, payWindowMinutes: full.payWindowMinutes };
+  const startIso = full.startAt ? full.startAt.toISOString() : null;
+  const closedFull = !!seats?.full && !seats.waitlistEnabled;
 
   // Institution-only: the player's institute must be one taking part. If not,
   // the block links to the profile page (pick/change institute) and brings the
@@ -65,7 +77,7 @@ export default async function JoinTournamentPage({
 
   return (
     <>
-      <main className="flex-1 px-6 py-10 max-w-lg mx-auto w-full">
+      <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-lg mx-auto w-full">
         <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">
           Join {tournament.name}
         </h1>
@@ -93,15 +105,20 @@ export default async function JoinTournamentPage({
             />
           </div>
         )}
-        {teamStatus?.required ? (
+        {closedFull ? (
+          <div className="border border-bk-border bg-bk-bg px-4 py-4" role="status">
+            <p className="font-sans text-[13px] text-bk-heading font-bold mb-1">This tournament is full</p>
+            <p className="font-sans text-[12px] text-bk-muted">Every seat is taken and the organizer isn&apos;t running a waiting list. Check the organizer&apos;s other tournaments for an open slot.</p>
+          </div>
+        ) : teamStatus?.required ? (
           teamStatus.state === "ready" ? (
-            <ClubEntryPanel tournamentId={tournament.id} tournament={{ entryType: tournament.entryType, paymentInstructions: tournament.paymentInstructions, customFields: tournament.customFields }} />
+            <ClubEntryPanel tournamentId={tournament.id} tournament={{ entryType: tournament.entryType, paymentInstructions: tournament.paymentInstructions, customFields: tournament.customFields }} slug={tournament.slug} startAt={startIso} seats={seats} refund={refund} />
           ) : (
             <TeamEntryGate state={teamStatus.state} gameName={teamStatus.gameName} clubName={teamStatus.clubName} ownsClub={teamStatus.ownsClub} next={`/tournaments/${tournament.slug}/join`} />
           )
         ) : (
           <>
-        <ClubEntryPanel tournamentId={tournament.id} tournament={{ entryType: tournament.entryType, paymentInstructions: tournament.paymentInstructions, customFields: tournament.customFields }} />
+        <ClubEntryPanel tournamentId={tournament.id} tournament={{ entryType: tournament.entryType, paymentInstructions: tournament.paymentInstructions, customFields: tournament.customFields }} slug={tournament.slug} startAt={startIso} seats={seats} refund={refund} />
         {needsVerification ? (
           <div className="border border-bk-gold-light/40 bg-bk-bg px-4 py-4 mt-4">
             <p className="font-sans text-[13px] text-bk-heading font-bold mb-1">
@@ -145,7 +162,7 @@ export default async function JoinTournamentPage({
                 be attached to your entry. The organizer can see it; nobody else can.
               </p>
             )}
-            <JoinForm tournamentId={tournament.id} tournament={tournament} />
+            <JoinForm tournamentId={tournament.id} tournament={tournament} slug={tournament.slug} startAt={startIso} seats={seats} refund={refund} />
           </>
         )}
           </>

@@ -35,6 +35,9 @@ export default async function EditTournamentPage({
     redirect(`/organizer/dashboard/tournaments/${id}`);
   }
 
+  // With rooms, the seats are the rooms' seats: they are changed on the tournament page, not here.
+  const roomCount = await prisma.tournamentRoom.count({ where: { tournamentId: id } });
+
   return (
     <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-2xl mx-auto w-full">
       <SectionHeading className="mb-6">Edit tournament</SectionHeading>
@@ -46,6 +49,7 @@ export default async function EditTournamentPage({
           prizeAwards: tournament.prizeAwards.map((a) => ({ name: a.name, cashAmount: a.cashAmount == null ? null : Number(a.cashAmount), prizeText: a.prizeText })),
         }}
         flags={await getFeatureFlags()}
+        roomCount={roomCount}
       />
       </Panel>
     </main>

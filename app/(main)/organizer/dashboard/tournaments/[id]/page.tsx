@@ -27,6 +27,12 @@ import PayoutButton from "./PayoutButton";
 import PrizePayees from "./PrizePayees";
 import InstitutesPanel from "@/components/institutes/InstitutesPanel";
 import NoShowPolicyPanel from "@/components/penalties/NoShowPolicyPanel";
+import RoomsPanel from "@/components/tournaments/RoomsPanel";
+import RefundsPanel from "@/components/tournaments/RefundsPanel";
+import { getSeatSummary, refreshSeats } from "@/lib/services/rooms";
+import { listRefunds } from "@/lib/services/withdrawals";
+import { toPublicSeats } from "@/lib/seat-view";
+import type { RefundPolicyKey } from "@/lib/seat-settings";
 import { ButtonLink } from "@/components/ui/Button";
 import { Badge, TierBadge } from "@/components/ui/Badge";
 import Stat from "@/components/ui/Stat";
@@ -90,7 +96,15 @@ export default async function ManageTournamentPage({
   const duplicates = Object.fromEntries(
     await findProofMatches("registration", registrations.filter((r) => r.paymentProofUrl || r.paymentReference).map((r) => r.id)),
   );
+  // Release unpaid seats whose time is up and move the queue before showing the numbers.
+  await refreshSeats(id);
   const capacity = await getTournamentCapacity(id);
+  const seatSummary = await getSeatSummary(id);
+  const seats = seatSummary ? toPublicSeats(seatSummary) : null;
+  const refundList = tournament.entryType === "paid" ? await listRefunds(id, organizerProfile.id) : null;
+  const refundRows = refundList && "rows" in refundList ? refundList.rows.map((r) => ({ ...r, withdrawnAt: r.withdrawnAt.toISOString() })) : [];
+  // Once anyone holds or queues for a seat, the refund policy they agreed to is fixed.
+  const refundLocked = registrations.some((r) => ["pending", "approved", "waitlisted"].includes(r.status));
   const myInstitutionId =
     (await prisma.institution.findUnique({ where: { organizerId: organizerProfile.id }, select: { id: true } }))?.id ?? null;
   const isInstitutionScoped = tournament.audienceScope === "institution";
@@ -142,7 +156,8 @@ export default async function ManageTournamentPage({
             value={capacity ? `${capacity.filled}/${capacity.maxTeams}` : "—"}
             label="Slots filled"
           />
-          <Stat value={registrations.filter((r) => r.status === "pending").length} label="Pending" className="col-span-2 sm:col-span-1" />
+          <Stat value={registrations.filter((r) => r.status === "pending").length} label="Pending" className={seats && seats.waiting > 0 ? "" : "col-span-2 sm:col-span-1"} />
+          {seats && seats.waiting > 0 && <Stat value={seats.waiting} label="Waiting list" className="col-span-2 sm:col-span-3" />}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 mb-8">
@@ -283,6 +298,29 @@ export default async function ManageTournamentPage({
           initial={{ penalty: tournament.noShowPenalty, points: tournament.noShowPenaltyPoints }}
         />
 
+        {seats && (
+          <RoomsPanel
+            tournamentId={id}
+            seats={seats}
+            paid={tournament.entryType === "paid"}
+            refundLocked={refundLocked}
+            editable={!["completed", "cancelled"].includes(tournament.status)}
+            settings={{
+              waitlistEnabled: tournament.waitlistEnabled,
+              payWindowMinutes: tournament.payWindowMinutes,
+              refundPolicy: tournament.refundPolicy as RefundPolicyKey,
+              refundCutoffHours: tournament.refundCutoffHours,
+            }}
+            game={{ name: tournament.game.name, maxPerMatch: tournament.game.maxPerMatch, teamSizeMax: tournament.game.teamSizeMax }}
+            tournamentStart={tournament.startAt ? tournament.startAt.toISOString() : null}
+          />
+        )}
+        <RefundsPanel
+          rows={refundRows}
+          policy={tournament.refundPolicy as RefundPolicyKey}
+          cutoffHours={tournament.refundCutoffHours}
+        />
+
         <div className="flex flex-wrap items-baseline justify-between gap-2 mt-10 mb-3">
           <p className="font-sans font-bold text-bk-heading text-base">
             Registrations ({registrations.length})
@@ -305,7 +343,7 @@ export default async function ManageTournamentPage({
           </div>
         )}
         <RegistrationQueue
-          key={`${view}:${registrations.map((r) => `${r.id}.${r.status}.${r.penalties.map((p) => p.id).join("+")}`).join("|")}`}
+          key={`${view}:${registrations.map((r) => `${r.id}.${r.status}.${r.roomId ?? ""}.${r.penalties.map((p) => p.id).join("+")}`).join("|")}`}
           tournamentId={id}
           initialRegistrations={registrations}
           mode={tournament.mode}
@@ -315,6 +353,7 @@ export default async function ManageTournamentPage({
           duplicates={duplicates}
           noShowPolicy={{ penalty: tournament.noShowPenalty, points: tournament.noShowPenaltyPoints }}
           myInstitutionId={myInstitutionId}
+          rooms={seats?.hasRooms ? seats.rooms.map((r) => ({ id: r.id, label: r.label, seatsLeft: r.seatsLeft })) : []}
         />
       </main>
     </>

@@ -19,6 +19,8 @@ import VenuePicker, { emptyVenue, venueToBody, type VenueValue } from "@/compone
 import AudiencePicker, { type AudienceScopeValue } from "@/components/tournaments/AudiencePicker";
 import { buttonClass } from "@/components/ui/Button";
 import { Panel, SectionHeading } from "@/components/ui/Panel";
+import SeatsFields from "@/components/tournaments/SeatsFields";
+import { DEFAULT_SEAT_FORM, seatDefaultsForGame, seatFormError, seatPayload, type SeatForm } from "@/lib/seat-form";
 
 interface Game extends GameRules {
   id: string;
@@ -54,8 +56,8 @@ export default function NewTournamentPage() {
   const [type, setType] = useState("tournament");
   const [mode, setMode] = useState("squad");
   const [maxTeamSize, setMaxTeamSize] = useState(4);
-  const [maxTeams, setMaxTeams] = useState(64);
-  const [playersPerRoom, setPlayersPerRoom] = useState(100);
+  // Rooms, seats, the waiting list and (paid) the refund policy: see lib/seat-form.ts.
+  const [seat, setSeat] = useState<SeatForm>(DEFAULT_SEAT_FORM);
   const [format, setFormat] = useState("single_elimination");
   const [startAt, setStartAt] = useState("");
   const [entryType, setEntryType] = useState<"free" | "paid">("free");
@@ -126,8 +128,7 @@ export default function NewTournamentPage() {
     setType(t.type);
     setMode(t.mode);
     if (t.maxTeamSize) setMaxTeamSize(t.maxTeamSize);
-    setMaxTeams(t.maxTeams);
-    if (t.playersPerRoom) setPlayersPerRoom(t.playersPerRoom);
+    setSeat((s) => ({ ...s, useRooms: false, maxTeams: String(t.maxTeams) }));
     setFormat(t.format);
     setEntryType(t.entryType);
     if (t.entryFee) {
@@ -178,6 +179,12 @@ export default function NewTournamentPage() {
     }
     const allFields = [...customFields, ...parsedConditions.fields];
 
+    const seatProblem = seatFormError(seat, entryType === "paid");
+    if (seatProblem) {
+      setError(seatProblem);
+      return;
+    }
+
     // The whole prize pool must be described before the draft is created.
     const breakdownError = !flags.prizeBreakdown
       ? null
@@ -203,8 +210,7 @@ export default function NewTournamentPage() {
         type,
         mode,
         maxTeamSize: mode !== "solo" ? Number(maxTeamSize) : undefined,
-        maxTeams: Number(maxTeams),
-        playersPerRoom: Number(playersPerRoom),
+        ...seatPayload(seat, entryType === "paid", startAt ? new Date(startAt).toISOString() : undefined),
         format,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         entryType,
@@ -312,6 +318,8 @@ export default function NewTournamentPage() {
                 setMode(d.mode);
                 setMaxTeamSize(d.maxTeamSize);
               }
+              // A lobby game starts with rooms of its official size; a head-to-head game runs as a bracket.
+              setSeat((s) => seatDefaultsForGame(s, picked ?? null));
             }}
             className={inputClass}
           >
@@ -382,27 +390,8 @@ export default function NewTournamentPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Max teams</label>
-              <input
-                type="number"
-                required
-                value={maxTeams}
-                onChange={(e) => setMaxTeams(Number(e.target.value))}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Players per room</label>
-              <input
-                type="number"
-                value={playersPerRoom}
-                onChange={(e) => setPlayersPerRoom(Number(e.target.value))}
-                className={inputClass}
-              />
-            </div>
-          </div>
+          <FormGroup title="Seats" />
+          <SeatsFields value={seat} onChange={setSeat} paid={entryType === "paid"} game={selectedGame} inputClass={inputClass} labelClass={labelClass} />
 
           {mode !== "solo" && (
             <>

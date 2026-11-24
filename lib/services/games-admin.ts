@@ -28,6 +28,8 @@ export type AdminGameDetail = AdminGameRow & {
   images: string[];
   developer: string | null;
   websiteUrl: string | null;
+  maxPerMatch: number | null;
+  matchLimitNote: string | null;
   usage: { tournaments: number; challenges: number; rosters: number; teams: number; invites: number; templates: number; ratings: number; requests: number };
 };
 
@@ -72,6 +74,7 @@ export async function getGameForAdmin(id: string): Promise<AdminGameDetail | nul
     tournaments: g._count.tournaments, seeded: isSeededGameName(g.name),
     shortDescription: g.shortDescription, description: g.description, images: g.images,
     developer: g.developer, websiteUrl: g.websiteUrl,
+    maxPerMatch: g.maxPerMatch, matchLimitNote: g.matchLimitNote,
     usage: {
       tournaments: g._count.tournaments, challenges: g._count.challenges, rosters: g._count.clubRosters,
       teams: g._count.clubTeams, invites: g._count.clubInvites, templates: g._count.templates,

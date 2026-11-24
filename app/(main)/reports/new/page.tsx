@@ -20,7 +20,7 @@ export default async function NewReportPage({ searchParams }: { searchParams: Pr
   if (!info) notFound();
 
   return (
-    <main className="flex-1 px-6 py-10 max-w-lg mx-auto w-full">
+    <main className="flex-1 px-4 sm:px-6 py-8 sm:py-10 max-w-lg mx-auto w-full">
       <h1 className="font-sans font-extrabold text-2xl text-bk-heading mb-1">Report a problem</h1>
       <p className="font-sans text-bk-body text-[13px] mb-1">
         {info.tournamentName} · {info.organizerName}

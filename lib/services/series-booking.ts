@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/prisma";
 import { notify, notifyMany } from "@/lib/services/notifications";
 import { approveRegistration, registerForTournament } from "@/lib/services/tournaments";
+import { refreshSeats } from "@/lib/services/rooms";
 import { resolveTeamActor, submitClubTeamEntry } from "@/lib/services/club-entries";
 import { getTrustConfig } from "@/lib/services/organizer-trust";
 import { formatMoney } from "@/lib/money";
@@ -137,6 +138,7 @@ async function removeRegistration(r: { id: string; tournamentId: string; teamEnt
     await prisma.teamEntry.delete({ where: { id: r.teamEntryId } });
   }
   await prisma.tournament.update({ where: { id: r.tournamentId }, data: { registrationCount: { decrement: 1 } } }).catch(() => undefined);
+  await refreshSeats(r.tournamentId); // the seat it held (if any) goes to the next team in line
 }
 
 /** Remove a half-made booking completely (nothing was booked, nothing is charged). */
@@ -181,8 +183,10 @@ export async function rejectBooking(userId: string, bookingId: string, reason?: 
   if ("error" in r) return r;
   const b = r.booking;
   const why = typeof reason === "string" && reason.trim() ? reason.trim().slice(0, 500) : null;
+  const affected = await prisma.registration.findMany({ where: { bookingId, status: "pending" }, select: { tournamentId: true } });
   const regs = await prisma.registration.updateMany({ where: { bookingId, status: "pending" }, data: { status: "rejected" } });
   await prisma.seriesBooking.update({ where: { id: bookingId }, data: { status: "rejected" } });
+  for (const tid of new Set(affected.map((a) => a.tournamentId))) await refreshSeats(tid); // freed seats move each waiting list up
   await notify(b.userId, {
     type: "booking", title: "Your booking wasn't approved",
     body: `${b.series.name}: ${why ?? "the organizer could not confirm the payment."}`, href: "/bookings",

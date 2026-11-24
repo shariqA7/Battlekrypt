@@ -94,9 +94,12 @@ export type Cta =
   | { kind: "join"; label: string }
   | { kind: "closed"; label: string };
 
-export function ctaFor(tournament: { status: string; maxTeams: number }, registrations: number): Cta {
+export function ctaFor(tournament: { status: string; maxTeams: number; waitlistEnabled?: boolean }, registrations: number): Cta {
   if (["published", "registration_open"].includes(tournament.status)) {
-    if (registrations >= tournament.maxTeams) return { kind: "closed", label: "Full" };
+    if (registrations >= tournament.maxTeams) {
+      // Every seat is taken: with the waiting list on, a team can still queue for the next one.
+      return tournament.waitlistEnabled ? { kind: "join", label: "Join the waiting list" } : { kind: "closed", label: "Full" };
+    }
     return { kind: "join", label: "Enter now" };
   }
   if (tournament.status === "registration_closed") return { kind: "closed", label: "Registration closed" };

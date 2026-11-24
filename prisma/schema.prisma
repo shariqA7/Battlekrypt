@@ -121,6 +121,12 @@ model Game {
   allowsCoach    Boolean @default(true)
   rosterNotes    String?
 
+  // The most entries (teams, or players in solo games) one match or room holds, and where the
+  // number comes from. A guide for organizers, not a hard wall: the tournament form warns when a
+  // room is set above it. Filled from lib/game-catalog.ts, editable in Admin -> Games.
+  maxPerMatch    Int?
+  matchLimitNote String?
+
   // Regional versions. Some games are blocked in a country and replaced there by a
   // local version (for example India). `onlyInCountries`: only people in those countries
   // see this game (empty = everyone). `blockedInCountries`: people in those countries

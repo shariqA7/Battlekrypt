@@ -3,7 +3,7 @@
 // "Request a Game" flow rather than pre-loading all 24 EWC titles.
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { GAME_CATALOG } from "../lib/game-catalog";
+import { GAME_CATALOG, matchLimitFor } from "../lib/game-catalog";
 import { gameSlugBase, pickUniqueSlug } from "../lib/game-details";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
@@ -160,6 +160,8 @@ async function main() {
       maxSubstitutes: x.maxSubstitutes,
       allowsCoach: x.allowsCoach,
       rosterNotes: x.notes,
+      maxPerMatch: matchLimitFor(x.name)?.max ?? null,
+      matchLimitNote: matchLimitFor(x.name)?.note ?? null,
     };
     const existing = await prisma.game.findUnique({ where: { name: x.name } });
     if (!existing) {
