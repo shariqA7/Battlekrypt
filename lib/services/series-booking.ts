@@ -9,11 +9,15 @@
 import { prisma } from "@/lib/prisma";
 import { notify, notifyMany } from "@/lib/services/notifications";
 import { approveRegistration, registerForTournament } from "@/lib/services/tournaments";
+import { refreshSeats } from "@/lib/services/rooms";
 import { resolveTeamActor, submitClubTeamEntry } from "@/lib/services/club-entries";
 import { getTrustConfig } from "@/lib/services/organizer-trust";
 import { formatMoney } from "@/lib/money";
+import { entryAmount } from "@/lib/registration-amount";
+import { settleRefundsIfDone } from "@/lib/services/refund-settlement";
+import { MAX_BOOKING_SESSIONS as MAX_SESSIONS, priceBooking, validateDiscountTiers } from "@/lib/scrim-series-rules";
 
-export const MAX_BOOKING_SESSIONS = 40;
+export const MAX_BOOKING_SESSIONS = MAX_SESSIONS;
 export const CHOICE_HOURS = 48;
 const OPEN = ["published", "registration_open"] as const;
 const HOUR = 3600_000;
@@ -73,10 +77,15 @@ export async function createBooking(
     playerId = profile.id;
   }
 
+  // What this booking costs: the list price for each session, less the discount for booking this many.
+  const tiers = validateDiscountTiers(series.discountTiers);
+  const price = paid ? priceBooking(Number(series.entryFeeAmount!.toString()), sessions.length, tiers.ok ? tiers.value : []) : null;
+
   const booking = await prisma.seriesBooking.create({
     data: {
       seriesId: series.id, userId, clubTeamId: teamId, paymentProofUrl: proof ?? null, paymentReference: reference ?? null,
       feePerSession: paid ? series.entryFeeAmount : null, currency: paid ? series.entryFeeCurrency : null, sessionCount: sessions.length,
+      discountPercent: price?.percentOff ?? 0, totalAmount: price?.total ?? null,
     },
   });
 
@@ -95,6 +104,8 @@ export async function createBooking(
       await undoBooking(booking.id);
       return fail("session_full", `${s.name} is full. Pick a different session. Nothing was booked.`);
     }
+    // Remember what was actually paid for THIS session, so a refund returns exactly that.
+    if (price) await prisma.registration.update({ where: { id: res.data.id }, data: { paidAmount: price.perSession[i] } });
   }
 
   if (team && series.organizer.userId !== userId) {
@@ -107,13 +118,13 @@ export async function createBooking(
   }
   await notify(series.organizer.userId, {
     type: "booking", title: "New booking to review",
-    body: `${sessions.length} session${sessions.length === 1 ? "" : "s"} of ${series.name}${paid ? `, ${formatMoney(Number(series.entryFeeAmount!.toString()) * sessions.length, series.entryFeeCurrency!)} paid` : ""}.`,
+    body: `${sessions.length} session${sessions.length === 1 ? "" : "s"} of ${series.name}${price ? `, ${formatMoney(price.total, series.entryFeeCurrency!)} paid${price.percentOff ? ` (${price.percentOff}% discount)` : ""}` : ""}.`,
     href: "/organizer/dashboard/scrims",
   }).catch(() => undefined);
   return {
     data: {
       bookingId: booking.id, sessions: sessions.length,
-      total: paid ? Number(series.entryFeeAmount!.toString()) * sessions.length : 0, currency: paid ? series.entryFeeCurrency : null,
+      total: price?.total ?? 0, currency: paid ? series.entryFeeCurrency : null, discountPercent: price?.percentOff ?? 0, saved: price?.saved ?? 0,
     },
   };
 }
@@ -127,6 +138,7 @@ async function removeRegistration(r: { id: string; tournamentId: string; teamEnt
     await prisma.teamEntry.delete({ where: { id: r.teamEntryId } });
   }
   await prisma.tournament.update({ where: { id: r.tournamentId }, data: { registrationCount: { decrement: 1 } } }).catch(() => undefined);
+  await refreshSeats(r.tournamentId); // the seat it held (if any) goes to the next team in line
 }
 
 /** Remove a half-made booking completely (nothing was booked, nothing is charged). */
@@ -171,8 +183,10 @@ export async function rejectBooking(userId: string, bookingId: string, reason?: 
   if ("error" in r) return r;
   const b = r.booking;
   const why = typeof reason === "string" && reason.trim() ? reason.trim().slice(0, 500) : null;
+  const affected = await prisma.registration.findMany({ where: { bookingId, status: "pending" }, select: { tournamentId: true } });
   const regs = await prisma.registration.updateMany({ where: { bookingId, status: "pending" }, data: { status: "rejected" } });
   await prisma.seriesBooking.update({ where: { id: bookingId }, data: { status: "rejected" } });
+  for (const tid of new Set(affected.map((a) => a.tournamentId))) await refreshSeats(tid); // freed seats move each waiting list up
   await notify(b.userId, {
     type: "booking", title: "Your booking wasn't approved",
     body: `${b.series.name}: ${why ?? "the organizer could not confirm the payment."}`, href: "/bookings",
@@ -312,9 +326,10 @@ async function carryOver(reg: CancelledReg, now: Date) {
   // The payment was already confirmed for the cancelled session, so the new entry is confirmed too.
   await approveRegistration(created.id, series.organizerId);
   await prisma.$transaction([
-    prisma.registration.update({ where: { id: created.id }, data: { carriedFromId: reg.id } }),
+    prisma.registration.update({ where: { id: created.id }, data: { carriedFromId: reg.id, paidAmount: reg.paidAmount } }),
     prisma.registration.update({ where: { id: reg.id }, data: { choiceDeadline: null } }),
   ]);
+  await settleRefundsIfDone(reg.tournamentId);
   await notify(payer, { type: "booking", title: "You were moved to the next session", body: `${reg.tournament.name} was cancelled. You're now in ${next.name} (${when(next.startAt)}).`, href: "/bookings" }).catch(() => undefined);
   return { data: { registrationId: created.id, tournamentId: next.id, name: next.name, startAt: next.startAt } };
 }
@@ -330,7 +345,8 @@ async function takeRefund(reg: CancelledReg, now: Date, auto = false) {
   const cfg = await getTrustConfig();
   await prisma.tournament.update({ where: { id: reg.tournamentId }, data: { cancelRefundsDueAt: new Date(now.getTime() + cfg.payoutGraceDays * DAY), refundsConfirmedAt: null } });
   const payer = reg.payerUserId ?? reg.player?.userId ?? null;
-  const fee = reg.tournament.entryFeeAmount ? formatMoney(Number(reg.tournament.entryFeeAmount.toString()), reg.tournament.entryFeeCurrency ?? "USD") : "the entry fee";
+  const paidFor = entryAmount(reg, reg.tournament);
+  const fee = paidFor !== null ? formatMoney(paidFor, reg.tournament.entryFeeCurrency ?? "USD") : "the entry fee";
   if (reg.tournament.series) {
     await notify(reg.tournament.series.organizer.userId, {
       type: "booking", title: "A player asked for a refund",
@@ -391,7 +407,7 @@ export async function listMyChoices(userId: string, now = new Date()) {
     const next = await findNextSession(reg, now);
     out.push({
       registrationId: reg.id, sessionName: reg.tournament.name, seriesName: reg.tournament.series?.name ?? "",
-      deadline: reg.choiceDeadline, fee: reg.tournament.entryFeeAmount ? Number(reg.tournament.entryFeeAmount.toString()) : null, currency: reg.tournament.entryFeeCurrency,
+      deadline: reg.choiceDeadline, fee: entryAmount(reg, reg.tournament), currency: reg.tournament.entryFeeCurrency,
       next: next ? { name: next.name, startAt: next.startAt } : null,
     });
   }
@@ -408,7 +424,7 @@ export async function listMyBookings(userId: string) {
   });
   return rows.map((b) => ({
     id: b.id, status: b.status, createdAt: b.createdAt, series: b.series, sessionCount: b.sessionCount,
-    total: b.feePerSession ? Number(b.feePerSession.toString()) * b.sessionCount : 0, currency: b.currency,
+    total: b.totalAmount ? Number(b.totalAmount.toString()) : b.feePerSession ? Number(b.feePerSession.toString()) * b.sessionCount : 0, discountPercent: b.discountPercent, currency: b.currency,
     sessions: b.registrations.map((r) => ({ registrationId: r.id, slug: r.tournament.slug, name: r.tournament.name, startAt: r.tournament.startAt, tournamentStatus: r.tournament.status, status: r.status, choice: r.choiceStatus, carriedOver: !!r.carriedFromId })),
   }));
 }
@@ -422,19 +438,20 @@ export async function listPendingBookingsForOrganizer(userId: string) {
   const by = new Map(users.map((u) => [u.id, u]));
   return rows.map((b) => ({
     id: b.id, series: b.series.name, sessionCount: b.sessionCount, createdAt: b.createdAt, reference: b.paymentReference,
-    total: b.feePerSession ? Number(b.feePerSession.toString()) * b.sessionCount : 0, currency: b.currency,
+    total: b.totalAmount ? Number(b.totalAmount.toString()) : b.feePerSession ? Number(b.feePerSession.toString()) * b.sessionCount : 0, discountPercent: b.discountPercent, currency: b.currency,
     payer: by.get(b.userId)?.displayName ?? "Player", payerEmail: by.get(b.userId)?.email ?? null,
     proofRegistrationId: b.paymentProofUrl ? b.registrations[0]?.id ?? null : null,
   }));
 }
 
-/** Players who asked for a refund for a cancelled session: who to pay back, and how much. */
+/** Refunds for a cancelled session: one line per entry (a team is one line), to the person who PAID. */
 export async function listRefundsOwed(userId: string, tournamentId: string) {
   const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { organizer: { select: { userId: true } }, entryFeeAmount: true, entryFeeCurrency: true } });
   if (!t || t.organizer.userId !== userId) return null;
   const regs = await prisma.registration.findMany({
     where: { tournamentId, choiceStatus: "refund" },
-    select: { paymentReference: true, payerUserId: true, player: { select: { userId: true, firstName: true, lastName: true } }, teamEntry: { select: { name: true } } },
+    orderBy: { withdrawnAt: "asc" },
+    select: { id: true, refundStatus: true, paidAmount: true, paymentReference: true, payerUserId: true, player: { select: { userId: true, firstName: true, lastName: true } }, teamEntry: { select: { name: true } } },
   });
   const ids = regs.map((r) => r.payerUserId ?? r.player?.userId).filter((x): x is string => !!x);
   const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true, email: true, phone: true } });
@@ -442,10 +459,14 @@ export async function listRefundsOwed(userId: string, tournamentId: string) {
   const waiting = await prisma.registration.count({ where: { tournamentId, choiceStatus: "pending" } });
   return {
     waiting,
-    amount: t.entryFeeAmount ? Number(t.entryFeeAmount.toString()) : null, currency: t.entryFeeCurrency,
+    currency: t.entryFeeCurrency,
     items: regs.map((r) => {
       const u = by.get(r.payerUserId ?? r.player?.userId ?? "");
-      return { name: r.teamEntry?.name ?? (r.player ? `${r.player.firstName} ${r.player.lastName}` : "Player"), payer: u?.displayName ?? "", email: u?.email ?? null, phone: u?.phone ?? null, reference: r.paymentReference };
+      return {
+        id: r.id, refundStatus: r.refundStatus as string, amount: entryAmount(r, t),
+        entry: r.teamEntry?.name ?? (r.player ? `${r.player.firstName} ${r.player.lastName}` : "Player"),
+        payer: u?.displayName ?? "", email: u?.email ?? null, phone: u?.phone ?? null, reference: r.paymentReference,
+      };
     }),
   };
 }

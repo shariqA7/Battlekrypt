@@ -145,7 +145,7 @@ export async function decideDispute(input: { adminId: string; disputeId: string;
   if (!note) return fail("validation_error", "Add a note explaining the decision.");
   const d = await prisma.paymentDispute.findUnique({
     where: { id: input.disputeId },
-    include: { registration: { select: { id: true, status: true } }, },
+    include: { registration: { select: { id: true, status: true, paidAmount: true } }, },
   });
   if (!d) return fail("not_found");
   if (d.status !== "awaiting_admin") return fail("wrong_state", "This case isn't waiting for a decision.");
@@ -157,10 +157,10 @@ export async function decideDispute(input: { adminId: string; disputeId: string;
   let amount: number | null = null;
   if (refunds && input.refundAmount !== undefined && input.refundAmount !== null && input.refundAmount !== "") {
     amount = Number(input.refundAmount);
-    const err = refundAmountError(amount, Number(t.entryFeeAmount?.toString() ?? 0));
+    const err = refundAmountError(amount, Number((d.registration?.paidAmount ?? t.entryFeeAmount)?.toString() ?? 0));
     if (err) return fail("validation_error", err);
   }
-  const fee = Number(t.entryFeeAmount?.toString() ?? 0);
+  const fee = Number((d.registration?.paidAmount ?? t.entryFeeAmount)?.toString() ?? 0);
   if (amount !== null && amount >= fee) amount = null; // "refund everything" is just the full amount
 
   const claimed = await prisma.paymentDispute.updateMany({

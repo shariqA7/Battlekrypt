@@ -121,6 +121,12 @@ model Game {
   allowsCoach    Boolean @default(true)
   rosterNotes    String?
 
+  // The most entries (teams, or players in solo games) one match or room holds, and where the
+  // number comes from. A guide for organizers, not a hard wall: the tournament form warns when a
+  // room is set above it. Filled from lib/game-catalog.ts, editable in Admin -> Games.
+  maxPerMatch    Int?
+  matchLimitNote String?
+
   // Regional versions. Some games are blocked in a country and replaced there by a
   // local version (for example India). `onlyInCountries`: only people in those countries
   // see this game (empty = everyone). `blockedInCountries`: people in those countries
@@ -1439,6 +1445,9 @@ model Registration {
   choiceStatus   SessionChoice?
   choiceDeadline DateTime?
   carriedFromId  String? // the cancelled entry this one replaced (a carry-over)
+  // What was actually paid for this session when it differs from the list price (a discounted booking).
+  // Refunds and disputes use it. Null = the event's entry fee.
+  paidAmount     Decimal? @db.Decimal(14, 2)
 
   // Results/standings — set by the organizer once a tournament has matches
   // to report. Nullable: most registrations never get a placement (only
@@ -3388,6 +3397,8 @@ model ScrimSeries {
   startDate           DateTime          @db.Date
   endDate             DateTime?         @db.Date // null = no end date (non-stop)
   skipDates           String[] // "2026-12-25": days with no session
+  // Discounts for booking many sessions at once: [{ minSessions: 10, percentOff: 10 }, ...]. Paid series only.
+  discountTiers       Json?
   status              ScrimSeriesStatus @default(active)
   lastError           String? // why the last automatic generation stopped, if it did
   lastGeneratedAt     DateTime?
@@ -3459,6 +3470,8 @@ model SeriesBooking {
   feePerSession   Decimal?      @db.Decimal(14, 2)
   currency        String?
   sessionCount    Int
+  discountPercent Int           @default(0) // the tier that applied
+  totalAmount     Decimal?      @db.Decimal(14, 2) // what the payer pays for the whole booking
   status          BookingStatus @default(pending)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

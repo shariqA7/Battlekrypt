@@ -3,7 +3,7 @@
 import { prisma } from "../lib/prisma";
 import { approveRegistration, manualAddRegistration, registerForTournament, rejectRegistration, updateTournament } from "../lib/services/tournaments";
 import { submitSeatPayment } from "../lib/services/seat-payments";
-import { createRooms, deleteRoom, getEntryPlacement, getSeatSummary, moveEntryToRoom, refreshSeats, updateRoom } from "../lib/services/rooms";
+import { createRooms, deleteRoom, getEntryPlacement, getSeatSummary, moveEntryToRoom, refreshAllSeats, refreshSeats, updateRoom } from "../lib/services/rooms";
 
 let fails = 0;
 const ok = (n: string, c: boolean) => { console.log(`${c ? "PASS" : "FAIL"} ${n}`); if (!c) fails++; };
@@ -17,7 +17,7 @@ async function main() {
   await prisma.user.create({ data: { id: "org", email: "org@x.com", displayName: "Org", kycStatus: "approved" } });
   const org = await prisma.organizerProfile.create({ data: { userId: "org", orgName: "OrgCo", limitsLifted: true } });
   const game = (await prisma.game.findUnique({ where: { name: "PUBG Mobile" } }))!; // the migrations add the catalog games
-  ok("PUBG Mobile is loaded from the migration", Boolean(game));
+  ok("PUBG Mobile comes with a 25-team room from the migration", game.maxPerMatch === 25);
   const start = new Date(Date.now() + 48 * HOUR);
 
   async function players(n: number) {
@@ -262,6 +262,32 @@ async function main() {
   await refreshSeats(t6.id);
   await refreshSeats("no-such-tournament");
   ok("refreshing when there is nothing to do is harmless", true);
+
+  // the daily sweep finds tournaments nobody opened
+  const tSweep = await tournament("Sweep", { maxTeams: 1, entryType: "paid", payWindowMinutes: 30 });
+  const [sw1, sw2] = await players(2);
+  await join(tSweep.id, sw1, proof);
+  await join(tSweep.id, sw2); // queue
+  await prisma.registration.updateMany({ where: { tournamentId: tSweep.id, playerId: sw1 }, data: { status: "rejected" } }); // frees the seat, nothing refreshed yet
+  ok("nobody has refreshed yet: the queue is still waiting", (await count(tSweep.id, "waitlisted")) === 1);
+  const swept = await refreshAllSeats();
+  ok("the sweep promoted the waiting team", swept.promoted >= 1 && (await count(tSweep.id, "waitlisted")) === 0);
+  const [sw3] = await players(1);
+  await join(tSweep.id, sw3); // queues behind the seat held for the promoted team
+  ok("a third team queues while that hold is still running", (await count(tSweep.id, "waitlisted")) === 1);
+  await prisma.registration.updateMany({ where: { tournamentId: tSweep.id, status: "pending" }, data: { payDueAt: new Date(Date.now() - 1000) } }); // the deadline passes
+  const swept2 = await refreshAllSeats();
+  ok("the sweep released the unpaid seat and gave it to the next team", swept2.released >= 1 && (await prisma.registration.findFirst({ where: { tournamentId: tSweep.id, playerId: sw3 } }))?.status === "pending");
+  ok("a finished tournament is left alone", await (async () => {
+    const tDone = await tournament("Done", { maxTeams: 1 });
+    const [d1, d2] = await players(2);
+    await join(tDone.id, d1); await join(tDone.id, d2);
+    await prisma.registration.updateMany({ where: { tournamentId: tDone.id, playerId: d1 }, data: { status: "rejected" } });
+    await prisma.tournament.update({ where: { id: tDone.id }, data: { status: "completed" } });
+    await refreshAllSeats();
+    return (await count(tDone.id, "waitlisted")) === 1;
+  })());
+  ok("the sweep with nothing to do is harmless", (await refreshAllSeats()).checked >= 0);
 
   // ---------------------------------------------------------------------------------------------
   // 7. plain tournaments (no rooms) behave exactly as before

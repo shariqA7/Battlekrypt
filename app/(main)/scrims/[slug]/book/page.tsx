@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getSeriesPublic } from "@/lib/services/scrim-series";
+import { validateDiscountTiers } from "@/lib/scrim-series-rules";
 import { getTeamEntryStatus } from "@/lib/services/team-entry";
 import { getClubEntryOptions } from "@/lib/services/club-entries";
 import { SectionHeading } from "@/components/ui/Panel";
@@ -68,6 +69,7 @@ export default async function BookSessionsPage({ params }: { params: Promise<{ s
         currency={series.entryFeeCurrency}
         paymentInstructions={series.paymentInstructions}
         timezone={tz}
+        tiers={(() => { const t = validateDiscountTiers(series.discountTiers); return t.ok ? t.value : []; })()}
         teams={teams}
         sessions={open.map((s) => ({ id: s.id, day: day(s.startAt), time: clock(s.startAt), weekday: weekday(s.startAt), spotsLeft: s.capacity - s.taken }))}
       />

@@ -4,6 +4,9 @@ import EmptyState, { EmptyIcons } from "@/components/ui/EmptyState";
 import DuplicateProofBadge from "@/components/ui/DuplicateProofBadge";
 import type { ProofMatch } from "@/lib/proof-match";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { roomLabel } from "@/lib/rooms";
+import { toast } from "@/lib/toast";
 import { createClient } from "@/lib/supabase/client";
 import type { ClubTeamCandidate, ClubSoloCandidate } from "@/lib/services/club-entries";
 import { buttonClass } from "@/components/ui/Button";
@@ -24,6 +27,11 @@ interface Registration {
   checkInStatus: "pending" | "checked_in" | "no_show";
   placement: number | null;
   points: number | null;
+  // Rooms, waiting list and payment window (see lib/rooms.ts).
+  roomId?: string | null;
+  room?: { id: string; number: number; name: string | null; startAt: Date | string | null } | null;
+  waitlistedAt?: Date | string | null;
+  payDueAt?: Date | string | null;
   // Standing penalties (cheating / no-show) on this entry.
   penalties?: PenaltyRow[];
   player: { user: { displayName: string } } | null;
@@ -120,6 +128,8 @@ const STATUS_BADGE: Record<string, string> = {
   approved: "bg-bk-teal/15 text-bk-teal",
   rejected: "bg-bk-live/15 text-bk-live",
   disqualified: "bg-bk-live/15 text-bk-live",
+  waitlisted: "bg-bk-amber/15 text-bk-amber",
+  withdrawn: "bg-bk-surface-hover text-bk-muted",
 };
 
 // Organizer's "Parental consent" column. Only the status is shown, never who the guardian is.
@@ -139,7 +149,9 @@ export default function RegistrationQueue({
   consent = null,
   duplicates = {},
   noShowPolicy,
-  myInstitutionId,}: {
+  myInstitutionId,
+  rooms = [],
+}: {
   tournamentId: string;
   initialRegistrations: Registration[];
   mode: string;
@@ -152,8 +164,29 @@ export default function RegistrationQueue({
   noShowPolicy: NoShowPolicy;
   // The host's own institute, if it has one (a penalty it issued can be revoked by it).
   myInstitutionId: string | null;
+  // The tournament's rooms with their free seats, for "Move to room". Empty when it has none.
+  rooms?: { id: string; label: string; seatsLeft: number }[];
 }) {
+  const router = useRouter();
   const [registrations, setRegistrations] = useState(initialRegistrations);
+  // Place in the waiting list, first come first served.
+  const queuePlace = new Map(
+    registrations
+      .filter((r) => r.status === "waitlisted")
+      .sort((a, b) => new Date(a.waitlistedAt ?? 0).getTime() - new Date(b.waitlistedAt ?? 0).getTime())
+      .map((r, i) => [r.id, i + 1] as const),
+  );
+
+  async function moveToRoom(id: string, roomId: string) {
+    if (!roomId) return;
+    const res = await fetch(`/api/registrations/${id}/room`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomId }) });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return toast(json?.error?.message ?? "Couldn't move that entry.", "error");
+    const target = rooms.find((x) => x.id === roomId);
+    setRegistrations((prev) => prev.map((r) => (r.id === id ? { ...r, roomId, room: r.room ? { ...r.room, id: roomId } : r.room } : r)));
+    toast(`Moved to ${target?.label ?? "the room"}.`, "success", 3500);
+    router.refresh();
+  }
   // Which registration's disqualify panel is open, if any — replaces a
   // window.prompt so the organizer can cite one of the tournament's own
   // rules instead of just typing free text.
@@ -261,6 +294,8 @@ export default function RegistrationQueue({
       setRegistrations((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: updated.status } : r))
       );
+      // A rejection frees a seat, which moves the waiting list up: reload to show who got it.
+      if (action === "reject") router.refresh();
     }
   }
 
@@ -424,9 +459,35 @@ export default function RegistrationQueue({
             <div className="min-w-0">
               <p className="font-sans font-bold text-bk-heading text-sm break-words">{name}</p>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className={`font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 ${STATUS_BADGE[r.status]}`}>
-                  {r.status}
+                <span className={`font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 ${STATUS_BADGE[r.status] ?? "bg-bk-surface-hover text-bk-muted"}`}>
+                  {r.status === "waitlisted" ? `waiting list #${queuePlace.get(r.id) ?? "?"}` : r.status}
                 </span>
+                {r.room && ["pending", "approved"].includes(r.status) && (
+                  <span className="font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 bg-bk-surface-hover text-bk-body">
+                    {roomLabel(r.room)}
+                  </span>
+                )}
+                {r.status === "pending" && r.payDueAt && !r.paymentProofUrl && (
+                  <span
+                    title="A seat opened for this team off the waiting list. If it doesn't pay by this time, the seat goes to the next team."
+                    className="font-sans font-bold text-[10px] uppercase tracking-[1px] px-2 py-1 bg-bk-amber/15 text-bk-amber"
+                  >
+                    Payment due {new Date(r.payDueAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                  </span>
+                )}
+                {rooms.length > 1 && ["pending", "approved"].includes(r.status) && (
+                  <select
+                    aria-label={`Move ${name} to another room`}
+                    value=""
+                    onChange={(e) => void moveToRoom(r.id, e.target.value)}
+                    className="bg-bk-bg border border-bk-border text-bk-body text-[11px] font-sans px-2 h-[28px]"
+                  >
+                    <option value="">Move to room…</option>
+                    {rooms.filter((x) => x.id !== r.roomId && x.seatsLeft > 0).map((x) => (
+                      <option key={x.id} value={x.id}>{x.label} ({x.seatsLeft} left)</option>
+                    ))}
+                  </select>
+                )}
                 {consent && consent[r.id] && (
                   <span
                     title="Parental consent (players under 18)"

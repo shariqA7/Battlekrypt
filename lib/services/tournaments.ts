@@ -764,6 +764,7 @@ export async function listRegistrations(
       player: { include: { user: { select: { displayName: true } } } },
       teamEntry: { include: { members: true } },
       routedInstitution: { select: { id: true, name: true } },
+      room: { select: { id: true, number: true, name: true, startAt: true } },
     },
     orderBy: { registeredAt: "asc" },
   });

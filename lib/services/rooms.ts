@@ -406,3 +406,27 @@ export async function moveEntryToRoom(registrationId: string, organizerId: strin
   await refreshSeats(reg.tournamentId); // the room it left may have a free seat now
   return { ok: true };
 }
+
+/**
+ * The daily safety net behind the instant checks: every tournament that still has a waiting list or an
+ * unpaid seat past its deadline gets one refreshSeats. Pages and the "my entry" panel already do this
+ * the moment someone looks, so this only matters for tournaments nobody has opened.
+ */
+export async function refreshAllSeats(limit = 300): Promise<{ checked: number; promoted: number; released: number }> {
+  const rows = await prisma.registration.findMany({
+    where: {
+      tournament: { status: { in: ["published", "registration_open", "registration_closed"] } },
+      OR: [{ status: "waitlisted" }, { status: "pending", paymentProofUrl: null, payDueAt: { lte: new Date() } }],
+    },
+    select: { tournamentId: true },
+    distinct: ["tournamentId"],
+    take: limit,
+  });
+  let promoted = 0, released = 0;
+  for (const r of rows) {
+    const out = await refreshSeats(r.tournamentId);
+    promoted += out.promoted;
+    released += out.released;
+  }
+  return { checked: rows.length, promoted, released };
+}

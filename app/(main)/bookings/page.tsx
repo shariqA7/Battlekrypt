@@ -46,7 +46,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
               <Link href={`/scrims/${b.series.slug}`} className="font-sans font-bold text-bk-heading text-[14px] hover:underline">{b.series.name}</Link>
               <span className="font-sans text-[11px] uppercase tracking-[0.8px] text-bk-gold-light">{b.status === "pending" ? "Waiting for the organizer" : b.status}</span>
             </div>
-            <p className="font-sans text-[12px] text-bk-muted mt-0.5">{b.sessionCount} session{b.sessionCount === 1 ? "" : "s"}{b.total && b.currency ? ` · ${formatMoney(b.total, b.currency)} paid` : " · free"}</p>
+            <p className="font-sans text-[12px] text-bk-muted mt-0.5">{b.sessionCount} session{b.sessionCount === 1 ? "" : "s"}{b.total && b.currency ? ` · ${formatMoney(b.total, b.currency)} paid${b.discountPercent ? ` (${b.discountPercent}% discount)` : ""}` : " · free"}</p>
             <ul className="mt-2 space-y-1">
               {b.sessions.map((s) => (
                 <li key={s.registrationId} className="font-sans text-[12px] text-bk-body flex flex-wrap justify-between gap-2">

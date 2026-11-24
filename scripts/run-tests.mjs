@@ -1,4 +1,4 @@
-// Runs every scripts/*-test.ts, each against a FRESH copy of the migrated database.
+// Runs every scripts/*-test.ts (and *-test.tsx), each against a FRESH copy of the migrated database.
 //
 //   TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/battlekrypt_test npm test
 //
@@ -69,7 +69,7 @@ if (reuse && (await exists())) {
 // ---- 2. one fresh clone per script
 const filters = args.filter((a) => !a.startsWith("--"));
 const files = readdirSync("scripts")
-  .filter((f) => f.endsWith("-test.ts"))
+  .filter((f) => f.endsWith("-test.ts") || f.endsWith("-test.tsx"))
   .filter((f) => filters.length === 0 || filters.some((w) => f.includes(w)))
   .sort();
 
@@ -78,7 +78,13 @@ for (const file of files) {
   await sql(`DROP DATABASE IF EXISTS ${quote(dbName)} WITH (FORCE)`);
   await sql(`CREATE DATABASE ${quote(dbName)} TEMPLATE ${quote(templateName)}`);
   const started = Date.now();
-  const r = run("npx", ["tsx", `scripts/${file}`], { DATABASE_URL: withDb(dbName), DIRECT_URL: withDb(dbName) }, 3 * 60 * 1000);
+  const r = run("npx", ["tsx", `scripts/${file}`], {
+    DATABASE_URL: withDb(dbName),
+    DIRECT_URL: withDb(dbName),
+    // The UI render test builds components that create a Supabase client; any values will do, nothing is contacted.
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "test-key",
+  }, 3 * 60 * 1000);
   const out = `${r.stdout ?? ""}${r.stderr ?? ""}`;
   const pass = (out.match(/^PASS/gm) ?? []).length;
   const failLines = out.split("\n").filter((l) => /^FAIL/.test(l));

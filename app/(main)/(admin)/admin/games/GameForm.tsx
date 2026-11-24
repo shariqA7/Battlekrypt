@@ -37,6 +37,8 @@ export default function GameForm({
   const [description, setDescription] = useState(game?.description ?? "");
   const [developer, setDeveloper] = useState(game?.developer ?? "");
   const [websiteUrl, setWebsite] = useState(game?.websiteUrl ?? "");
+  const [maxPerMatch, setMaxPerMatch] = useState(game?.maxPerMatch != null ? String(game.maxPerMatch) : "");
+  const [matchLimitNote, setMatchNote] = useState(game?.matchLimitNote ?? "");
   const [platforms, setPlatforms] = useState<GamePlatform[]>((game?.platforms ?? []) as GamePlatform[]);
   const [sortOrder, setSortOrder] = useState(String(game?.sortOrder ?? 0));
   const [isFeatured, setFeatured] = useState(game?.isFeatured ?? false);
@@ -73,6 +75,7 @@ export default function GameForm({
     const body = {
       ...(nameLocked ? {} : { name }),
       genre, shortDescription, description, developer, websiteUrl, platforms,
+      maxPerMatch: maxPerMatch.trim() === "" ? null : Number(maxPerMatch), matchLimitNote,
       sortOrder, isFeatured, isApproved, coverImageUrl, images,
     };
     const res = await fetch(mode === "create" ? "/api/admin/games" : `/api/admin/games/${game!.id}`, {
@@ -148,6 +151,30 @@ export default function GameForm({
           <div>
             <label className={label} htmlFor="g-desc">Description <span className="normal-case font-normal">(shown on the game page)</span></label>
             <textarea id="g-desc" className={area} rows={6} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={GAME_LIMITS.description} />
+          </div>
+        </Panel>
+
+        <Panel className="p-4 space-y-3">
+          <div>
+            <label className={label} htmlFor="g-max">Match size (teams per room)</label>
+            <input
+              id="g-max"
+              type="number"
+              min={1}
+              max={GAME_LIMITS.maxPerMatch}
+              className={`${input} max-w-[160px]`}
+              value={maxPerMatch}
+              onChange={(e) => setMaxPerMatch(e.target.value)}
+              placeholder="No limit"
+            />
+            <p className="font-sans text-[11px] text-bk-muted mt-1">
+              The most teams (or players, in solo games) one match or room holds. For example 25 for PUBG Mobile (100 players, squads of 4)
+              or 2 for a 1v1 game. Organizers are warned when they go above it, but can still do so. Leave empty if the game has no fixed size.
+            </p>
+          </div>
+          <div>
+            <label className={label} htmlFor="g-max-note">Where this number comes from</label>
+            <textarea id="g-max-note" className={area} rows={2} value={matchLimitNote} onChange={(e) => setMatchNote(e.target.value)} maxLength={GAME_LIMITS.matchNote} placeholder="e.g. 100 players per lobby, squads of 4 (official rulebook)" />
           </div>
         </Panel>
 

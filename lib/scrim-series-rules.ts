@@ -6,6 +6,9 @@ import { isSupportedCurrency } from "@/lib/money";
 export const SERIES_HORIZON_DAYS = 14; // sessions are created this far ahead
 export const MAX_SLOTS_HARD = 8; // never more than this many sessions in one day
 export const MAX_SKIP_DATES = 60;
+export const MAX_BOOKING_SESSIONS = 40; // most sessions in one booking
+export const MAX_DISCOUNT_TIERS = 5;
+export const MAX_DISCOUNT_PERCENT = 90;
 export const SERIES_TIMEZONES = [
   "Asia/Karachi", "Asia/Dubai", "Asia/Riyadh", "Asia/Kolkata", "Asia/Dhaka", "Asia/Singapore",
   "Europe/London", "Europe/Istanbul", "America/New_York", "UTC",
@@ -105,7 +108,7 @@ export type SeriesInput = {
   name: string; description: string | null; bannerUrl: string | null; gameId: string;
   mode: "solo" | "duo" | "squad"; maxTeamSize: number; maxTeams: number; playersPerRoom: number | null;
   entryType: "free" | "paid"; entryFeeAmount: number | null; entryFeeCurrency: string | null; paymentInstructions: string | null;
-  rulesText: string | null; country: string | null;
+  rulesText: string | null; country: string | null; discountTiers: DiscountTier[];
 } & Schedule;
 
 type Res = { ok: true; value: SeriesInput } | { ok: false; message: string };
@@ -177,13 +180,67 @@ export function validateSeries(raw: Record<string, unknown>, limits: SeriesLimit
     return fail("That schedule has no sessions between the start and end dates.");
   }
 
+  const tiers = validateDiscountTiers(raw.discountTiers);
+  if (!tiers.ok) return fail(tiers.message);
+  if (tiers.value.length > 0 && entryType !== "paid") return fail("Discounts only apply to paid series.");
+
   const country = typeof raw.country === "string" && raw.country.trim() ? raw.country.trim().toUpperCase().slice(0, 2) : null;
   return {
     ok: true,
     value: {
       name, description: description || null, bannerUrl, gameId, mode, maxTeamSize, maxTeams, playersPerRoom: ppr,
-      entryType, entryFeeAmount, entryFeeCurrency, paymentInstructions: paymentInstructions || null, rulesText: rulesText || null, country,
+      entryType, entryFeeAmount, entryFeeCurrency, paymentInstructions: paymentInstructions || null, rulesText: rulesText || null, country, discountTiers: tiers.value,
       timezone, daysOfWeek: days.sort((a, b) => a - b), slotTimes: slots, startDate, endDate, skipDates,
     },
   };
+}
+
+// ---- discounts for booking several sessions at once ----
+export type DiscountTier = { minSessions: number; percentOff: number };
+
+/** Checks a list of tiers. Rows with an empty field are ignored. Best deal must come with more sessions. */
+export function validateDiscountTiers(raw: unknown): { ok: true; value: DiscountTier[] } | { ok: false; message: string } {
+  if (raw === undefined || raw === null || raw === "") return { ok: true, value: [] };
+  if (!Array.isArray(raw)) return { ok: false, message: "Discounts must be a list." };
+  const tiers: DiscountTier[] = [];
+  for (const t of raw) {
+    if (!t || typeof t !== "object") return { ok: false, message: "Each discount needs a number of sessions and a percentage." };
+    const o = t as Record<string, unknown>;
+    if ((o.minSessions === "" || o.minSessions === undefined || o.minSessions === null) && (o.percentOff === "" || o.percentOff === undefined || o.percentOff === null)) continue;
+    const min = Number(o.minSessions), pct = Number(o.percentOff);
+    if (!Number.isInteger(min) || min < 2 || min > MAX_BOOKING_SESSIONS) return { ok: false, message: `A discount applies from 2 to ${MAX_BOOKING_SESSIONS} sessions.` };
+    if (!Number.isInteger(pct) || pct < 1 || pct > MAX_DISCOUNT_PERCENT) return { ok: false, message: `A discount is a whole percentage from 1 to ${MAX_DISCOUNT_PERCENT}.` };
+    tiers.push({ minSessions: min, percentOff: pct });
+  }
+  if (tiers.length > MAX_DISCOUNT_TIERS) return { ok: false, message: `At most ${MAX_DISCOUNT_TIERS} discounts.` };
+  tiers.sort((a, b) => a.minSessions - b.minSessions);
+  for (let i = 1; i < tiers.length; i++) {
+    if (tiers[i].minSessions === tiers[i - 1].minSessions) return { ok: false, message: "Two discounts start at the same number of sessions." };
+    if (tiers[i].percentOff <= tiers[i - 1].percentOff) return { ok: false, message: "Booking more sessions must give a bigger discount than booking fewer." };
+  }
+  return { ok: true, value: tiers };
+}
+
+/** The percentage off for booking n sessions: the best tier whose minimum is reached. */
+export function discountFor(tiers: DiscountTier[] | null | undefined, n: number): number {
+  let best = 0;
+  for (const t of tiers ?? []) if (n >= t.minSessions && t.percentOff > best) best = t.percentOff;
+  return best;
+}
+
+const cents = (x: number) => Math.round(x * 100);
+
+/**
+ * What a booking of n sessions costs, and what each session cost. The per-session amounts add up to
+ * the total exactly (spare cents go to the earliest sessions), because a refund for one session must
+ * return what was actually paid for it.
+ */
+export function priceBooking(fee: number, n: number, tiers: DiscountTier[] | null | undefined) {
+  const percentOff = discountFor(tiers, n);
+  const gross = cents(fee) * n;
+  const total = Math.round((gross * (100 - percentOff)) / 100);
+  const base = Math.floor(total / n);
+  const extra = total - base * n;
+  const perSession = Array.from({ length: n }, (_, i) => (base + (i < extra ? 1 : 0)) / 100);
+  return { percentOff, gross: gross / 100, total: total / 100, saved: (gross - total) / 100, perSession };
 }

@@ -24,6 +24,7 @@ export default function SeriesForm({ maxSlots, maxDays, onDone }: { maxSlots: nu
   const [slots, setSlots] = useState<string[]>(["20:00"]);
   const [skip, setSkip] = useState<string[]>([]);
   const [skipInput, setSkipInput] = useState("");
+  const [tiers, setTiers] = useState<{ minSessions: string; percentOff: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -41,6 +42,7 @@ export default function SeriesForm({ maxSlots, maxDays, onDone }: { maxSlots: nu
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...f, maxTeamSize: f.mode === "squad" ? Number(f.maxTeamSize) : undefined, daysOfWeek: days, slotTimes: slots, skipDates: skip,
+        discountTiers: f.entryType === "paid" ? tiers : [],
         endDate: f.nonStop ? null : f.endDate || null, entryFeeAmount: f.entryType === "paid" ? f.entryFeeAmount : undefined,
         entryFeeCurrency: f.entryType === "paid" ? f.entryFeeCurrency : undefined, playersPerRoom: f.playersPerRoom || undefined,
       }),
@@ -139,6 +141,25 @@ export default function SeriesForm({ maxSlots, maxDays, onDone }: { maxSlots: nu
         <label className={label}>How should players pay?</label>
         <textarea className={`${input} h-20 py-2`} value={f.paymentInstructions} maxLength={1000} onChange={(e) => set("paymentInstructions", e.target.value)} placeholder="Easypaisa / JazzCash number, bank details…" />
       </>}
+      {f.entryType === "paid" && (
+        <>
+          <label className={label}>Discounts for booking several sessions (optional)</label>
+          <p className="font-sans text-[11px] text-bk-muted mb-2">For example: book 10 sessions, get 10% off; book 30, get 25% off. A player who books that many sessions at once pays less per session.</p>
+          <div className="space-y-2">
+            {tiers.map((t, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-2">
+                <span className="font-sans text-[12px] text-bk-body">Book</span>
+                <input type="number" min={2} max={40} className={`${input} !w-[80px]`} value={t.minSessions} onChange={(e) => setTiers((x) => x.map((y, j) => (j === i ? { ...y, minSessions: e.target.value } : y)))} />
+                <span className="font-sans text-[12px] text-bk-body">or more sessions, get</span>
+                <input type="number" min={1} max={90} className={`${input} !w-[80px]`} value={t.percentOff} onChange={(e) => setTiers((x) => x.map((y, j) => (j === i ? { ...y, percentOff: e.target.value } : y)))} />
+                <span className="font-sans text-[12px] text-bk-body">% off</span>
+                <button type="button" aria-label="Remove discount" onClick={() => setTiers((x) => x.filter((_, j) => j !== i))} className="text-bk-muted px-1">×</button>
+              </div>
+            ))}
+            {tiers.length < 5 && <button type="button" onClick={() => setTiers((x) => [...x, { minSessions: "", percentOff: "" }])} className="border border-bk-border text-bk-body font-sans text-[12px] px-3 h-[34px]">+ Add a discount</button>}
+          </div>
+        </>
+      )}
       <label className={label}>Rules (one per line, optional)</label>
       <textarea className={`${input} h-24 py-2`} value={f.rulesText} maxLength={4000} onChange={(e) => set("rulesText", e.target.value)} />
 

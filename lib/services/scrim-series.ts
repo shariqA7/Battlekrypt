@@ -73,6 +73,7 @@ export async function createSeries(userId: string, raw: Record<string, unknown>)
       paymentInstructions: d.paymentInstructions, rulesText: d.rulesText, country: d.country,
       timezone: d.timezone, daysOfWeek: d.daysOfWeek, slotTimes: d.slotTimes, startDate: asDate(d.startDate),
       endDate: d.endDate ? asDate(d.endDate) : null, skipDates: d.skipDates,
+      discountTiers: d.discountTiers.length > 0 ? d.discountTiers : undefined,
     },
   });
   const generated = await generateSessions(series.id);

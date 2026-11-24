@@ -36,6 +36,10 @@ ok("no dates -> null", eventDateRange({ startAt: null }, [{ startAt: null }]) ==
 // ---- CTA
 ok("open: enter now", ctaFor({ status: "registration_open", maxTeams: 10 }, 3).kind === "join");
 ok("full: closed", ctaFor({ status: "registration_open", maxTeams: 10 }, 10).label === "Full");
+ok("full with a waiting list: join the waiting list", ctaFor({ status: "registration_open", maxTeams: 10, waitlistEnabled: true }, 10).label === "Join the waiting list" && ctaFor({ status: "registration_open", maxTeams: 10, waitlistEnabled: true }, 10).kind === "join");
+ok("full, waiting list off: closed", ctaFor({ status: "registration_open", maxTeams: 10, waitlistEnabled: false }, 12).label === "Full");
+ok("not full: the waiting list isn't mentioned", ctaFor({ status: "registration_open", maxTeams: 10, waitlistEnabled: true }, 9).label === "Enter now");
+ok("a closed tournament never offers a waiting list", ctaFor({ status: "registration_closed", maxTeams: 10, waitlistEnabled: true }, 10).kind === "closed");
 ok("in progress / completed / cancelled / draft", ctaFor({ status: "in_progress", maxTeams: 9 }, 1).label === "Live now" && ctaFor({ status: "completed", maxTeams: 9 }, 1).label === "Completed" && ctaFor({ status: "cancelled", maxTeams: 9 }, 1).label === "Cancelled" && ctaFor({ status: "draft", maxTeams: 9 }, 1).kind === "closed");
 
 // ---- prize tiers

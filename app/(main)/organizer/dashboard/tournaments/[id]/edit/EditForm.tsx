@@ -21,7 +21,6 @@ interface TournamentForEdit {
   description: string | null;
   bannerUrl: string | null;
   maxTeams: number;
-  playersPerRoom: number | null;
   entryType: string;
   entryFeeAmount: unknown; // Prisma Decimal — coerced with Number() below
   entryFeeCurrency: string | null;
@@ -45,13 +44,12 @@ interface TournamentForEdit {
   startAt: Date | null;
 }
 
-export default function EditForm({ tournament, flags }: { tournament: TournamentForEdit; flags: FeatureFlags }) {
+export default function EditForm({ tournament, flags, roomCount = 0 }: { tournament: TournamentForEdit; flags: FeatureFlags; roomCount?: number }) {
   const router = useRouter();
   const [name, setName] = useState(tournament.name);
   const [description, setDescription] = useState(tournament.description ?? "");
   const [bannerUrl, setBannerUrl] = useState(tournament.bannerUrl ?? "");
   const [maxTeams, setMaxTeams] = useState(tournament.maxTeams);
-  const [playersPerRoom, setPlayersPerRoom] = useState(tournament.playersPerRoom ?? 0);
   const [entryFeeAmount, setEntryFeeAmount] = useState(
     tournament.entryFeeAmount ? Number(tournament.entryFeeAmount) : 0
   );
@@ -117,8 +115,8 @@ export default function EditForm({ tournament, flags }: { tournament: Tournament
         name,
         description: description || undefined,
         bannerUrl: bannerUrl || undefined,
-        maxTeams: Number(maxTeams),
-        playersPerRoom: Number(playersPerRoom),
+        // With rooms the total is the rooms' seats, which the server owns: not sent from here.
+        ...(roomCount > 0 ? {} : { maxTeams: Number(maxTeams) }),
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         ...(tournament.entryType === "paid" && {
           entryFee: { amount: entryFeeAmount, currency: entryFeeCurrency },
@@ -167,26 +165,24 @@ export default function EditForm({ tournament, flags }: { tournament: Tournament
         className="w-full bg-bk-bg border border-bk-border text-bk-heading text-[13px] font-sans px-3 py-2"
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>Max teams</label>
-          <input
-            type="number"
-            required
-            value={maxTeams}
-            onChange={(e) => setMaxTeams(Number(e.target.value))}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Players per room</label>
-          <input
-            type="number"
-            value={playersPerRoom}
-            onChange={(e) => setPlayersPerRoom(Number(e.target.value))}
-            className={inputClass}
-          />
-        </div>
+      <div className="max-w-[260px]">
+        <label className={labelClass} htmlFor="edit-max-teams">Max teams</label>
+        <input
+          id="edit-max-teams"
+          type="number"
+          required
+          min={1}
+          value={maxTeams}
+          disabled={roomCount > 0}
+          onChange={(e) => setMaxTeams(Number(e.target.value))}
+          className={`${inputClass} disabled:opacity-60`}
+        />
+        {roomCount > 0 && (
+          <p className="font-sans text-[11px] text-bk-muted mt-1">
+            This tournament has {roomCount} {roomCount === 1 ? "room" : "rooms"}, so its seats are the rooms&apos; seats. Change them under
+            &quot;Rooms &amp; seats&quot; on the tournament page. The waiting list and refund policy are there too.
+          </p>
+        )}
       </div>
 
       <label className={labelClass}>Start date &amp; time</label>

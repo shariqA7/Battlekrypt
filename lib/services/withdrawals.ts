@@ -3,6 +3,8 @@
 // BattleKrypt never holds the money: the organizer received it, so the organizer sends refunds and
 // marks them done here, and the player sees where theirs stands.
 import { prisma } from "@/lib/prisma";
+import { entryAmount } from "@/lib/registration-amount";
+import { settleRefundsIfDone } from "@/lib/services/refund-settlement";
 import { notify } from "@/lib/services/notifications";
 import { lockSeats, refreshSeats } from "@/lib/services/rooms";
 import { roomLabel, roomStart } from "@/lib/rooms";
@@ -33,7 +35,7 @@ export async function withdrawEntry(
   const reg = await prisma.registration.findUnique({
     where: { id: registrationId },
     select: {
-      id: true, status: true, tournamentId: true, payerUserId: true, paymentProofUrl: true, paymentStatus: true,
+      id: true, status: true, tournamentId: true, payerUserId: true, paymentProofUrl: true, paymentStatus: true, paidAmount: true,
       teamEntry: { select: { name: true } },
       player: { select: { userId: true, user: { select: { displayName: true } } } },
       room: { select: { startAt: true, number: true, name: true } },
@@ -85,7 +87,7 @@ export async function withdrawEntry(
 
   const who = await nameOfEntry(reg);
   const where = reg.room ? ` (${roomLabel(reg.room)})` : "";
-  const fee = money(reg.tournament.entryFeeAmount, reg.tournament.entryFeeCurrency);
+  const fee = money(entryAmount(reg, reg.tournament), reg.tournament.entryFeeCurrency);
   const refundLine =
     finalStatus === "owed" ? `A refund of ${fee || "the entry fee"} is due to them.`
     : finalStatus === "requested" ? "They asked for a refund. Decide on it in the Refunds tab."
@@ -150,7 +152,7 @@ export async function listRefunds(tournamentId: string, organizerId: string): Pr
     where: { tournamentId, status: "withdrawn", refundStatus: { not: "not_applicable" } },
     orderBy: { withdrawnAt: "desc" },
     select: {
-      id: true, refundStatus: true, paymentReference: true, withdrawnAt: true, withdrawReason: true, waitlistedAt: true, promotedAt: true,
+      id: true, refundStatus: true, paidAmount: true, paymentReference: true, withdrawnAt: true, withdrawReason: true, waitlistedAt: true, promotedAt: true,
       teamEntry: { select: { name: true } },
       player: { select: { user: { select: { displayName: true } } } },
       room: { select: { number: true, name: true } },
@@ -167,7 +169,7 @@ export async function listRefunds(tournamentId: string, organizerId: string): Pr
       statusLabel: REFUND_STATUS_LABEL[r.refundStatus as RefundStatusKey],
       hadSeat: !(r.waitlistedAt && !r.promotedAt && !r.room),
       room: r.room ? roomLabel(r.room) : null,
-      amount: money(t.entryFeeAmount, t.entryFeeCurrency),
+      amount: money(entryAmount(r, t), t.entryFeeCurrency),
       paymentReference: r.paymentReference, payerName: payerName.get(r.id) ?? null,
       withdrawnAt: r.withdrawnAt as Date, withdrawReason: r.withdrawReason,
     })),
@@ -180,7 +182,7 @@ export async function actOnRefund(registrationId: string, organizerId: string, a
   const r = await prisma.registration.findUnique({
     where: { id: registrationId },
     select: {
-      id: true, status: true, refundStatus: true, payerUserId: true,
+      id: true, status: true, tournamentId: true, refundStatus: true, payerUserId: true, paidAmount: true,
       player: { select: { userId: true } },
       tournament: { select: { organizerId: true, name: true, slug: true, entryFeeAmount: true, entryFeeCurrency: true } },
     },
@@ -195,7 +197,9 @@ export async function actOnRefund(registrationId: string, organizerId: string, a
     where: { id: r.id },
     data: { refundStatus: next, refundDecidedAt: now, ...(next === "refunded" ? { refundedAt: now } : {}) },
   });
-  const fee = money(r.tournament.entryFeeAmount, r.tournament.entryFeeCurrency) || "your entry fee";
+  // A cancelled series session settles itself once nothing is left to refund.
+  await settleRefundsIfDone(r.tournamentId);
+  const fee = money(entryAmount(r, r.tournament), r.tournament.entryFeeCurrency) || "your entry fee";
   const text: Record<string, [string, string]> = {
     owed: [`Refund approved for ${r.tournament.name}`, `The organizer approved a refund of ${fee}. They will send it to you.`],
     declined: [`No refund for ${r.tournament.name}`, "The organizer decided not to refund this entry."],

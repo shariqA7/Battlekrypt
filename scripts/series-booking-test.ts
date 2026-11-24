@@ -112,9 +112,10 @@ async function main() {
   const refunded0 = await prisma.registration.findUniqueOrThrow({ where: { id: r0.id } });
   ok("refund: the entry joins the usual refund workflow (withdrawn, refund owed)", refunded0.status === "withdrawn" && refunded0.refundStatus === "owed" && refunded0.withdrawnAt !== null && refunded0.withdrawReason === "The organizer cancelled this session");
   ok("refund: the organizer can mark it refunded with the usual button, and the player is told", "ok" in (await actOnRefund(r0.id, org.id, "refunded")) && (await prisma.registration.findUniqueOrThrow({ where: { id: r0.id } })).refundStatus === "refunded" && !!(await prisma.notification.findFirst({ where: { userId: "p1", type: "refund_refunded" } })));
+  ok("refund: marking the last refund sent settles the session by itself (no second confirm step)", (await prisma.tournament.findUniqueOrThrow({ where: { id: S[0].id } })).refundsConfirmedAt !== null);
   ok("refund: deciding twice is refused", code(await chooseForCancelled("p1", r0.id, "next")) === "already_chosen");
   const owed = await listRefundsOwed("orgU", S[0].id);
-  ok("refund list: who to pay back, how much, which transaction, how to reach them", !!owed && owed.items.length === 1 && owed.amount === 5 && owed.items[0].reference === "TXN-1001" && owed.items[0].email === "p1@x.com" && owed.items[0].phone === "+92 300 0000001" && owed.waiting === 0);
+  ok("refund list: who to pay back, how much, which transaction, how to reach them", !!owed && owed.items.length === 1 && owed.items[0].amount === 5 && owed.items[0].reference === "TXN-1001" && owed.items[0].payer === "p1" && owed.items[0].email === "p1@x.com" && owed.items[0].phone === "+92 300 0000001" && owed.waiting === 0);
   ok("refund list: only the organizer of that session", (await listRefundsOwed("other", S[0].id)) === null);
   ok("refund: the organizer can confirm once nobody is still choosing", !code(await confirmRefunds(org.id, S[0].id)) && (await prisma.tournament.findUniqueOrThrow({ where: { id: S[0].id } })).refundsConfirmedAt !== null);
 
