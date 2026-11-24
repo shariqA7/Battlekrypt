@@ -3,12 +3,16 @@
 /* ============================================================
    BattleKrypt Design Tokens — extracted from the real Figma file
    (node 3:198, Landing Page).
-   Fonts are self-hosted via next/font/google in app/layout.tsx —
-   CSS variables --font-sans / --font-mono come from there.
+   Fonts are self-hosted via @fontsource packages imported in
+   app/layout.tsx; --font-sans / --font-mono are declared below.
    ============================================================ */
 
 :root {
   color-scheme: dark;
+
+  /* Tailwind's font-sans / font-mono utilities resolve to these variables. */
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* ---- surfaces (dark = the mockup: warm near-black, not blue-black) ---- */
   --bk-bg: #16130B;
@@ -112,11 +116,6 @@
   --color-bk-live-bg: var(--bk-live-bg);
   --color-bk-teal: var(--bk-teal);
   --color-bk-amber: var(--bk-amber);
-
-  /* --font-sans / --font-mono are set by next/font/google on the <html>
-     element in app/layout.tsx — Tailwind's font-sans/font-mono utilities
-     already resolve to those variables automatically since they share
-     the same variable names. Nothing to redeclare here. */
 }
 
 body {
